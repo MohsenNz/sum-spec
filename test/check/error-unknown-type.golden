@@ -1,0 +1,30 @@
+test/check/error-unknown-type.sumspec:5:7:
+  |
+5 | App = Missing
+  |       ^
+unknown type Missing; declare it in __atomics or define it
+
+test/check/error-unknown-type.sumspec:6:9:
+  |
+6 | P = A * Gone
+  |         ^
+unknown type Gone; declare it in __atomics or define it
+
+test/check/error-unknown-type.sumspec:7:7:
+  |
+7 | S = X Nope | Y [Lost]
+  |       ^
+unknown type Nope; declare it in __atomics or define it
+
+test/check/error-unknown-type.sumspec:7:17:
+  |
+7 | S = X Nope | Y [Lost]
+  |                 ^
+unknown type Lost; declare it in __atomics or define it
+
+test/check/error-unknown-type.sumspec:8:6:
+  |
+8 | t :: Nowhere -> App
+  |      ^
+unknown type Nowhere; declare it in __atomics or define it
+

@@ -1,0 +1,12 @@
+test/check/error-listed-twice.sumspec:1:17:
+  |
+1 | __atomics { A B A }
+  |                 ^
+A is listed twice in __atomics
+
+test/check/error-listed-twice.sumspec:2:11:
+  |
+2 | __txs { t t }
+  |           ^
+t is listed twice in __txs
+

@@ -1,0 +1,5 @@
+__atomics { A Text }
+__txs {}
+
+App = A
+Text = A

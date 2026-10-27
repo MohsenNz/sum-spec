@@ -1,0 +1,24 @@
+test/check/error-bad-factors.sumspec:8:26:
+  |
+8 | notFactor :: App(A * B * C) -> App
+  |                          ^
+C is not a factor of App (A * B)
+
+test/check/error-bad-factors.sumspec:9:18:
+  |
+9 | twice :: App(A * A * B) -> App
+  |                  ^
+factor A is written twice
+
+test/check/error-bad-factors.sumspec:10:12:
+   |
+10 | missing :: App(A) -> App(B)
+   |            ^
+App is missing factor B; write every factor
+
+test/check/error-bad-factors.sumspec:10:22:
+   |
+10 | missing :: App(A) -> App(B)
+   |                      ^
+App is missing factor A; write every factor
+

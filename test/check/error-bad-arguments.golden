@@ -1,0 +1,42 @@
+test/check/error-bad-arguments.sumspec:9:10:
+  |
+9 | onSum :: Mode(Map) -> Mode
+  |          ^
+Mode is a sum; pick a variant with "." instead of arguments
+
+test/check/error-bad-arguments.sumspec:10:13:
+   |
+10 | onAtomic :: A(B) -> A
+   |             ^
+A takes no arguments
+
+test/check/error-bad-arguments.sumspec:11:21:
+   |
+11 | onNoPayload :: Page.Home(A) -> Page.Home
+   |                     ^
+Page.Home takes no arguments
+
+test/check/error-bad-arguments.sumspec:12:17:
+   |
+12 | tooMany :: Page.Plan(Mode.Map * Mode.Plot) -> Page.Home
+   |                 ^
+Page.Plan takes one argument, Mode, but 2 are given
+
+test/check/error-bad-arguments.sumspec:13:24:
+   |
+13 | wrongType :: Page.Plan(A) -> Page.Home
+   |                        ^
+expected Mode here, not A
+
+test/check/error-bad-arguments.sumspec:14:25:
+   |
+14 | wrongList :: Page.Many([B]) -> Page.Pick(One)
+   |                         ^
+expected [A] here, not [B]
+
+test/check/error-bad-arguments.sumspec:14:37:
+   |
+14 | wrongList :: Page.Many([B]) -> Page.Pick(One)
+   |                                     ^
+Page.Pick is a sum; pick a variant with "." instead of arguments
+

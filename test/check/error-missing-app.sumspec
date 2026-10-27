@@ -1,0 +1,5 @@
+-- No App type.
+__atomics { A }
+__txs {}
+
+T = A

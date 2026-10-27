@@ -1,0 +1,12 @@
+test/check/error-transitions-and-txs.sumspec:4:9:
+  |
+4 | __txs { u }
+  |         ^
+transition u is listed in __txs but has no signature
+
+test/check/error-transitions-and-txs.sumspec:7:1:
+  |
+7 | t :: App.X -> App.Y
+  | ^
+transition t is not listed in __txs
+

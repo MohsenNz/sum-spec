@@ -1,0 +1,6 @@
+test/check/error-atomic-and-defined.sumspec:5:1:
+  |
+5 | Text = A
+  | ^
+Text is declared in __atomics and also defined
+

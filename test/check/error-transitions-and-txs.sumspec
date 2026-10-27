@@ -1,0 +1,8 @@
+-- t is not listed in __txs (reported once, at its first signature);
+-- u is listed but has no signature.
+__atomics { A }
+__txs { u }
+
+App = X | Y
+t :: App.X -> App.Y
+t :: App.Y -> App.X

@@ -29,6 +29,7 @@ library
   hs-source-dirs:  src
   exposed-modules:
     SumSpec
+    SumSpec.Check
     SumSpec.Parser
     SumSpec.Pretty
     SumSpec.Syntax

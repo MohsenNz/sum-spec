@@ -1,0 +1,8 @@
+-- A type may refer to itself through a sum or a list.
+__atomics { Text }
+__txs { grow }
+
+App = Tree
+Tree = Leaf Text | Node [Tree]
+
+grow :: Tree.Leaf -> Tree.Node

@@ -1,0 +1,10 @@
+-- A product's arguments: a factor that doesn't belong, a factor written
+-- twice, and a missing factor.
+__atomics { A B C }
+__txs { notFactor twice missing }
+
+App = A * B
+
+notFactor :: App(A * B * C) -> App
+twice :: App(A * A * B) -> App
+missing :: App(A) -> App(B)

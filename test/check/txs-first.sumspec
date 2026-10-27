@@ -1,0 +1,11 @@
+-- __txs may come before __atomics.
+__txs { trans3 }
+__atomics { X Y Z }
+
+App = T2
+
+T2 = A
+   | B (X * Y * Z)
+   | C
+
+trans3 :: T2.A -> T2.B(X * Y * Z)

@@ -1,0 +1,7 @@
+-- Also inside an inline payload and for list factors.
+__atomics { A B }
+__txs {}
+
+App = A * A
+S = V (A * B * B) | W
+L = [A] * [A] * A

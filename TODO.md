@@ -28,46 +28,36 @@
 - [x] Golden tests: `test/parse/` (valid and `error-*` cases, plus
       `spec/example`), each also checked by a print-and-parse round trip.
 
+### Type checker
+- [x] `src/SumSpec/Check.hs`: validates the AST (no separate model) and
+      reports every error, sorted by position, in the same format as
+      parse errors.
+- [x] Names: `App` is defined; every type used is known; no type both
+      atomic and defined, or defined twice; no name listed twice in
+      `__atomics` or `__txs`; every transition listed in `__txs`, and
+      every listed name has a signature.
+- [x] Type definitions: unique variants per sum, unique factors per
+      product, no newtype cycles.
+- [x] Patterns: paths go only into sums; arguments fit what they follow
+      (rules in `spec-v1.md`, "Arguments in state patterns"); no
+      arguments means any value; the two sides may be different types.
+- [x] Golden tests: `test/check/` (valid cases, the `spec-v1.md`
+      examples, `spec/example`, and `error-*` cases for every rule).
+- [x] CLI: `sumspec check FILE`.
+- [x] Checker rules listed in the notes of `spec/grammar.ebnf`.
+
 ## Remaining
 
-### Type checker
-The rules are listed in the notes at the end of `spec/grammar.ebnf`.
-
-- [ ] Decide the checker's error type and message format (with
-      positions, like parse errors), and whether it reports every error
-      or stops at the first.
-- [ ] Decide whether the checker builds a resolved model of the spec
-      (e.g. `SumSpec.Model`) or only validates the AST.
-- [ ] Names:
-  - [ ] `App` is defined.
-  - [ ] Every type name used is an atomic or a defined type.
-  - [ ] No type is both atomic and defined, and none is defined twice.
-  - [ ] No name is listed twice in `__atomics` or `__txs`.
-  - [ ] Every transition is listed in `__txs`, and every name in
-        `__txs` has at least one signature.
-- [ ] Type definitions:
-  - [ ] Variant names are unique within one sum.
-  - [ ] Type names are unique within one product (`T = A * A`).
-- [ ] Patterns:
-  - [ ] Every path leads through real variants (`Page.Plan`,
-        `PMode.ShowMission.List`).
-  - [ ] Arguments match the payload or product: factors matched by type
-        name in any order, every factor written.
-  - [ ] A sum written without a variant means any of its variants.
-- [ ] Golden tests for the checker: valid cases and one invalid case per
-      rule.
-- [ ] CLI: `sumspec check FILE`.
-
 ### Open questions
-- [ ] Can a pattern look through a newtype (e.g. `Boundary(Ring.Enclosed)`
-      where `Boundary = Ring`)? `proposals.md` uses this form.
 - [ ] Optional warnings: states no transition reaches, and transitions
       whose signatures overlap.
+- [ ] Should the checker build a resolved model of the spec (e.g.
+      `SumSpec.Model`) for code generators to consume?
 
 ### Housekeeping
-- [ ] Commit the parser work.
+- [ ] Commit the type checker work.
 - [ ] Run `cabal update` (the Hackage package list is a year old).
-- [ ] README: how to build and use the `sumspec` CLI.
+- [x] README: how to build and use the `sumspec` CLI.
 
 ### Later (`spec/proposals.md`)
 Not part of v1. Each one changes the semantics, so it needs a spec

@@ -1,0 +1,6 @@
+-- Also inside an inline sum.
+__atomics { A }
+__txs {}
+
+App = X | Y | X A
+S = P (Q | R | Q) | Z

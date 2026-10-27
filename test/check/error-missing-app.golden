@@ -1,0 +1,6 @@
+test/check/error-missing-app.sumspec:1:1:
+  |
+1 | -- No App type.
+  | ^
+App is not defined; every spec needs an App type as its entry point
+

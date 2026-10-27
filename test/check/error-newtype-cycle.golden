@@ -1,0 +1,24 @@
+test/check/error-newtype-cycle.sumspec:6:1:
+  |
+6 | Self = Self
+  | ^
+newtype Self refers back to itself: Self = Self
+
+test/check/error-newtype-cycle.sumspec:7:1:
+  |
+7 | First = Second
+  | ^
+newtype First refers back to itself: First = Second = Third = First
+
+test/check/error-newtype-cycle.sumspec:8:1:
+  |
+8 | Second = Third
+  | ^
+newtype Second refers back to itself: Second = Third = First = Second
+
+test/check/error-newtype-cycle.sumspec:9:1:
+  |
+9 | Third = First
+  | ^
+newtype Third refers back to itself: Third = First = Second = Third
+

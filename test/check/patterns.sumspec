@@ -1,0 +1,43 @@
+-- Every kind of valid pattern.
+__atomics { Point Text }
+__txs { anyApp bareSum bareVariant deepPath factorsAnyOrder newtypeArg listArg singlePayload otherType }
+
+App = Screen * Shape * Label
+
+Screen
+  = Home
+  | Edit (Shape * Label)
+  | Browse
+      ( List
+          ( Empty
+          | Full [Shape] )
+      | One Shape )
+
+Shape
+  = Dot Point
+  | Ring (Ring)
+  | Line [Point]
+
+Ring = Open [Point] | Closed [Point]
+
+Label = Text
+
+-- No arguments: any value.
+anyApp :: App -> App
+-- A sum without a variant: any variant.
+bareSum :: Screen.Browse.List -> Screen.Home
+-- A variant with a payload but no arguments: any payload.
+bareVariant :: Screen.Edit -> Screen.Home
+-- A path into nested inline sums.
+deepPath :: Screen.Browse.List.Empty -> Screen.Browse.List.Full
+-- Factors in any order, nested patterns inside them.
+factorsAnyOrder :: App(Screen.Home * Shape * Label)
+                -> App(Label * Shape.Ring(Ring.Closed) * Screen.Edit(Shape.Dot * Label))
+-- A newtype takes one argument headed by its base type.
+newtypeArg :: Shape.Dot(Point) -> Shape.Dot(Point)
+-- A list payload takes the list type as its argument.
+listArg :: Shape.Line([Point]) -> Shape.Line
+-- A single payload takes one argument headed by its type.
+singlePayload :: Screen.Browse.One(Shape.Dot) -> Screen.Browse.One(Shape.Line)
+-- The two sides may be different types.
+otherType :: Screen.Home -> Shape.Dot

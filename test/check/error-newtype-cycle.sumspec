@@ -1,0 +1,9 @@
+-- A newtype chain that leads back to where it started.
+__atomics { Text }
+__txs {}
+
+App = Self
+Self = Self
+First = Second
+Second = Third
+Third = First

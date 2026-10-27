@@ -1,0 +1,8 @@
+-- Unknown types in a newtype, a product, a payload, a list and a pattern.
+__atomics { A }
+__txs { t }
+
+App = Missing
+P = A * Gone
+S = X Nope | Y [Lost]
+t :: Nowhere -> App

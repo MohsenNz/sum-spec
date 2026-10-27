@@ -1,0 +1,12 @@
+test/check/error-defined-twice.sumspec:5:1:
+  |
+5 | App = A * A
+  | ^
+App is defined twice (first on line 4)
+
+test/check/error-defined-twice.sumspec:5:11:
+  |
+5 | App = A * A
+  |           ^
+factor A appears twice in this product
+

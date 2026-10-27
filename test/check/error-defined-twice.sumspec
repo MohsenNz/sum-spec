@@ -1,0 +1,5 @@
+__atomics { A }
+__txs {}
+
+App = A
+App = A * A

@@ -1,0 +1,14 @@
+-- Arguments that don't fit what they follow.
+__atomics { A B }
+__txs { onSum onAtomic onNoPayload tooMany wrongType wrongList }
+
+App = Page * A
+Page = Home | Plan Mode | Pick (One | Two) | Many [A]
+Mode = Map | Plot
+
+onSum :: Mode(Map) -> Mode
+onAtomic :: A(B) -> A
+onNoPayload :: Page.Home(A) -> Page.Home
+tooMany :: Page.Plan(Mode.Map * Mode.Plot) -> Page.Home
+wrongType :: Page.Plan(A) -> Page.Home
+wrongList :: Page.Many([B]) -> Page.Pick(One)

@@ -106,17 +106,26 @@ character     = ? any Unicode character ? ;
    checks this with one extra token of lookahead (LL(2) at this point;
    LL(1) everywhere else).
 
-   Not in the grammar (the type checker checks these):
-   - every UPPER in a type or pattern is an atomic, a defined type, or a
-     variant reached by a valid path;
+   Not in the grammar (the type checker, src/SumSpec/Check.hs, checks
+   these):
    - App is defined;
+   - every type name used in a definition or pattern is an atomic or a
+     defined type;
+   - no type is both atomic and defined, and no type is defined twice;
+   - no name is listed twice in __atomics or in __txs;
    - every transition name is listed in __txs, and every name in __txs
      has at least one signature;
-   - no type is both atomic and defined, and no type is defined twice;
    - variant names are unique within one sum, and type names are unique
-     within one product (T = A * A is invalid);
-   - patterns match their types: product factors are matched by type
-     name in any order, and every factor is written.
+     within one product (T = A * A is invalid), including inline
+     payloads;
+   - a chain of newtypes doesn't lead back to itself (A = B, B = A);
+   - in a pattern, "." continues only into a sum (a named sum or an
+     inline sum payload), and each name after it is a variant there;
+   - written arguments fit what they follow: every factor of a product,
+     in any order; one argument headed by the type of a single payload
+     or the base of a newtype; none for a sum, an atomic, or a variant
+     without a payload. No arguments means any value. See "Arguments in
+     state patterns" in spec-v1.md.
 
    Not in v1 (see proposals.md): primes (A'), "=>", "<-",
    annotations, transition inputs, "g, h ::", variant refinement

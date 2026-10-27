@@ -1,0 +1,16 @@
+-- Paths through things that are not sums.
+__atomics { A }
+__txs { notVariant onAtomic onProduct throughPayload throughNewtype }
+
+App = Page * A
+Page = Home | Plan Mode
+Mode = Map | Plot
+Alias = Page
+
+notVariant :: Page.Nope -> Page.Home
+onAtomic :: A.X -> A
+onProduct :: App.Page -> App
+-- The payload of Plan is a named type; write Page.Plan(Mode.Map).
+throughPayload :: Page.Plan.Map -> Page.Home
+-- Alias is a newtype; write Alias(Page.Home).
+throughNewtype :: Alias.Home -> Alias

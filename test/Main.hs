@@ -1,10 +1,13 @@
--- | Golden tests over a corpus of spec files.
+-- | Golden tests over two corpora of spec files.
 --
--- For each file under test/parse/ (and spec/example), the golden file
--- next to it holds the expected output: the spec printed back in
--- canonical form, or the parse error. Run with
--- @cabal test --test-options=--accept@ to regenerate, then review the
--- diff before committing.
+-- test/parse/: the golden file next to each case holds the spec printed
+-- back in canonical form, or the parse error.
+-- test/check/: the golden file holds "OK", or the type errors.
+-- spec/example is a case in both, with its golden files in those
+-- directories.
+--
+-- Run with @cabal test --test-options=--accept@ to regenerate, then
+-- review the diff before committing.
 module Main (main) where
 
 import Data.ByteString.Lazy qualified as LBS
@@ -12,23 +15,36 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T
 import Data.Text.IO qualified as T
-import SumSpec (parseSpec, renderParseError, renderSpec)
-import System.FilePath (replaceExtension, takeBaseName)
+import SumSpec
+  ( checkSpec
+  , parseSpec
+  , renderCheckErrors
+  , renderParseError
+  , renderSpec
+  )
+import System.FilePath (replaceExtension, takeBaseName, (</>))
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.Golden (findByExtension, goldenVsString)
 
 main :: IO ()
 main = do
-  corpus <- findByExtension [".sumspec"] "test/parse"
-  let cases =
-        ("spec/example", "test/parse/spec-example.golden")
-          : [(file, replaceExtension file ".golden") | file <- corpus]
+  parseCases <- corpus "test/parse"
+  checkCases <- corpus "test/check"
   defaultMain $
     testGroup
       "sumspec"
-      [ testGroup "parse" [golden parseOnce c | c <- cases]
-      , testGroup "round trip" [golden parseTwice c | c <- cases]
+      [ testGroup "parse" [golden parseOnce c | c <- parseCases]
+      , testGroup "round trip" [golden parseTwice c | c <- parseCases]
+      , testGroup "check" [golden check c | c <- checkCases]
       ]
+
+-- | Each case is a spec file and its golden file.
+corpus :: FilePath -> IO [(FilePath, FilePath)]
+corpus dir = do
+  files <- findByExtension [".sumspec"] dir
+  pure $
+    ("spec/example", dir </> "spec-example.golden")
+      : [(file, replaceExtension file ".golden") | file <- files]
 
 golden :: (FilePath -> Text -> Text) -> (FilePath, FilePath) -> TestTree
 golden run (file, goldenFile) =
@@ -46,3 +62,11 @@ parseTwice :: FilePath -> Text -> Text
 parseTwice file source = case parseSpec file source of
   Left err -> T.pack (renderParseError err)
   Right spec -> parseOnce file (renderSpec spec)
+
+-- | "OK", or the type errors (or the parse error, if it doesn't parse).
+check :: FilePath -> Text -> Text
+check file source = case parseSpec file source of
+  Left err -> T.pack (renderParseError err)
+  Right spec -> case checkSpec file spec of
+    [] -> T.pack "OK\n"
+    errors -> T.pack (renderCheckErrors source errors)

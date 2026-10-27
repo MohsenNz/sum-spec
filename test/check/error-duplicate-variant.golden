@@ -1,0 +1,12 @@
+test/check/error-duplicate-variant.sumspec:5:15:
+  |
+5 | App = X | Y | X A
+  |               ^
+variant X appears twice in this sum
+
+test/check/error-duplicate-variant.sumspec:6:16:
+  |
+6 | S = P (Q | R | Q) | Z
+  |                ^
+variant Q appears twice in this sum
+

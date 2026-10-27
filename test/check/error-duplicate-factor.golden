@@ -1,0 +1,18 @@
+test/check/error-duplicate-factor.sumspec:5:11:
+  |
+5 | App = A * A
+  |           ^
+factor A appears twice in this product
+
+test/check/error-duplicate-factor.sumspec:6:16:
+  |
+6 | S = V (A * B * B) | W
+  |                ^
+factor B appears twice in this product
+
+test/check/error-duplicate-factor.sumspec:7:12:
+  |
+7 | L = [A] * [A] * A
+  |            ^
+factor [A] appears twice in this product
+

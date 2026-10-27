@@ -1,7 +1,6 @@
 # SumSpec
 
-SumSpec is a language we define in our application specification, with types and transitions.
-It utilize type-theory (sum-type and product-type) and state machine to describe the system (application).
+SumSpec is a language defined in our application specification with types and transitions. It uses type-theory (sum-type and product-type) and state machine to describe the system (application).
 
 ## State transitions
 
@@ -96,6 +95,8 @@ T  = At * Timestamp
 
 Newtypes are how two values of the same underlying type go into one product.
 
+A chain of newtypes must not lead back to where it started (`A = B`, `B = A` is invalid).
+
 In a state pattern, every component of a product has to be written.
 
 ### Inline payloads and paths
@@ -127,6 +128,22 @@ showMission :: Page.Plan(PMode.JustMap * Missions)
 ```
 
 Here the target is `List.Empty` or `List.NonEmpty(...)`.
+
+## Arguments in state patterns
+
+Leaving out the arguments always means any value: a bare type (`Missions`), a bare sum (`PMode.ShowMission.List`) and a variant with a payload (`Page.Plan`) each stand for every value they can hold.
+
+When arguments are written, they must fit what they follow:
+
+- A product, or a variant carrying a product, takes every factor, in any order: `Z(C * Y.V1)`.
+- A variant carrying one type takes one argument headed by that type: `Y.V3(A)`, `Ring.Closed([Point])`.
+- A newtype takes one argument headed by its base type. With `Boundary = Ring`, write `Boundary(Ring.Enclosed)`, not `Boundary.Enclosed`.
+- A sum takes no arguments; pick a variant with `.` instead.
+- An atomic type, and a variant without a payload, take no arguments.
+
+A path continues with `.` only into a sum: a named sum or an inline sum payload. To pick a variant of a payload that is a named type, use an argument: `Page.Plan(PMode.JustMap * Missions)`.
+
+The two sides of a transition don't have to be states of the same type.
 
 ## Several signatures for one transition
 
