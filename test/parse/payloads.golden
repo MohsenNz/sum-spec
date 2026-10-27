@@ -1,0 +1,9 @@
+__atomics {
+  A
+  B
+}
+
+__txs {
+}
+
+S = Bare A | List [A] | Nested [[A]] | Prod (A * B) | Inner (Left (Deep | Deeper [B]) | Right A) | Paren A

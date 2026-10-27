@@ -1,0 +1,6 @@
+test/parse/error-variant-refinement.sumspec:4:2:
+  |
+4 | T.X = A * B
+  |  ^
+unexpected '.'
+expecting '|', end of input, transition name, or type or variant name

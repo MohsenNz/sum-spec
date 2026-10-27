@@ -1,0 +1,6 @@
+test/parse/error-empty-arguments.sumspec:3:8:
+  |
+3 | t :: Z() -> Z
+  |        ^
+unexpected ')'
+expecting '[' or type or variant name

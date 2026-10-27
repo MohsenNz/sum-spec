@@ -1,0 +1,4 @@
+__atomics { A B C }
+__txs { t }
+T = X | Y
+T.X = A * B

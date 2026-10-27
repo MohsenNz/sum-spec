@@ -1,0 +1,6 @@
+test/parse/error-bad-character.sumspec:3:2:
+  |
+3 | T_1 = A
+  |  ^
+unexpected '_'
+expecting '='

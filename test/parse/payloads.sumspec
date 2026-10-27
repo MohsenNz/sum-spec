@@ -1,0 +1,16 @@
+-- Every kind of payload: bare name, list, nested list, parenthesised
+-- product, parenthesised sum nested inside another, and a parenthesised
+-- single term (printed without the parentheses).
+__atomics { A B }
+__txs {}
+
+S = Bare A
+  | List [A]
+  | Nested [[A]]
+  | Prod (A * B)
+  | Inner
+      ( Left
+          ( Deep
+          | Deeper [B] )
+      | Right A )
+  | Paren (A)

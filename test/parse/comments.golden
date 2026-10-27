@@ -1,0 +1,16 @@
+__atomics {
+  A
+  B
+  C
+}
+
+__txs {
+  trans1
+  trans2
+}
+
+App = Z
+Z = Y * C
+Y = V1 | V2 | V3 A
+trans1 :: Y.V1 -> Y.V3(A)
+trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)

@@ -1,0 +1,12 @@
+__atomics {
+  A
+}
+
+__txs {
+}
+
+S = X | Y A
+N = A
+M = N
+P = A * N
+L = [A]

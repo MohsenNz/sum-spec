@@ -1,0 +1,6 @@
+test/parse/error-mixed-sum-product.sumspec:3:11:
+  |
+3 | T = A * B | C
+  |           ^
+unexpected '|'
+expecting '*', end of input, transition name, or type or variant name

@@ -1,0 +1,6 @@
+test/parse/error-leading-bar.sumspec:3:5:
+  |
+3 | T = | A | B
+  |     ^
+unexpected '|'
+expecting '[' or type or variant name

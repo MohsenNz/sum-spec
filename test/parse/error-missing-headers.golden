@@ -1,0 +1,6 @@
+test/parse/error-missing-headers.sumspec:1:1:
+  |
+1 | T = A
+  | ^^^^^^
+unexpected "T = A<newline>"
+expecting "__atomics" or "__txs"

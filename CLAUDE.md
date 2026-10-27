@@ -41,7 +41,7 @@ Run every tool inside the Nix flake (GHC 9.10.3, cabal, HLS, fourmolu):
 ```
 nix develop -c cabal build all
 nix develop -c cabal test
-nix develop -c cabal run sumspec -- <args>
+nix develop -c cabal run sumspec -- parse <file>
 nix develop -c fourmolu -i src app test
 ```
 
@@ -55,9 +55,16 @@ they need system libraries.
 
 One cabal package, `sumspec` (`sumspec.cabal`, `cabal.project`):
 
-- `src/`: the library (`SumSpec.*` modules).
-- `app/Main.hs`: the `sumspec` command-line tool.
-- `test/Main.hs`: the test suite (tasty + tasty-golden).
+- `src/SumSpec/Syntax.hs`: the AST. Every `Name` carries its source
+  position.
+- `src/SumSpec/Lexer.hs`: tokens, whitespace and `--` comments.
+- `src/SumSpec/Parser.hs`: one parser per rule in `grammar.ebnf`, named
+  after the rule.
+- `src/SumSpec/Pretty.hs`: prints an AST back as canonical SumSpec source.
+- `src/SumSpec.hs`: re-exports the public modules.
+- `app/Main.hs`: the `sumspec` command-line tool (`sumspec parse FILE`
+  prints the canonical form or the parse error).
+- `test/Main.hs`: the golden test runner; `test/parse/`: the corpus.
 
 Libraries: megaparsec for parsing, text for source text, containers for
 maps and sets.
@@ -74,8 +81,17 @@ maps and sets.
 
 ## Testing
 
-Tests run against a corpus of small spec files. Each file is marked valid,
-or invalid with the error it should produce, kept as a golden file
-(tasty-golden). `spec/example` and the
-examples in `spec/spec-v1.md` are valid cases. When the grammar or a
-checker rule changes, add a test case for it.
+Tests run against a corpus of small spec files in `test/parse/`. Each
+`foo.sumspec` has a `foo.golden` next to it holding the expected output:
+the canonical form for a valid file, or the parse error for an invalid
+one. Invalid files are named `error-*.sumspec`. `spec/example` is also a
+case (golden: `test/parse/spec-example.golden`).
+
+Each file is checked twice: once as parsed, and once after printing and
+parsing again (round trip), against the same golden file.
+
+To add or update cases, run `nix develop -c cabal test
+--test-options=--accept`, then read every new or changed golden file
+before keeping it; accepting only proves the output is stable, not
+correct. When the grammar or a checker rule changes, add a test case for
+it.

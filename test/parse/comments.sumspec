@@ -1,0 +1,14 @@
+-- A comment at the start of the file.
+__atomics { A B C } -- after a block
+__txs {
+  trans1 -- inside a block
+  trans2
+}
+App = Z -- after a newtype
+Z = Y * C
+Y = V1
+  | V2 -- between variants
+  | V3 A
+trans1 :: Y.V1 ->-- right after the arrow
+          Y.V3(A)
+trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C) -- at the end, with no final newline

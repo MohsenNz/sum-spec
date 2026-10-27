@@ -1,0 +1,10 @@
+-- A name followed by "=" always starts a new definition: it is never
+-- the payload of the variant before it, nor part of a newtype.
+__atomics { A }
+__txs {}
+
+S = X | Y A
+N = A
+M = N
+P = A * N
+L = [A]

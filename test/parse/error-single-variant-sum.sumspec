@@ -1,0 +1,3 @@
+__atomics { A B C }
+__txs { t }
+T = V A

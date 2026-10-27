@@ -1,0 +1,6 @@
+test/parse/error-duplicate-header.sumspec:2:1:
+  |
+2 | __atomics {}
+  | ^^^^^
+unexpected "__ato"
+expecting "__txs"

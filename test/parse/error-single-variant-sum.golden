@@ -1,0 +1,6 @@
+test/parse/error-single-variant-sum.sumspec:4:1:
+  |
+4 | <empty line>
+  | ^
+unexpected end of input
+expecting "|" (a sum needs at least two variants)

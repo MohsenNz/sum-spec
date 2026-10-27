@@ -1,0 +1,10 @@
+-- Patterns: a bare type, a nested path, nested arguments, a list.
+__atomics { Point }
+__txs { t u v }
+
+App = Ring * Point
+Ring = Partial [Point] | Closed [Point]
+
+t :: App -> App
+u :: App(Ring.Partial * Point) -> App(Ring.Closed([Point]) * Point)
+v :: [Point] -> Ring.Partial([Point])

@@ -1,0 +1,5 @@
+-- T = A * A is invalid, but that is the type checker's job: it parses.
+__atomics { A }
+__txs {}
+
+T = A * A
