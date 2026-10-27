@@ -1,0 +1,115 @@
+__atomics {
+  Meters
+  Hectares
+  Timestamp
+  Text
+  FailureReason
+  Point
+  Settings
+}
+
+__txs {
+  goToPlan
+  goToDevices
+  planBackToHome
+  devicesBackToHome
+  newPlot
+  showMission
+}
+
+App
+  = Page
+  * Settings
+
+Page
+  = Home
+  | Plan    (PMode * Missions)
+  | Devices
+
+PMode
+  = JustMap
+  | Plot (PlotOrigin * Plot)
+  | Flight
+  | ShowMission
+      ( List
+          ( Empty
+          | NonEmpty [MissionSummary] )
+      | Selected Mission )
+
+Flight
+  = Arming
+  | Flying
+  | Failed FailureReason
+
+MissionSummary = MissionName * At * Area * Distance * MissionState
+
+PlotOrigin = Draft | Editing
+
+Missions = [Mission]
+
+Mission
+  = MissionName
+  * At
+  * Area
+  * Distance
+  * MissionState
+  * Plot
+
+MissionName = Text
+
+At = Timestamp
+
+Area = Hectares
+
+Distance = Meters
+
+MissionState
+  = NotStarted
+  | Completed
+  | Stopped     (StopReason * BreakPoint)
+
+StopReason = Commanded | BatteryLow | LinkLost
+
+BreakPoint = Point
+
+Plot
+  = Empty
+  | Drawn
+      ( Boundary
+      * Markings )
+
+Boundary = Ring
+
+Markings = [Marking]
+
+Marking
+  = Obstacle      Ring
+  | RoundObstacle Spot
+  | PowerLine     Path
+  | NonSprayArea  Ring
+  | MarkPoint     Spot
+
+Ring
+  = Partial   [Point]
+  | Closeable [Point]
+  | Enclosed  [Point]
+
+Path
+  = Partial Point
+  | Total   [Point]
+
+Spot = Point
+
+goToPlan          :: Page.Home -> Page.Plan(PMode.JustMap * Missions)
+goToDevices       :: Page.Home -> Page.Devices
+planBackToHome    :: Page.Plan(PMode.JustMap * Missions) -> Page.Home
+devicesBackToHome :: Page.Devices -> Page.Home
+
+newPlot       :: Page.Plan(PMode.JustMap * Missions)
+              -> Page.Plan(PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions)
+
+newPlot       :: Page.Plan(PMode.ShowMission.List * Missions)
+              -> Page.Plan(PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions)
+
+showMission   :: Page.Plan(PMode.JustMap * Missions)
+              -> Page.Plan(PMode.ShowMission.List * Missions)
