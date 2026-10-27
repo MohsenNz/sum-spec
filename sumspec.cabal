@@ -1,0 +1,51 @@
+cabal-version:      3.0
+name:               sumspec
+version:            0.1.0.0
+synopsis:           Parser and type checker for the SumSpec specification language
+description:
+  SumSpec describes an application as sum and product types and state
+  transitions.
+
+license:            NONE
+author:             Mohsen
+maintainer:         thelight.mn@gmail.com
+category:           Language
+build-type:         Simple
+extra-doc-files:    README.md
+extra-source-files:
+  spec/example
+  spec/grammar.ebnf
+
+common common
+  default-language: GHC2024
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wredundant-constraints
+
+  build-depends:    base >=4.20 && <5
+
+library
+  import:          common
+  hs-source-dirs:  src
+  exposed-modules: SumSpec
+  build-depends:
+    , containers  >=0.7  && <0.9
+    , megaparsec  >=9.7  && <10
+    , text        >=2.1  && <2.2
+
+executable sumspec
+  import:         common
+  hs-source-dirs: app
+  main-is:        Main.hs
+  build-depends:  sumspec
+  ghc-options:    -threaded -rtsopts
+
+test-suite sumspec-test
+  import:         common
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  build-depends:
+    , sumspec
+    , tasty         >=1.5 && <1.6
+    , tasty-golden  >=2.3 && <2.4

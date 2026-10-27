@@ -1,0 +1,12 @@
+indentation: 2
+column-limit: 85
+function-arrows: leading
+indent-wheres: true # true
+import-export-style: leading
+record-brace-space: true
+haddock-style: single-line
+let-style: mixed
+in-style: left-align
+single-constraint-parens: always # never, always, auto
+unicode: never # never, always, detect
+sort-derived-classes: true

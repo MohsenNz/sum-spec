@@ -39,9 +39,10 @@ the notes at the end of `grammar.ebnf`.
 Run every tool inside the Nix flake (GHC 9.10.3, cabal, HLS, fourmolu):
 
 ```
-nix develop -c cabal build
+nix develop -c cabal build all
 nix develop -c cabal test
-nix develop -c fourmolu -i <files>
+nix develop -c cabal run sumspec -- <args>
+nix develop -c fourmolu -i src app test
 ```
 
 The shellHook sources `.env`, which holds local proxy settings. It's
@@ -50,9 +51,23 @@ git-ignored (template: `.env.example`); never commit it.
 Add Haskell dependencies in the `.cabal` file, not in `flake.nix`, unless
 they need system libraries.
 
+## Project layout
+
+One cabal package, `sumspec` (`sumspec.cabal`, `cabal.project`):
+
+- `src/`: the library (`SumSpec.*` modules).
+- `app/Main.hs`: the `sumspec` command-line tool.
+- `test/Main.hs`: the test suite (tasty + tasty-golden).
+
+Libraries: megaparsec for parsing, text for source text, containers for
+maps and sets.
+
 ## Haskell conventions
 
-- Format with fourmolu. Build with `-Wall` and no warnings.
+- Format with fourmolu using the project's `fourmolu.yaml` (2-space
+  indent, 85 columns); don't override it. Build with `-Wall` and no
+  warnings.
+- The language is GHC2024 (set in the `common` stanza of the `.cabal` file).
 - Keep lexing, parsing and type checking in separate modules. The AST is
   the interface between the parser and the checker.
 - Errors carry source positions (line and column).
@@ -60,6 +75,7 @@ they need system libraries.
 ## Testing
 
 Tests run against a corpus of small spec files. Each file is marked valid,
-or invalid with the error it should produce. `spec/example` and the
+or invalid with the error it should produce, kept as a golden file
+(tasty-golden). `spec/example` and the
 examples in `spec/spec-v1.md` are valid cases. When the grammar or a
 checker rule changes, add a test case for it.
