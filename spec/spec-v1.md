@@ -87,14 +87,14 @@ Z(Y.V1 * C)
 Z(C * Y.V1)
 ```
 
-Type names are nominal: an alias is a separate name, so the following is valid:
+`T = A` defines a newtype: `T` has the same structure as `A` but is a different type, never equal to `A`. So the following is valid:
 
 ```
 At = Timestamp
 T  = At * Timestamp
 ```
 
-Aliases are how two values of the same underlying type go into one product.
+Newtypes are how two values of the same underlying type go into one product.
 
 In a state pattern, every component of a product has to be written.
 

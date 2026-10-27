@@ -23,7 +23,7 @@ definition    = type_def
 
 type_def      = UPPER , "=" , type_expr ;
 
-(* A single type_term is an alias:       MissionName = Text
+(* A single type_term is a newtype:      MissionName = Text
    A list is a list type:                Missions    = [Mission]
    A sum has at least two variants:      PlotOrigin  = Draft | Editing
    A product has at least two factors:   Z           = Y * C            *)
