@@ -5,6 +5,9 @@ products) and state transitions. AI agents read a SumSpec file to generate
 the application. This repo holds the language spec and its implementation
 in Haskell: a parser first, then a type checker.
 
+`TODO.md` tracks what's done and what remains. Tick items off and add new
+ones as the work changes.
+
 ## Source of truth: `spec/`
 
 - `spec/spec-v1.md`: the language definition.
