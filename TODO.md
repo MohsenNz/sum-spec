@@ -26,9 +26,7 @@ Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
 - [ ] Several transitions with one signature (`g, h :: Y -> Z`).
 - [ ] Transition inputs (`f X :: A -> B`).
-- [ ] Post-transition values (`A'`).
 - [ ] `=>` (shared construction path) and `<-` shorthand.
 - [ ] Annotations (`__annotations`).
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
-- [ ] Partial product patterns (an omitted part means "unchanged").

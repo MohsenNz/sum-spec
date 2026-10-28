@@ -1,0 +1,32 @@
+-- Partial products, primes, and new states (spec-v1.md, "Source and
+-- target").
+__version 1.0
+
+__atomics { Text Count }
+__txs { rename renameShort count enter leave noop }
+
+App = Page * Counter
+
+Page
+  = Home
+  | Edit (Title * Draft * Saved)
+
+Title = Text
+Draft = Text
+Saved = Yes | No
+Counter = Count
+
+-- Only the title changes; the draft and Saved keep their values.
+rename :: App(Page.Edit(Title * Draft * Saved)) -> App(Page.Edit(Title' * Draft * Saved))
+-- The same, with the unchanged parts left out on both sides.
+renameShort :: Page.Edit -> Page.Edit(Title')
+-- A new value for the whole counter.
+count :: Counter -> Counter'
+-- Edit is a new state: Saved is set, Title and Draft may be anything,
+-- and Counter (left out) keeps its value.
+enter :: App(Page.Home) -> App(Page.Edit(Saved.No))
+-- Edit is a new state even though the source is any Page: it may have
+-- been Home.
+leave :: Page -> Page.Edit(Saved.Yes)
+-- Nothing changes.
+noop :: App -> App

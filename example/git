@@ -4,8 +4,12 @@
 -- a merge with conflicts, and a rebase.
 --
 -- A transition with several signatures describes its effect on each part
--- of the state, e.g. "commit" moves HEAD and also turns staged files
--- into unmodified ones.
+-- of the state, e.g. "commit" moves the branch's tip and also turns
+-- staged files into unmodified ones.
+--
+-- On the target side of a transition, a part that is left out, or
+-- written without a prime, keeps its value; a primed part (Files') gets
+-- a new value. See "Source and target" in spec/spec-v1.md.
 
 __version 1.0
 
@@ -39,8 +43,6 @@ Repository
   = Uninitialized
   | Initialized (Head * Branches * Files * Operation)
 
--- HEAD names the current branch, or a commit directly ("detached HEAD").
--- A new repository's branch has no commit yet ("unborn").
 Head
   = Unborn BranchName
   | OnBranch BranchName
@@ -68,7 +70,6 @@ FileState
   | StagedAndModified
   | Conflicted
 
--- An operation that stopped part way and waits for the user.
 Operation
   = Idle
   | Merging MergeHead
@@ -78,13 +79,11 @@ MergeHead = Hash
 
 Onto = Hash
 
--- The commits still to be replayed.
 Remaining = [Hash]
 
 init :: Repository.Uninitialized
-     -> Repository.Initialized(Head.Unborn(BranchName) * Branches * Files * Operation.Idle)
+     -> Repository.Initialized(Head.Unborn * Operation.Idle)
 
--- The file life cycle.
 edit :: FileState.Unmodified -> FileState.Modified
 edit :: FileState.Staged -> FileState.StagedAndModified
 
@@ -95,48 +94,49 @@ add :: FileState.StagedAndModified -> FileState.Staged
 unstage :: FileState.Staged -> FileState.Modified
 unstage :: FileState.StagedAndModified -> FileState.Modified
 
--- Throws away the changes in the working tree.
 restore :: FileState.Modified -> FileState.Unmodified
 restore :: FileState.StagedAndModified -> FileState.Staged
 
--- Committing: the first commit gives the unborn branch a tip.
-commit :: Head.Unborn -> Head.OnBranch
-commit :: Head.OnBranch -> Head.OnBranch
+commit :: Repository.Initialized(Head.Unborn * Operation.Idle)
+       -> Repository.Initialized(Head.OnBranch * Branches' * Files')
+
+commit :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+       -> Repository.Initialized(Branches' * Files')
+
 commit :: FileState.Staged -> FileState.Unmodified
 
--- Moving HEAD. Not allowed while a merge or a rebase is in progress.
-switch :: Repository.Initialized(Head * Branches * Files * Operation.Idle)
-       -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+switch :: Repository.Initialized(Operation.Idle)
+       -> Repository.Initialized(Head.OnBranch * Files')
 
-checkoutCommit :: Repository.Initialized(Head * Branches * Files * Operation.Idle)
-               -> Repository.Initialized(Head.Detached * Branches * Files * Operation.Idle)
+checkoutCommit :: Repository.Initialized(Operation.Idle)
+               -> Repository.Initialized(Head.Detached * Files')
 
--- Merging: a clean merge finishes at once; a merge with conflicts stops
--- until every conflict is resolved.
-merge :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
-      -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+      -> Repository.Initialized(Branches' * Files')
 
-merge :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
-      -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Merging(MergeHead))
+merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+      -> Repository.Initialized(Files' * Operation.Merging)
 
 merge :: FileState.Unmodified -> FileState.Conflicted
 
 resolve :: FileState.Conflicted -> FileState.Staged
 
-mergeContinue :: Operation.Merging -> Operation.Idle
+mergeContinue :: Repository.Initialized(Operation.Merging)
+              -> Repository.Initialized(Branches' * Operation.Idle)
 
-mergeAbort :: Operation.Merging -> Operation.Idle
+mergeAbort :: Repository.Initialized(Operation.Merging)
+           -> Repository.Initialized(Files' * Operation.Idle)
+
 mergeAbort :: FileState.Conflicted -> FileState.Unmodified
 
--- Rebasing replays the branch's commits onto another commit, with HEAD
--- detached until the last one is replayed.
-rebase :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
-       -> Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing(Onto * Remaining))
+rebase :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+       -> Repository.Initialized(Head.Detached * Files' * Operation.Rebasing)
 
-rebaseContinue :: Operation.Rebasing -> Operation.Rebasing
+rebaseContinue :: Repository.Initialized(Head.Detached * Operation.Rebasing)
+               -> Repository.Initialized(Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining'))
 
-rebaseContinue :: Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing)
-               -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+rebaseContinue :: Repository.Initialized(Head.Detached * Operation.Rebasing)
+               -> Repository.Initialized(Head.OnBranch * Branches' * Operation.Idle)
 
-rebaseAbort :: Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing)
-            -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+rebaseAbort :: Repository.Initialized(Head.Detached * Operation.Rebasing)
+            -> Repository.Initialized(Head.OnBranch * Files' * Operation.Idle)

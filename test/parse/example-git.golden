@@ -37,7 +37,7 @@ Operation = Idle | Merging MergeHead | Rebasing (Onto * Remaining)
 MergeHead = Hash
 Onto = Hash
 Remaining = [Hash]
-init :: Repository.Uninitialized -> Repository.Initialized(Head.Unborn(BranchName) * Branches * Files * Operation.Idle)
+init :: Repository.Uninitialized -> Repository.Initialized(Head.Unborn * Operation.Idle)
 edit :: FileState.Unmodified -> FileState.Modified
 edit :: FileState.Staged -> FileState.StagedAndModified
 add :: FileState.Untracked -> FileState.Staged
@@ -47,19 +47,19 @@ unstage :: FileState.Staged -> FileState.Modified
 unstage :: FileState.StagedAndModified -> FileState.Modified
 restore :: FileState.Modified -> FileState.Unmodified
 restore :: FileState.StagedAndModified -> FileState.Staged
-commit :: Head.Unborn -> Head.OnBranch
-commit :: Head.OnBranch -> Head.OnBranch
+commit :: Repository.Initialized(Head.Unborn * Operation.Idle) -> Repository.Initialized(Head.OnBranch * Branches' * Files')
+commit :: Repository.Initialized(Head.OnBranch * Operation.Idle) -> Repository.Initialized(Branches' * Files')
 commit :: FileState.Staged -> FileState.Unmodified
-switch :: Repository.Initialized(Head * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
-checkoutCommit :: Repository.Initialized(Head * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.Detached * Branches * Files * Operation.Idle)
-merge :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
-merge :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Merging(MergeHead))
+switch :: Repository.Initialized(Operation.Idle) -> Repository.Initialized(Head.OnBranch * Files')
+checkoutCommit :: Repository.Initialized(Operation.Idle) -> Repository.Initialized(Head.Detached * Files')
+merge :: Repository.Initialized(Head.OnBranch * Operation.Idle) -> Repository.Initialized(Branches' * Files')
+merge :: Repository.Initialized(Head.OnBranch * Operation.Idle) -> Repository.Initialized(Files' * Operation.Merging)
 merge :: FileState.Unmodified -> FileState.Conflicted
 resolve :: FileState.Conflicted -> FileState.Staged
-mergeContinue :: Operation.Merging -> Operation.Idle
-mergeAbort :: Operation.Merging -> Operation.Idle
+mergeContinue :: Repository.Initialized(Operation.Merging) -> Repository.Initialized(Branches' * Operation.Idle)
+mergeAbort :: Repository.Initialized(Operation.Merging) -> Repository.Initialized(Files' * Operation.Idle)
 mergeAbort :: FileState.Conflicted -> FileState.Unmodified
-rebase :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing(Onto * Remaining))
-rebaseContinue :: Operation.Rebasing -> Operation.Rebasing
-rebaseContinue :: Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
-rebaseAbort :: Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+rebase :: Repository.Initialized(Head.OnBranch * Operation.Idle) -> Repository.Initialized(Head.Detached * Files' * Operation.Rebasing)
+rebaseContinue :: Repository.Initialized(Head.Detached * Operation.Rebasing) -> Repository.Initialized(Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining'))
+rebaseContinue :: Repository.Initialized(Head.Detached * Operation.Rebasing) -> Repository.Initialized(Head.OnBranch * Branches' * Operation.Idle)
+rebaseAbort :: Repository.Initialized(Head.Detached * Operation.Rebasing) -> Repository.Initialized(Head.OnBranch * Files' * Operation.Idle)

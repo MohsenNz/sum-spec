@@ -18,8 +18,12 @@ Language version 1.0.
   - type definitions: sums, products, newtypes and lists, with inline
     payloads nested to any depth;
   - transitions, with several signatures per transition;
-  - state patterns: paths into sums, arguments, and leaving the
-    arguments out to mean any value;
+  - state patterns: paths into sums, arguments, and partial products
+    (factors may be left out);
+  - source and target: on the source side a left-out part may have any
+    value; on the target side a left-out or unprimed part keeps its
+    value, a primed part (`A'`) gets a new value, and a part whose
+    variant changes is a new state;
   - the `__atomics` and `__txs` headers, the `App` entry point, and
     `--` line comments;
   - the optional `__version 1.0` header; no header means 1.0.

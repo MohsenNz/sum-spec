@@ -176,10 +176,40 @@ checkTransitions env spec transitions =
        , nameText n `Set.notMember` signed
        ]
     <> concat
-      [checkPattern env from <> checkPattern env to | Transition _ from to <- transitions]
+      [ checkPrimes Source from
+          <> checkPrimes Target to
+          <> checkPattern env from
+          <> checkPattern env to
+      | Transition _ from to <- transitions
+      ]
   where
     listed = Set.fromList (map nameText (specTxs spec))
     signed = Set.fromList (map (nameText . transitionName) transitions)
+
+-- | The side of a transition a pattern is on: the source is a
+-- precondition, the target is the effect.
+data Side = Source | Target
+
+-- | A prime marks a new value, so it goes only on the target side, once,
+-- on a bare type name (@Missions'@). On a path or after arguments it
+-- would say nothing new: the written variant already gives the value.
+checkPrimes :: Side -> Pattern -> [CheckError]
+checkPrimes side = \case
+  PatternPrimed pos inner ->
+    [ CheckError pos "a prime (') marks a new value, so it can only be on the target side"
+    | Source <- [side]
+    ]
+      <> case inner of
+        PatternPrimed _ _ -> [CheckError pos "a name takes at most one prime (')"]
+        PatternPath (_ :| []) [] -> []
+        _ ->
+          [ CheckError pos $
+              "a prime (') goes only on a bare type name; "
+                <> "a written variant or argument already says what the new value is"
+          ]
+      <> checkPrimes side inner
+  PatternPath _ args -> concatMap (checkPrimes side) args
+  PatternList _ -> []
 
 -- | What a position in a pattern stands for: a type or a variant, with a
 -- label for messages (@Page.Plan@) and the type expression its path and
@@ -197,9 +227,12 @@ typeNode env name = case Map.lookup name (envTypes env) of
     | Set.member name (envAtomics env) -> Just (Node name Nothing)
     | otherwise -> Nothing
 
--- | A whole side of a transition. Its first name must be a type.
+-- | A whole side of a transition. Its first name must be a type. Primes
+-- are checked by 'checkPrimes'; here a primed pattern is checked like the
+-- pattern it primes.
 checkPattern :: Env -> Pattern -> [CheckError]
 checkPattern env = \case
+  PatternPrimed _ inner -> checkPattern env inner
   PatternList term -> checkTerm env term
   PatternPath (h :| path) args -> case typeNode env (nameText h) of
     Nothing -> [unknownType h]
@@ -234,9 +267,11 @@ walk env node at path args = case path of
       [ errorAt v (nodeLabel node <> " has no variants, so ." <> nameText v <> " is invalid")
       ]
 
--- | No arguments always means any value. Written arguments must match the
--- node: one argument for a single payload or newtype, every factor for a
--- product, none for a sum (pick a variant with "." instead).
+-- | Written arguments must match the node: one argument for a single
+-- payload or newtype, some or all of the factors of a product, none for a
+-- sum (pick a variant with "." instead). What left-out parts mean depends
+-- on the side (see "Source and target" in spec-v1.md); either way they
+-- are valid.
 checkArgs :: Env -> Node -> Name -> [Pattern] -> [CheckError]
 checkArgs _ _ _ [] = []
 checkArgs env node at args = case nodeBody node of
@@ -245,7 +280,7 @@ checkArgs env node at args = case nodeBody node of
     [ errorAt at $
         nodeLabel node <> " is a sum; pick a variant with \".\" instead of arguments"
     ]
-  Just (TypeProduct factors) -> checkFactors env node at factors args
+  Just (TypeProduct factors) -> checkFactors env node factors args
   Just (TypeTerm term) -> case args of
     [arg] -> checkArg env term arg
     _ ->
@@ -259,9 +294,10 @@ checkArgs env node at args = case nodeBody node of
       ]
 
 -- | Arguments of a product: each one is a factor, matched by type name in
--- any order, and every factor is written exactly once.
-checkFactors :: Env -> Node -> Name -> [TypeTerm] -> [Pattern] -> [CheckError]
-checkFactors env node at factors args =
+-- any order, and written at most once (@A * A'@ writes @A@ twice). Factors
+-- may be left out.
+checkFactors :: Env -> Node -> [TypeTerm] -> [Pattern] -> [CheckError]
+checkFactors env node factors args =
   [ errorAt (patternHead a) $
       patternKey a
         <> " is not a factor of "
@@ -275,10 +311,6 @@ checkFactors env node at factors args =
     <> [ errorAt (patternHead a) ("factor " <> patternKey a <> " is written twice")
        | (a, _) <- repeats patternKey args
        ]
-    <> [ errorAt at (nodeLabel node <> " is missing factor " <> key <> "; write every factor")
-       | key <- Map.keys byKey
-       , key `notElem` map patternKey args
-       ]
     <> concat
       [ checkArg env factor a
       | a <- firsts patternKey args
@@ -291,6 +323,7 @@ checkFactors env node at factors args =
 -- that type, or the same list type.
 checkArg :: Env -> TypeTerm -> Pattern -> [CheckError]
 checkArg env term arg = case (term, arg) of
+  (_, PatternPrimed _ inner) -> checkArg env term inner
   (TermName expected, PatternPath (h :| path) args)
     | nameText h == nameText expected -> case typeNode env (nameText h) of
         -- An unknown type is already reported where it is defined.
@@ -333,12 +366,15 @@ patternHead :: Pattern -> Name
 patternHead = \case
   PatternPath (h :| _) _ -> h
   PatternList t -> termName t
+  PatternPrimed _ p -> patternHead p
 
 -- | The factor an argument stands for: its first name, or its list type.
+-- A prime doesn't change it: @A'@ stands for the factor @A@.
 patternKey :: Pattern -> Text
 patternKey = \case
   PatternPath (h :| _) _ -> nameText h
   PatternList t -> termKey (TermList t)
+  PatternPrimed _ p -> patternKey p
 
 -- | Every element whose key was already seen, paired with the first
 -- element that had that key.

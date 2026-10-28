@@ -1,10 +1,10 @@
--- A product's arguments: a factor that doesn't belong, a factor written
--- twice, and a missing factor.
+-- A product's arguments: a factor that doesn't belong, and a factor
+-- written twice (also with a prime). Leaving factors out is valid.
 __atomics { A B C }
-__txs { notFactor twice missing }
+__txs { notFactor twice primedTwice }
 
 App = A * B
 
 notFactor :: App(A * B * C) -> App
 twice :: App(A * A * B) -> App
-missing :: App(A) -> App(B)
+primedTwice :: App -> App(A * A')

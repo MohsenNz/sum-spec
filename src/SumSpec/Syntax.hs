@@ -83,6 +83,11 @@ data Pattern
     PatternPath (NonEmpty Name) [Pattern]
   | -- | @[T]@: any list of @T@.
     PatternList TypeTerm
+  | -- | A pattern followed by a prime, @A'@: a new value, set by the
+    -- transition. The position is the prime's. The parser accepts a prime
+    -- after any pattern; the checker allows it only on a bare type name on
+    -- the target side.
+    PatternPrimed SourcePos Pattern
   deriving stock (Eq, Show)
 
 -- | An identifier and where it was written.

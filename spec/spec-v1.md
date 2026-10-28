@@ -99,7 +99,7 @@ Newtypes are how two values of the same underlying type go into one product.
 
 A chain of newtypes must not lead back to where it started (`A = B`, `B = A` is invalid).
 
-In a state pattern, every component of a product has to be written.
+In a state pattern, a product's arguments may leave out factors; see "Source and target".
 
 ### Inline payloads and paths
 
@@ -122,22 +122,22 @@ A path selects nested variants with dots: `PMode.ShowMission.List.Empty`.
 
 ## Sum without a variant
 
-In a state pattern, a sum written without choosing a variant means any of its variants:
+In a state pattern, a sum written without choosing a variant stands for any of its variants:
 
 ```
 showMission :: Page.Plan(PMode.JustMap * Missions)
             -> Page.Plan(PMode.ShowMission.List * Missions)
 ```
 
-Here the target is `List.Empty` or `List.NonEmpty(...)`.
+Here the target is `List.Empty` or `List.NonEmpty(...)`: `List` is a new state (see "Source and target"), so either variant is possible.
 
 ## Arguments in state patterns
 
-Leaving out the arguments always means any value: a bare type (`Missions`), a bare sum (`PMode.ShowMission.List`) and a variant with a payload (`Page.Plan`) each stand for every value they can hold.
+Arguments may be left out: a bare type (`Missions`), a bare sum (`PMode.ShowMission.List`) and a variant with a payload (`Page.Plan`) can each be written without them. What a left-out part means depends on the side of the transition; see "Source and target".
 
 When arguments are written, they must fit what they follow:
 
-- A product, or a variant carrying a product, takes every factor, in any order: `Z(C * Y.V1)`.
+- A product, or a variant carrying a product, takes some or all of its factors, in any order, each at most once: `Z(C * Y.V1)`, `Z(C)`.
 - A variant carrying one type takes one argument headed by that type: `Y.V3(A)`, `Ring.Closed([Point])`.
 - A newtype takes one argument headed by its base type. With `Boundary = Ring`, write `Boundary(Ring.Enclosed)`, not `Boundary.Enclosed`.
 - A sum takes no arguments; pick a variant with `.` instead.
@@ -146,6 +146,47 @@ When arguments are written, they must fit what they follow:
 A path continues with `.` only into a sum: a named sum or an inline sum payload. To pick a variant of a payload that is a named type, use an argument: `Page.Plan(PMode.JustMap * Missions)`.
 
 The two sides of a transition don't have to be states of the same type.
+
+## Source and target
+
+The two sides of a transition are read differently:
+
+- The **source** side is a precondition. A part that is left out may have any value.
+- The **target** side is the effect. A part that is left out, or written without a prime, keeps its value. A primed part, `A'`, gets a new value, set by the transition. A part whose variant differs from the source's is a **new state**.
+
+A new state didn't exist before the transition, so nothing in it can keep its value: inside a new state, a part that is left out may have any value.
+
+A part keeps its value only where the source fixes the same variants along its path. In `Page -> Page.Plan(PMode')`, the source may have been `Page.Home`, so `Plan` is a new state.
+
+Examples, with the types of `example/drone`:
+
+```
+-- Only the mode changes; Missions keeps its value.
+changeMode :: Page.Plan(PMode * Missions) -> Page.Plan(PMode' * Missions)
+
+-- The same, with the unchanged part left out.
+changeMode :: Page.Plan -> Page.Plan(PMode')
+
+-- The mode and the missions both change.
+changeAll :: Page.Plan -> Page.Plan(PMode' * Missions')
+
+-- The source leaves out Markings, so any markings match. The target
+-- enters a new state, ShowMission.Selected, whose Mission may have any
+-- value; Missions gets a new value.
+savePlot :: Page.Plan(PMode.Plot(PlotOrigin.Draft * Plot.Drawn(Boundary(Ring.Enclosed))))
+         -> Page.Plan(PMode.ShowMission.Selected * Missions')
+
+-- Plan is a new state: PMode is set, and Missions may have any value.
+goToPlan :: Page.Home -> Page.Plan(PMode.JustMap)
+```
+
+Where a prime may go:
+
+- Only on a bare type name (`A'`, `Missions'`), and only on the target side.
+- Not twice (`A''`), and not on a path, after arguments, or on a list (`PMode.Plot'`, `Footer(ItemsLeft)'`, `[Point]'`): a written variant or argument already says what the new value is.
+- A prime doesn't make a new factor: `A * A'` writes the factor `A` twice.
+
+`Missions'` says that a list changed, not how (added, removed, edited).
 
 ## Several signatures for one transition
 

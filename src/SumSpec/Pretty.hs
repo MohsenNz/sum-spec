@@ -57,6 +57,7 @@ renderPattern = \case
   PatternPath names args ->
     T.intercalate "." (map nameText (NE.toList names)) <> renderArgs args
   PatternList term -> "[" <> renderTerm term <> "]"
+  PatternPrimed _ p -> renderPattern p <> "'"
   where
     renderArgs [] = ""
     renderArgs args = "(" <> T.intercalate " * " (map renderPattern args) <> ")"

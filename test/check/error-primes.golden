@@ -1,0 +1,30 @@
+test/check/error-primes.sumspec:8:18:
+  |
+8 | onSource :: App(A') -> App(A)
+  |                  ^
+a prime (') marks a new value, so it can only be on the target side
+
+test/check/error-primes.sumspec:9:23:
+  |
+9 | twice :: App -> App(A'')
+  |                       ^
+a name takes at most one prime (')
+
+test/check/error-primes.sumspec:10:33:
+   |
+10 | onPath :: Page.Home -> Page.Plan'
+   |                                 ^
+a prime (') goes only on a bare type name such as Missions'; a written variant or argument already says what the new value is
+
+test/check/error-primes.sumspec:11:40:
+   |
+11 | onArgs :: Page.Home -> Page.Plan(A * B)'
+   |                                        ^
+a prime (') goes only on a bare type name such as Missions'; a written variant or argument already says what the new value is
+
+test/check/error-primes.sumspec:12:37:
+   |
+12 | onList :: Page.Home -> Page.Many([B]')
+   |                                     ^
+a prime (') goes only on a bare type name such as Missions'; a written variant or argument already says what the new value is
+

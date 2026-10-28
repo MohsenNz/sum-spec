@@ -1,0 +1,12 @@
+-- Primes in places where they are not allowed.
+__atomics { A B }
+__txs { onSource twice onPath onArgs onList }
+
+App = Page * A
+Page = Home | Plan (A * B) | Many [B]
+
+onSource :: App(A') -> App(A)
+twice :: App -> App(A'')
+onPath :: Page.Home -> Page.Plan'
+onArgs :: Page.Home -> Page.Plan(A * B)'
+onList :: Page.Home -> Page.Many([B]')

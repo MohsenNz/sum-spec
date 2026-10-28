@@ -125,14 +125,17 @@ transition :: Parser Transition
 transition =
   Transition <$> lowerName <* symbol "::" <*> pattern <* symbol "->" <*> pattern
 
--- pattern = path , [ "(" , pattern , { "*" , pattern } , ")" ]
---         | "[" , type_term , "]" ;
+-- pattern = ( path , [ "(" , pattern , { "*" , pattern } , ")" ]
+--           | "[" , type_term , "]" ) , { "'" } ;
 pattern :: Parser Pattern
-pattern =
-  choice
-    [ PatternList <$> brackets typeTerm
-    , PatternPath <$> path <*> option [] (parens (sepBy1 pattern (symbol "*")))
-    ]
+pattern = do
+  base <-
+    choice
+      [ PatternList <$> brackets typeTerm
+      , PatternPath <$> path <*> option [] (parens (sepBy1 pattern (symbol "*")))
+      ]
+  primes <- many (getSourcePos <* symbol "'")
+  pure (foldl (flip PatternPrimed) base primes)
 
 -- path = UPPER , { "." , UPPER } ;
 path :: Parser (NonEmpty Name)

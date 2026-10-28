@@ -1,0 +1,11 @@
+-- Primes after names, arguments, paths and lists all parse; the checker
+-- decides which are allowed. Space before a prime is allowed.
+__atomics { A B }
+__txs { t }
+
+App = A * B
+
+t :: App(A * B) -> App(A' * B ')
+t :: App -> A''
+t :: App.X' -> App(A)'
+t :: [A]' -> [B]

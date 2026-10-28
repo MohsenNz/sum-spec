@@ -42,23 +42,6 @@ See `VERSIONING.md`. In short:
 - Don't change `version:` in `sumspec.cabal` or create tags unless asked;
   that happens at release time.
 
-## Key v1 decisions
-
-- Whitespace and newlines carry no meaning; `--` starts a line comment.
-- An optional `__version major.minor` header comes first; no header
-  means 1.0. The parser rejects a version it doesn't implement.
-- Types and variants are uppercase; transitions are lowercase.
-- A sum has at least two variants, so `T = A` is a newtype. A product has
-  at least two factors.
-- Products are keyed by type name: a type appears at most once, factor
-  order doesn't matter, and a newtype is never equal to its base (`At = Timestamp`).
-- Each sum has its own variant namespace (`Ring.Partial` and
-  `Path.Partial` are different).
-- In a state pattern, a sum without a chosen variant means any variant,
-  and every product factor has to be written.
-- An UPPER followed by `=` always starts a new type definition. This is
-  the one place the parser needs two tokens of lookahead.
-
 ## Development environment
 
 Run every tool inside the Nix flake (GHC 9.10.3, cabal, HLS, fourmolu):

@@ -65,9 +65,13 @@ transition    = LOWER , "::" , pattern , "->" , pattern ;
      PMode.ShowMission.List
      Z(Y.V1 * C)
      Page.Plan(PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions)
-   A bare type name such as Missions means any value of that type. *)
-pattern       = path , [ "(" , pattern , { "*" , pattern } , ")" ]
-              | "[" , type_term , "]" ;
+     Page.Plan(PMode' * Missions)
+   A prime (') marks a new value on the target side. The grammar allows
+   primes after any pattern; the type checker allows one prime, on a bare
+   type name, on the target side. What a left-out or unprimed part means
+   is in "Source and target" in spec-v1.md. *)
+pattern       = ( path , [ "(" , pattern , { "*" , pattern } , ")" ]
+                | "[" , type_term , "]" ) , { "'" } ;
 
 path          = UPPER , { "." , UPPER } ;
 
@@ -132,12 +136,13 @@ character     = ? any Unicode character ? ;
    - a chain of newtypes doesn't lead back to itself (A = B, B = A);
    - in a pattern, "." continues only into a sum (a named sum or an
      inline sum payload), and each name after it is a variant there;
-   - written arguments fit what they follow: every factor of a product,
-     in any order; one argument headed by the type of a single payload
-     or the base of a newtype; none for a sum, an atomic, or a variant
-     without a payload. No arguments means any value. See "Arguments in
-     state patterns" in spec-v1.md.
+   - written arguments fit what they follow: some or all factors of a
+     product, in any order, each at most once (A * A' writes A twice);
+     one argument headed by the type of a single payload or the base of
+     a newtype; none for a sum, an atomic, or a variant without a
+     payload. See "Arguments in state patterns" in spec-v1.md;
+   - a prime goes only on a bare type name, at most once, and only on
+     the target side. See "Source and target" in spec-v1.md.
 
-   Not in v1 (see proposals.md): primes (A'), "=>", "<-",
-   annotations, transition inputs, "g, h ::", variant refinement
-   (PMode.ShowMission = ...), partial product patterns. *)
+   Not in v1 (see proposals.md): "=>", "<-", annotations, transition
+   inputs, "g, h ::", variant refinement (PMode.ShowMission = ...). *)
