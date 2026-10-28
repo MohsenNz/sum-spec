@@ -1,0 +1,63 @@
+__atomics {
+  Hash
+  BranchName
+  Path
+}
+
+__txs {
+  init
+  edit
+  add
+  unstage
+  restore
+  commit
+  switch
+  checkoutCommit
+  merge
+  resolve
+  mergeContinue
+  mergeAbort
+  rebase
+  rebaseContinue
+  rebaseAbort
+}
+
+App = Repository
+Repository = Uninitialized | Initialized (Head * Branches * Files * Operation)
+Head = Unborn BranchName | OnBranch BranchName | Detached Hash
+Branches = [Branch]
+Branch = BranchName * Tip
+Tip = Hash
+Files = [File]
+File = Path * FileState
+FileState = Untracked | Unmodified | Modified | Staged | StagedAndModified | Conflicted
+Operation = Idle | Merging MergeHead | Rebasing (Onto * Remaining)
+MergeHead = Hash
+Onto = Hash
+Remaining = [Hash]
+init :: Repository.Uninitialized -> Repository.Initialized(Head.Unborn(BranchName) * Branches * Files * Operation.Idle)
+edit :: FileState.Unmodified -> FileState.Modified
+edit :: FileState.Staged -> FileState.StagedAndModified
+add :: FileState.Untracked -> FileState.Staged
+add :: FileState.Modified -> FileState.Staged
+add :: FileState.StagedAndModified -> FileState.Staged
+unstage :: FileState.Staged -> FileState.Modified
+unstage :: FileState.StagedAndModified -> FileState.Modified
+restore :: FileState.Modified -> FileState.Unmodified
+restore :: FileState.StagedAndModified -> FileState.Staged
+commit :: Head.Unborn -> Head.OnBranch
+commit :: Head.OnBranch -> Head.OnBranch
+commit :: FileState.Staged -> FileState.Unmodified
+switch :: Repository.Initialized(Head * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+checkoutCommit :: Repository.Initialized(Head * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.Detached * Branches * Files * Operation.Idle)
+merge :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+merge :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Merging(MergeHead))
+merge :: FileState.Unmodified -> FileState.Conflicted
+resolve :: FileState.Conflicted -> FileState.Staged
+mergeContinue :: Operation.Merging -> Operation.Idle
+mergeAbort :: Operation.Merging -> Operation.Idle
+mergeAbort :: FileState.Conflicted -> FileState.Unmodified
+rebase :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle) -> Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing(Onto * Remaining))
+rebaseContinue :: Operation.Rebasing -> Operation.Rebasing
+rebaseContinue :: Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+rebaseAbort :: Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing) -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)

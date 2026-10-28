@@ -1,0 +1,126 @@
+-- TodoMVC (https://todomvc.com): the user interface of the todo-list app
+-- that many web frameworks implement to the same spec.
+--
+-- The screen has a text box for new todos, the list of todos, and a
+-- footer with the number of items left, the filters, and a "Clear
+-- completed" button. The list and the footer are hidden while there are
+-- no todos.
+
+__atomics {
+  Text
+  Count
+}
+
+__txs {
+  startTyping
+  addTodo
+  toggleTodo
+  toggleAll
+  startEditing
+  finishEditing
+  cancelEditing
+  deleteTodo
+  clearCompleted
+  showAll
+  showActive
+  showCompleted
+}
+
+App
+  = Screen
+  * NewTodo
+  * Filter
+
+-- The text box at the top ("What needs to be done?").
+NewTodo
+  = Blank
+  | Typing Text
+
+Screen
+  = NoTodos
+  | WithTodos (Todos * ToggleAll * Footer)
+
+Todos = [Todo]
+
+Todo
+  = Title
+  * Completion
+  * RowMode
+
+Title = Text
+
+Completion
+  = Active
+  | Completed
+
+-- A row is edited in place after a double click.
+RowMode
+  = Viewing
+  | Editing EditText
+
+EditText = Text
+
+-- The checkbox that marks every todo complete, or every todo active.
+ToggleAll
+  = NotAllDone
+  | AllDone
+
+Footer
+  = ItemsLeft
+  * ClearCompleted
+
+ItemsLeft = Count
+
+-- The button is shown only while some todo is completed.
+ClearCompleted
+  = Hidden
+  | Shown
+
+-- Filter.Active and Completion.Active are different variants: each sum
+-- has its own variant namespace.
+Filter
+  = All
+  | Active
+  | Completed
+
+-- Adding todos. Enter adds the typed text as a new active todo and
+-- clears the text box; the first todo shows the list and the footer.
+startTyping :: NewTodo.Blank -> NewTodo.Typing(Text)
+
+addTodo :: App(Screen.NoTodos * NewTodo.Typing * Filter)
+        -> App(Screen.WithTodos(Todos * ToggleAll.NotAllDone * Footer) * NewTodo.Blank * Filter)
+
+addTodo :: App(Screen.WithTodos * NewTodo.Typing * Filter)
+        -> App(Screen.WithTodos(Todos * ToggleAll.NotAllDone * Footer) * NewTodo.Blank * Filter)
+
+-- Completing todos.
+toggleTodo :: Completion.Active -> Completion.Completed
+toggleTodo :: Completion.Completed -> Completion.Active
+
+toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
+toggleAll :: ToggleAll.AllDone -> ToggleAll.NotAllDone
+
+-- Editing a todo. Enter or leaving the field saves the text; Escape
+-- throws it away.
+startEditing :: Todo(Title * Completion * RowMode.Viewing)
+             -> Todo(Title * Completion * RowMode.Editing(EditText))
+
+finishEditing :: Todo(Title * Completion * RowMode.Editing)
+              -> Todo(Title * Completion * RowMode.Viewing)
+
+cancelEditing :: RowMode.Editing -> RowMode.Viewing
+
+-- Removing todos. Removing the last one hides the list and the footer.
+deleteTodo :: Screen.WithTodos -> Screen.WithTodos
+deleteTodo :: Screen.WithTodos -> Screen.NoTodos
+
+clearCompleted :: Screen.WithTodos(Todos * ToggleAll * Footer(ItemsLeft * ClearCompleted.Shown))
+               -> Screen.WithTodos(Todos * ToggleAll.NotAllDone * Footer(ItemsLeft * ClearCompleted.Hidden))
+
+clearCompleted :: Screen.WithTodos(Todos * ToggleAll * Footer(ItemsLeft * ClearCompleted.Shown))
+               -> Screen.NoTodos
+
+-- Filtering which todos are shown.
+showAll :: Filter -> Filter.All
+showActive :: Filter -> Filter.Active
+showCompleted :: Filter -> Filter.Completed

@@ -13,13 +13,15 @@ ones as the work changes.
 - `spec/spec-v1.md`: the language definition.
 - `spec/grammar.ebnf`: the v1 grammar (ISO EBNF). It's frozen for the
   implementation; don't change it without being asked.
-- `spec/example`: the reference example spec. It must parse and type-check
-  with no errors.
+- Example specs. Each must parse and type-check with no errors:
+  - `spec/example`: the reference example (a drone mission planner app).
+  - `spec/example-todomvc`: a UI, TodoMVC.
+  - `spec/example-git`: an application core, a local Git repository.
 - `spec/proposals.md`: future features that are **not** in v1. Don't
   implement them unless asked.
 
-A language change touches `spec-v1.md`, `grammar.ebnf` and `example`
-together; keep the three in sync. The type checker's rules are listed in
+A language change touches `spec-v1.md`, `grammar.ebnf` and the example
+specs together; keep them in sync. The type checker's rules are listed in
 the notes at the end of `grammar.ebnf`; the pattern rules are in
 `spec-v1.md` ("Arguments in state patterns").
 
@@ -92,8 +94,9 @@ maps and sets.
 
 Tests run against two corpora of small spec files. Each `foo.sumspec`
 has a `foo.golden` next to it holding the expected output. Invalid files
-are named `error-*.sumspec`. `spec/example` is a case in both, with its
-golden file `spec-example.golden` in each directory.
+are named `error-*.sumspec`. The example specs are cases in both, listed
+in `examples` in `test/Main.hs`, with golden files named
+`spec-<example>.golden` in each directory.
 
 - `test/parse/`: the golden file is the canonical form, or the parse
   error. Each file is checked twice: once as parsed, and once after

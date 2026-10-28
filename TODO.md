@@ -12,6 +12,8 @@
 - [x] Make `spec/example` (renamed from `spec/syntax`) follow v1:
       `Point` and `Settings` are atomics, refinements are inlined, every
       product pattern lists all of its factors.
+- [x] Two more example specs, both tested: `spec/example-todomvc` (a
+      UI) and `spec/example-git` (an application core).
 
 ### Project setup
 - [x] `CLAUDE.md`.

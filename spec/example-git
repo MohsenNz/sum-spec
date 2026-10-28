@@ -1,0 +1,140 @@
+-- Git (https://git-scm.com): the core of a local repository. It covers
+-- HEAD, the branches, the life cycle of each file (untracked, modified,
+-- staged, committed), and the operations that can be left in progress:
+-- a merge with conflicts, and a rebase.
+--
+-- A transition with several signatures describes its effect on each part
+-- of the state, e.g. "commit" moves HEAD and also turns staged files
+-- into unmodified ones.
+
+__atomics {
+  Hash
+  BranchName
+  Path
+}
+
+__txs {
+  init
+  edit
+  add
+  unstage
+  restore
+  commit
+  switch
+  checkoutCommit
+  merge
+  resolve
+  mergeContinue
+  mergeAbort
+  rebase
+  rebaseContinue
+  rebaseAbort
+}
+
+App = Repository
+
+Repository
+  = Uninitialized
+  | Initialized (Head * Branches * Files * Operation)
+
+-- HEAD names the current branch, or a commit directly ("detached HEAD").
+-- A new repository's branch has no commit yet ("unborn").
+Head
+  = Unborn BranchName
+  | OnBranch BranchName
+  | Detached Hash
+
+Branches = [Branch]
+
+Branch
+  = BranchName
+  * Tip
+
+Tip = Hash
+
+Files = [File]
+
+File
+  = Path
+  * FileState
+
+FileState
+  = Untracked
+  | Unmodified
+  | Modified
+  | Staged
+  | StagedAndModified
+  | Conflicted
+
+-- An operation that stopped part way and waits for the user.
+Operation
+  = Idle
+  | Merging MergeHead
+  | Rebasing (Onto * Remaining)
+
+MergeHead = Hash
+
+Onto = Hash
+
+-- The commits still to be replayed.
+Remaining = [Hash]
+
+init :: Repository.Uninitialized
+     -> Repository.Initialized(Head.Unborn(BranchName) * Branches * Files * Operation.Idle)
+
+-- The file life cycle.
+edit :: FileState.Unmodified -> FileState.Modified
+edit :: FileState.Staged -> FileState.StagedAndModified
+
+add :: FileState.Untracked -> FileState.Staged
+add :: FileState.Modified -> FileState.Staged
+add :: FileState.StagedAndModified -> FileState.Staged
+
+unstage :: FileState.Staged -> FileState.Modified
+unstage :: FileState.StagedAndModified -> FileState.Modified
+
+-- Throws away the changes in the working tree.
+restore :: FileState.Modified -> FileState.Unmodified
+restore :: FileState.StagedAndModified -> FileState.Staged
+
+-- Committing: the first commit gives the unborn branch a tip.
+commit :: Head.Unborn -> Head.OnBranch
+commit :: Head.OnBranch -> Head.OnBranch
+commit :: FileState.Staged -> FileState.Unmodified
+
+-- Moving HEAD. Not allowed while a merge or a rebase is in progress.
+switch :: Repository.Initialized(Head * Branches * Files * Operation.Idle)
+       -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+
+checkoutCommit :: Repository.Initialized(Head * Branches * Files * Operation.Idle)
+               -> Repository.Initialized(Head.Detached * Branches * Files * Operation.Idle)
+
+-- Merging: a clean merge finishes at once; a merge with conflicts stops
+-- until every conflict is resolved.
+merge :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+      -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+
+merge :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+      -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Merging(MergeHead))
+
+merge :: FileState.Unmodified -> FileState.Conflicted
+
+resolve :: FileState.Conflicted -> FileState.Staged
+
+mergeContinue :: Operation.Merging -> Operation.Idle
+
+mergeAbort :: Operation.Merging -> Operation.Idle
+mergeAbort :: FileState.Conflicted -> FileState.Unmodified
+
+-- Rebasing replays the branch's commits onto another commit, with HEAD
+-- detached until the last one is replayed.
+rebase :: Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+       -> Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing(Onto * Remaining))
+
+rebaseContinue :: Operation.Rebasing -> Operation.Rebasing
+
+rebaseContinue :: Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing)
+               -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)
+
+rebaseAbort :: Repository.Initialized(Head.Detached * Branches * Files * Operation.Rebasing)
+            -> Repository.Initialized(Head.OnBranch * Branches * Files * Operation.Idle)

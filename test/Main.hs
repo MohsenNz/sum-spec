@@ -3,8 +3,8 @@
 -- test/parse/: the golden file next to each case holds the spec printed
 -- back in canonical form, or the parse error.
 -- test/check/: the golden file holds "OK", or the type errors.
--- spec/example is a case in both, with its golden files in those
--- directories.
+-- The example specs (spec/example*) are cases in both, with their golden
+-- files in those directories.
 --
 -- Run with @cabal test --test-options=--accept@ to regenerate, then
 -- review the diff before committing.
@@ -22,7 +22,7 @@ import SumSpec
   , renderParseError
   , renderSpec
   )
-import System.FilePath (replaceExtension, takeBaseName, (</>))
+import System.FilePath (replaceExtension, takeBaseName, takeFileName, (</>))
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.Golden (findByExtension, goldenVsString)
 
@@ -38,13 +38,17 @@ main = do
       , testGroup "check" [golden check c | c <- checkCases]
       ]
 
--- | Each case is a spec file and its golden file.
+-- | Each case is a spec file and its golden file. The example specs are
+-- cases in every corpus, with golden files named @spec-<example>.golden@.
 corpus :: FilePath -> IO [(FilePath, FilePath)]
 corpus dir = do
   files <- findByExtension [".sumspec"] dir
   pure $
-    ("spec/example", dir </> "spec-example.golden")
-      : [(file, replaceExtension file ".golden") | file <- files]
+    [(file, dir </> "spec-" <> takeFileName file <> ".golden") | file <- examples]
+      <> [(file, replaceExtension file ".golden") | file <- files]
+
+examples :: [FilePath]
+examples = ["spec/example", "spec/example-todomvc", "spec/example-git"]
 
 golden :: (FilePath -> Text -> Text) -> (FilePath, FilePath) -> TestTree
 golden run (file, goldenFile) =

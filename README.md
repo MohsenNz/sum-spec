@@ -6,6 +6,12 @@ SumSpec is a language defined in our application specification with types and tr
 
 Check out `./spec/spec-v1.md`
 
+Example specs:
+
+- `spec/example`: a drone mission planner app.
+- `spec/example-todomvc`: the user interface of [TodoMVC](https://todomvc.com).
+- `spec/example-git`: the core of a local [Git](https://git-scm.com) repository.
+
 ## Development environment
 
 ```

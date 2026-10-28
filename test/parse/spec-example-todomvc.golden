@@ -1,0 +1,51 @@
+__atomics {
+  Text
+  Count
+}
+
+__txs {
+  startTyping
+  addTodo
+  toggleTodo
+  toggleAll
+  startEditing
+  finishEditing
+  cancelEditing
+  deleteTodo
+  clearCompleted
+  showAll
+  showActive
+  showCompleted
+}
+
+App = Screen * NewTodo * Filter
+NewTodo = Blank | Typing Text
+Screen = NoTodos | WithTodos (Todos * ToggleAll * Footer)
+Todos = [Todo]
+Todo = Title * Completion * RowMode
+Title = Text
+Completion = Active | Completed
+RowMode = Viewing | Editing EditText
+EditText = Text
+ToggleAll = NotAllDone | AllDone
+Footer = ItemsLeft * ClearCompleted
+ItemsLeft = Count
+ClearCompleted = Hidden | Shown
+Filter = All | Active | Completed
+startTyping :: NewTodo.Blank -> NewTodo.Typing(Text)
+addTodo :: App(Screen.NoTodos * NewTodo.Typing * Filter) -> App(Screen.WithTodos(Todos * ToggleAll.NotAllDone * Footer) * NewTodo.Blank * Filter)
+addTodo :: App(Screen.WithTodos * NewTodo.Typing * Filter) -> App(Screen.WithTodos(Todos * ToggleAll.NotAllDone * Footer) * NewTodo.Blank * Filter)
+toggleTodo :: Completion.Active -> Completion.Completed
+toggleTodo :: Completion.Completed -> Completion.Active
+toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
+toggleAll :: ToggleAll.AllDone -> ToggleAll.NotAllDone
+startEditing :: Todo(Title * Completion * RowMode.Viewing) -> Todo(Title * Completion * RowMode.Editing(EditText))
+finishEditing :: Todo(Title * Completion * RowMode.Editing) -> Todo(Title * Completion * RowMode.Viewing)
+cancelEditing :: RowMode.Editing -> RowMode.Viewing
+deleteTodo :: Screen.WithTodos -> Screen.WithTodos
+deleteTodo :: Screen.WithTodos -> Screen.NoTodos
+clearCompleted :: Screen.WithTodos(Todos * ToggleAll * Footer(ItemsLeft * ClearCompleted.Shown)) -> Screen.WithTodos(Todos * ToggleAll.NotAllDone * Footer(ItemsLeft * ClearCompleted.Hidden))
+clearCompleted :: Screen.WithTodos(Todos * ToggleAll * Footer(ItemsLeft * ClearCompleted.Shown)) -> Screen.NoTodos
+showAll :: Filter -> Filter.All
+showActive :: Filter -> Filter.Active
+showCompleted :: Filter -> Filter.Completed
