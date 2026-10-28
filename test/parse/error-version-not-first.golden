@@ -1,0 +1,6 @@
+test/parse/error-version-not-first.sumspec:2:1:
+  |
+2 | __version 1.0
+  | ^^^^^
+unexpected "__ver"
+expecting "__txs"

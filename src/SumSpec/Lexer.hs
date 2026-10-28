@@ -10,6 +10,7 @@ module SumSpec.Lexer
   , symbol
   , upperName
   , lowerName
+  , versionNumber
   , parens
   , brackets
   , braces
@@ -20,8 +21,9 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
 import SumSpec.Syntax (Name (..))
+import SumSpec.Version (LanguageVersion (..))
 import Text.Megaparsec
-import Text.Megaparsec.Char (space1)
+import Text.Megaparsec.Char (char, space1)
 import Text.Megaparsec.Char.Lexer qualified as L
 
 type Parser = Parsec Void Text
@@ -52,6 +54,12 @@ identifier isFirst = lexeme $ do
   pure (Name pos (T.cons first rest))
   where
     isIdentChar c = isAsciiUpper c || isAsciiLower c || isDigit c
+
+-- | A language version, @major.minor@, written as one token (@1.1@).
+versionNumber :: Parser LanguageVersion
+versionNumber =
+  lexeme (LanguageVersion <$> L.decimal <* char '.' <*> L.decimal)
+    <?> "version number such as 1.1"
 
 parens, brackets, braces :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")

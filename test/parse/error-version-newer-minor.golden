@@ -1,0 +1,5 @@
+test/parse/error-version-newer-minor.sumspec:1:11:
+  |
+1 | __version 1.1
+  |           ^
+this spec is for SumSpec 1.1, but this sumspec supports 1.0

@@ -5,9 +5,13 @@
 
 (* ---------- Spec ---------- *)
 
-(* __atomics and __txs both appear once, in either order, before any
-   definition. *)
-spec          = headers , { definition } ;
+(* The optional version header comes first. Then __atomics and __txs
+   both appear once, in either order, before any definition. *)
+spec          = [ version_header ] , headers , { definition } ;
+
+(* The language version the spec is written for, major.minor. No header
+   means 1.0. *)
+version_header = "__version" , VERSION ;
 
 headers       = atomics_block , txs_block
               | txs_block , atomics_block ;
@@ -84,6 +88,9 @@ digit         = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 
 (* A line comment runs from "--" to the end of the line (or the end of
    the file) and is skipped like whitespace. *)
+(* A version is one token: no spaces around the ".". *)
+VERSION       = digit , { digit } , "." , digit , { digit } ;
+
 comment       = "--" , { character - newline } , [ newline ] ;
 newline       = ? line feed ? ;
 character     = ? any Unicode character ? ;
@@ -105,6 +112,10 @@ character     = ? any Unicode character ? ;
    starts a new type_def and is never a payload or a variant. A parser
    checks this with one extra token of lookahead (LL(2) at this point;
    LL(1) everywhere else).
+
+   Version: a parser stops at a version_header whose version it doesn't
+   implement (a different major version, or a newer minor version) and
+   says so, instead of failing later on syntax it doesn't know.
 
    Not in the grammar (the type checker, src/SumSpec/Check.hs, checks
    these):

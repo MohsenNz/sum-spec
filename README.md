@@ -6,8 +6,6 @@ SumSpec is a language defined in our application specification with types and tr
 
 Check out `./spec/spec-v1.md` (language version 1.0). Ideas for later versions are in `./spec/proposals.md`.
 
-See `VERSIONING.md` for how the language and the tool are versioned, and `CHANGES.md` for what changed in each release.
-
 Example specs, in `example/`:
 
 - `example/drone`: a drone mission planner app.

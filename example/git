@@ -7,6 +7,8 @@
 -- of the state, e.g. "commit" moves HEAD and also turns staged files
 -- into unmodified ones.
 
+__version 1.0
+
 __atomics {
   Hash
   BranchName

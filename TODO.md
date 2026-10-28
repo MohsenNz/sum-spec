@@ -12,9 +12,9 @@
 - [x] Versioning policy (`VERSIONING.md`) and `CHANGES.md`; proposals
       marked additive or breaking.
 - [ ] Release 0.1.0.0: date it in `CHANGES.md`, then tag `v0.1.0.0`.
-- [ ] Before the first language change after 1.0: a `__version` header
-      in spec files (e.g. `__version 1.1`, none meaning 1.0), so the
-      checker and agents know which rules apply.
+- [x] `__version major.minor` header in spec files (part of 1.0; no
+      header means 1.0). The parser rejects versions it doesn't
+      implement.
 
 ### Housekeeping
 - [ ] Commit the type checker work.

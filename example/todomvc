@@ -6,6 +6,8 @@
 -- completed" button. The list and the footer are hidden while there are
 -- no todos.
 
+__version 1.0
+
 __atomics {
   Text
   Count

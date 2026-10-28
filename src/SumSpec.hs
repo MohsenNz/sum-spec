@@ -4,9 +4,11 @@ module SumSpec
   , module SumSpec.Check
   , module SumSpec.Parser
   , module SumSpec.Pretty
+  , module SumSpec.Version
   ) where
 
 import SumSpec.Check
 import SumSpec.Parser
 import SumSpec.Pretty
 import SumSpec.Syntax
+import SumSpec.Version

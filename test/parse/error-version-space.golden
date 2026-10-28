@@ -1,0 +1,6 @@
+test/parse/error-version-space.sumspec:1:13:
+  |
+1 | __version 1. 0
+  |             ^
+unexpected space
+expecting integer

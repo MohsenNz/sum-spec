@@ -8,11 +8,13 @@ module SumSpec.Parser
   , renderParseError
   ) where
 
+import Control.Monad (unless)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text)
 import Data.Void (Void)
 import SumSpec.Lexer
 import SumSpec.Syntax
+import SumSpec.Version
 import Text.Megaparsec hiding (ParseError)
 
 type ParseError = ParseErrorBundle Text Void
@@ -25,11 +27,34 @@ parseSpec = parse (spaceConsumer *> spec <* eof)
 renderParseError :: ParseError -> String
 renderParseError = errorBundlePretty
 
--- spec = headers , { definition } ;
+-- spec = [ version_header ] , headers , { definition } ;
 spec :: Parser Spec
 spec = do
+  version <- optional versionHeader
   (atomics, txs) <- headers
-  Spec atomics txs <$> many definition
+  Spec version atomics txs <$> many definition
+
+-- version_header = "__version" , VERSION ;
+--
+-- A version this sumspec doesn't implement stops parsing here, so the
+-- error names the version instead of some later syntax it can't read.
+versionHeader :: Parser LanguageVersion
+versionHeader = do
+  _ <- symbol "__version"
+  offset <- getOffset
+  version <- versionNumber
+  unless (isSupported version) $ do
+    setOffset offset
+    fail $
+      "this spec is for SumSpec "
+        <> renderVersion version
+        <> ", but this sumspec supports "
+        <> supported
+  pure version
+  where
+    supported
+      | defaultVersion == latestVersion = renderVersion latestVersion
+      | otherwise = renderVersion defaultVersion <> " to " <> renderVersion latestVersion
 
 -- headers = atomics_block , txs_block | txs_block , atomics_block ;
 headers :: Parser ([Name], [Name])

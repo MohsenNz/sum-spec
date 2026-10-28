@@ -182,6 +182,20 @@ Page
 
 Comments are for human readers and don't change the spec.
 
+## Language version
+
+A spec may declare the language version it's written for, as the first
+line (a comment may come before it):
+
+```
+__version 1.0
+```
+
+The version is `major.minor`, written as one token (`1.0`, not `1. 0`).
+A spec without the header is version 1.0. A tool that doesn't implement
+the declared version stops at the header with an error that names the
+version. See `VERSIONING.md` for how versions are numbered.
+
 ## Entry point
 
 The entry point is type `App`. Every spec should carry it. Also all then transition names should declare inside `__txs {}` block and all leaf types (atomic types) declare inside `__atomics {}` block as the start point.

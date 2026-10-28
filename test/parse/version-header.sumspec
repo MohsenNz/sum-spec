@@ -1,0 +1,8 @@
+-- The optional version header comes first; a comment may come before it.
+-- No header means 1.0.
+__version 1.0
+
+__atomics { A }
+__txs {}
+
+App = A

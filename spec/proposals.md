@@ -3,10 +3,8 @@
 Ideas that are in no language version yet. Each one says its version
 impact (see `VERSIONING.md`):
 
-- **additive**: every valid spec keeps its meaning, so it can go into the
-  next minor language version (e.g. 1.1);
-- **breaking**: it changes the meaning of existing specs, so it waits for
-  the next major language version (e.g. 2.0).
+- **additive**: it can go into the next minor language version
+- **breaking**: it waits for the next major language version
 
 ## Two state transitions with the same signature
 

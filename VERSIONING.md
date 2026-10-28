@@ -89,7 +89,9 @@ tool.
    all the language changes are additive, or the next major version.
 2. Move the **Unreleased** entries in `CHANGES.md` under the new tool
    version, with the date and the language version.
-3. Set `version:` in `sumspec.cabal` to the new tool version.
+3. Set `version:` in `sumspec.cabal` to the new tool version. If the
+   language version changed, also set `latestVersion` in
+   `src/SumSpec/Version.hs`.
 4. Add the "Added in" notes for the release's language features, and
    update the version stated at the top of `spec-v<major>.md`.
 5. Commit, and tag the commit `v<tool version>` (e.g. `v0.1.0.0`).

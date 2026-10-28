@@ -1,0 +1,4 @@
+__version 1
+__atomics { A }
+__txs {}
+App = A

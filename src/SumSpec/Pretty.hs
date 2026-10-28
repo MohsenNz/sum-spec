@@ -13,11 +13,13 @@ import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
 import Data.Text qualified as T
 import SumSpec.Syntax
+import SumSpec.Version (renderVersion)
 
 renderSpec :: Spec -> Text
-renderSpec (Spec atomics txs defs) =
+renderSpec (Spec version atomics txs defs) =
   T.unlines $
-    block "__atomics" atomics
+    maybe [] (\v -> ["__version " <> T.pack (renderVersion v), ""]) version
+      <> block "__atomics" atomics
       <> [""]
       <> block "__txs" txs
       <> [""]

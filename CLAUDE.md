@@ -45,6 +45,8 @@ See `VERSIONING.md`. In short:
 ## Key v1 decisions
 
 - Whitespace and newlines carry no meaning; `--` starts a line comment.
+- An optional `__version major.minor` header comes first; no header
+  means 1.0. The parser rejects a version it doesn't implement.
 - Types and variants are uppercase; transitions are lowercase.
 - A sum has at least two variants, so `T = A` is a newtype. A product has
   at least two factors.
@@ -85,6 +87,8 @@ One cabal package, `sumspec` (`sumspec.cabal`, `cabal.project`):
 - `src/SumSpec/Parser.hs`: one parser per rule in `grammar.ebnf`, named
   after the rule.
 - `src/SumSpec/Pretty.hs`: prints an AST back as canonical SumSpec source.
+- `src/SumSpec/Version.hs`: language versions and the newest one this
+  sumspec implements (`latestVersion`).
 - `src/SumSpec/Check.hs`: the type checker. It validates the AST and
   returns every error, sorted by position.
 - `src/SumSpec.hs`: re-exports the public modules.

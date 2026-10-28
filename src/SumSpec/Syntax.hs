@@ -17,11 +17,16 @@ module SumSpec.Syntax
 
 import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
+import SumSpec.Version (LanguageVersion)
 import Text.Megaparsec (SourcePos)
 
--- | A whole spec: the two header blocks, then the definitions in source order.
+-- | A whole spec: the optional version header, the two header blocks, then
+-- the definitions in source order.
 data Spec = Spec
-  { specAtomics :: [Name]
+  { specVersion :: Maybe LanguageVersion
+  -- ^ The version in @__version 1.1@; 'Nothing' without a header, which
+  -- means 'SumSpec.Version.defaultVersion'.
+  , specAtomics :: [Name]
   -- ^ Names declared in @__atomics { ... }@.
   , specTxs :: [Name]
   -- ^ Names declared in @__txs { ... }@.

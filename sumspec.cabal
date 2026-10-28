@@ -37,6 +37,7 @@ library
     SumSpec.Parser
     SumSpec.Pretty
     SumSpec.Syntax
+    SumSpec.Version
 
   other-modules:   SumSpec.Lexer
   build-depends:

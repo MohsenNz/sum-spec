@@ -1,0 +1,6 @@
+test/parse/error-version-format.sumspec:1:12:
+  |
+1 | __version 1
+  |            ^
+unexpected newline
+expecting '.' or digit

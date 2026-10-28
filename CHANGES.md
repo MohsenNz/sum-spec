@@ -21,7 +21,8 @@ Language version 1.0.
   - state patterns: paths into sums, arguments, and leaving the
     arguments out to mean any value;
   - the `__atomics` and `__txs` headers, the `App` entry point, and
-    `--` line comments.
+    `--` line comments;
+  - the optional `__version 1.0` header; no header means 1.0.
 - Example specs: `example/drone`, `example/todomvc`, `example/git`.
 
 ### Tool
