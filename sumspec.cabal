@@ -11,7 +11,9 @@ author:             Mohsen
 maintainer:         thelight.mn@gmail.com
 category:           Language
 build-type:         Simple
-extra-doc-files:    README.md
+extra-doc-files:
+  CHANGES.md
+  README.md
 extra-source-files:
   example/drone
   example/git

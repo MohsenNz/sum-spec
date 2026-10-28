@@ -2,6 +2,8 @@
 
 SumSpec is a language defined in our application specification with types and transitions. It uses type-theory (sum-type and product-type) and state machine to describe the system (application).
 
+This document defines SumSpec **1.x**; the current version is **1.0**. Features added in a later 1.x version carry an "Added in 1.x" note under their heading; see `VERSIONING.md`.
+
 ## State transitions
 
 ```

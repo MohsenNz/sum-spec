@@ -19,12 +19,28 @@ ones as the work changes.
   - `example/todomvc`: a UI, TodoMVC.
   - `example/git`: an application core, a local Git repository.
 - `spec/proposals.md`: future features that are **not** in v1. Don't
-  implement them unless asked.
+  implement them unless asked. Each says whether it's additive or
+  breaking.
 
 A language change touches `spec-v1.md`, `grammar.ebnf` and the example
 specs together; keep them in sync. The type checker's rules are listed in
 the notes at the end of `grammar.ebnf`; the pattern rules are in
 `spec-v1.md` ("Arguments in state patterns").
+
+## Versioning
+
+See `VERSIONING.md`. In short:
+
+- The language version is `major.minor` (currently 1.0). A breaking
+  change raises the major version and starts `spec-v<major>.md`; an
+  additive change raises the minor version and goes into the current
+  `spec-v<major>.md` with an "Added in 1.x" line under its heading.
+- The language version is independent of the tool version in
+  `sumspec.cabal`.
+- Record every user-visible change under **Unreleased** in `CHANGES.md`,
+  marked as language or tool.
+- Don't change `version:` in `sumspec.cabal` or create tags unless asked;
+  that happens at release time.
 
 ## Key v1 decisions
 
