@@ -8,15 +8,16 @@ in Haskell: a parser first, then a type checker.
 `TODO.md` tracks what's done and what remains. Tick items off and add new
 ones as the work changes.
 
-## Source of truth: `spec/`
+## Source of truth: `spec/` and `example/`
 
 - `spec/spec-v1.md`: the language definition.
 - `spec/grammar.ebnf`: the v1 grammar (ISO EBNF). It's frozen for the
   implementation; don't change it without being asked.
-- Example specs. Each must parse and type-check with no errors:
-  - `spec/example`: the reference example (a drone mission planner app).
-  - `spec/example-todomvc`: a UI, TodoMVC.
-  - `spec/example-git`: an application core, a local Git repository.
+- Example specs, in `example/` at the project root. Each must parse and
+  type-check with no errors:
+  - `example/drone`: the reference example (a drone mission planner app).
+  - `example/todomvc`: a UI, TodoMVC.
+  - `example/git`: an application core, a local Git repository.
 - `spec/proposals.md`: future features that are **not** in v1. Don't
   implement them unless asked.
 
@@ -96,7 +97,7 @@ Tests run against two corpora of small spec files. Each `foo.sumspec`
 has a `foo.golden` next to it holding the expected output. Invalid files
 are named `error-*.sumspec`. The example specs are cases in both, listed
 in `examples` in `test/Main.hs`, with golden files named
-`spec-<example>.golden` in each directory.
+`example-<name>.golden` in each directory.
 
 - `test/parse/`: the golden file is the canonical form, or the parse
   error. Each file is checked twice: once as parsed, and once after

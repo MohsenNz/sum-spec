@@ -9,11 +9,11 @@
 - [x] Move variant refinement and partial product patterns to
       `proposals.md`.
 - [x] Write the v1 grammar: `grammar.ebnf`, with `--` line comments.
-- [x] Make `spec/example` (renamed from `spec/syntax`) follow v1:
+- [x] Make `example/drone` (was `spec/syntax`) follow v1:
       `Point` and `Settings` are atomics, refinements are inlined, every
       product pattern lists all of its factors.
-- [x] Two more example specs, both tested: `spec/example-todomvc` (a
-      UI) and `spec/example-git` (an application core).
+- [x] Two more example specs, both tested: `example/todomvc` (a UI)
+      and `example/git` (an application core).
 
 ### Project setup
 - [x] `CLAUDE.md`.
@@ -28,7 +28,7 @@
 - [x] Printer to canonical source: `src/SumSpec/Pretty.hs`.
 - [x] CLI: `sumspec parse FILE`.
 - [x] Golden tests: `test/parse/` (valid and `error-*` cases, plus
-      `spec/example`), each also checked by a print-and-parse round trip.
+      the example specs), each also checked by a print-and-parse round trip.
 
 ### Type checker
 - [x] `src/SumSpec/Check.hs`: validates the AST (no separate model) and
@@ -44,7 +44,7 @@
       (rules in `spec-v1.md`, "Arguments in state patterns"); no
       arguments means any value; the two sides may be different types.
 - [x] Golden tests: `test/check/` (valid cases, the `spec-v1.md`
-      examples, `spec/example`, and `error-*` cases for every rule).
+      examples, the example specs, and `error-*` cases for every rule).
 - [x] CLI: `sumspec check FILE`.
 - [x] Checker rules listed in the notes of `spec/grammar.ebnf`.
 

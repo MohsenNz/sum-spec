@@ -3,7 +3,7 @@
 -- test/parse/: the golden file next to each case holds the spec printed
 -- back in canonical form, or the parse error.
 -- test/check/: the golden file holds "OK", or the type errors.
--- The example specs (spec/example*) are cases in both, with their golden
+-- The example specs in example/ are cases in both, with their golden
 -- files in those directories.
 --
 -- Run with @cabal test --test-options=--accept@ to regenerate, then
@@ -39,16 +39,16 @@ main = do
       ]
 
 -- | Each case is a spec file and its golden file. The example specs are
--- cases in every corpus, with golden files named @spec-<example>.golden@.
+-- cases in every corpus, with golden files named @example-<name>.golden@.
 corpus :: FilePath -> IO [(FilePath, FilePath)]
 corpus dir = do
   files <- findByExtension [".sumspec"] dir
   pure $
-    [(file, dir </> "spec-" <> takeFileName file <> ".golden") | file <- examples]
+    [(file, dir </> "example-" <> takeFileName file <> ".golden") | file <- examples]
       <> [(file, replaceExtension file ".golden") | file <- files]
 
 examples :: [FilePath]
-examples = ["spec/example", "spec/example-todomvc", "spec/example-git"]
+examples = ["example/drone", "example/todomvc", "example/git"]
 
 golden :: (FilePath -> Text -> Text) -> (FilePath, FilePath) -> TestTree
 golden run (file, goldenFile) =

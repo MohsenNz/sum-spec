@@ -6,11 +6,11 @@ SumSpec is a language defined in our application specification with types and tr
 
 Check out `./spec/spec-v1.md`
 
-Example specs:
+Example specs, in `example/`:
 
-- `spec/example`: a drone mission planner app.
-- `spec/example-todomvc`: the user interface of [TodoMVC](https://todomvc.com).
-- `spec/example-git`: the core of a local [Git](https://git-scm.com) repository.
+- `example/drone`: a drone mission planner app.
+- `example/todomvc`: the user interface of [TodoMVC](https://todomvc.com).
+- `example/git`: the core of a local [Git](https://git-scm.com) repository.
 
 ## Development environment
 
@@ -23,7 +23,7 @@ nix develop
 Inside `nix develop`, build and run the CLI with cabal:
 
 ```
-cabal run sumspec -- check spec/example
+cabal run sumspec -- check example/drone
 ```
 
 To install `sumspec` instead, into cabal's `installdir` (`~/.local/bin` by
