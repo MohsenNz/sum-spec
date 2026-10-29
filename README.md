@@ -1,6 +1,6 @@
 # README.md
 
-SumSpec is a language defined in our application specification with types and transitions. It uses type-theory (sum-type and product-type) and state machine to describe the system (application).
+SumSpec is a language we define our application specification in, with types and transitions. It's on top of the type-theory (sum-type and product-type) and ESMF (Extented Finite State Machine) to describe systems (applications).
 
 ## Specification
 
