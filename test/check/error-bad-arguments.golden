@@ -10,6 +10,12 @@ test/check/error-bad-arguments.sumspec:10:13:
    |             ^
 A takes no arguments
 
+test/check/error-bad-arguments.sumspec:10:13:
+   |
+10 | onAtomic :: A(B) -> A
+   |             ^
+warning: onAtomic changes one A of a list, but doesn't say which; to pick it, compare a key with a named value, such as A(id * ...)
+
 test/check/error-bad-arguments.sumspec:11:21:
    |
 11 | onNoPayload :: Page.Home(A) -> Page.Home

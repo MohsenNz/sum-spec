@@ -1,0 +1,13 @@
+-- The places of a recursive type are found once on each path.
+__version 1.1
+
+__atomics { Id }
+__txs { open close }
+
+App = Tree
+Tree = Leaf | Node (Id * Children * Fold)
+Children = [Tree]
+Fold = Open | Closed
+
+open :: Fold.Closed -> Fold.Open
+close Id#i :: Tree.Node(i * Fold.Open) -> Tree.Node(Fold.Closed)

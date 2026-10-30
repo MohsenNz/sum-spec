@@ -169,4 +169,10 @@ character     = ? any Unicode character ? ;
    - a prime goes only on a bare type name, at most once, and only on
      the target side. See "Source and target" in spec-v1.md.
 
+   Warnings (the checker reports them, but the spec is valid):
+   - a transition on a part inside a list element that doesn't pick
+     the element: it isn't written from the element, or doesn't compare
+     a key with a named value (Todo(id * ...)), or the element is inside
+     another list. See "Keys" in spec-v1.md.
+
    Not in v1 (see proposals.md): "=>", "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

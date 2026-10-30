@@ -3,7 +3,7 @@
 ## Remaining
 
 ### Open questions
-- [ ] Optional warnings: states no transition reaches, and transitions
+- [ ] More warnings: states no transition reaches, and transitions
       whose signatures overlap.
 - [ ] Should the checker build a resolved model of the spec (e.g.
       `SumSpec.Model`) for code generators to consume?
@@ -12,8 +12,9 @@
 Decide on each gap, one at a time, then move it to `proposals.md`:
 - [ ] Where a local transition applies (decided in part; waits for
       derived values in "How updates change values").
-- [ ] Optional warning: a local transition inside a list element that
-      doesn't pick the element by key.
+- [x] Warning: a local transition inside a list element that doesn't
+      pick the element by key.
+- [ ] Nested lists: pick an element of an outer list in a pattern.
 - [x] Event inputs (language 1.1).
 - [ ] Event outputs.
 - [ ] Guards on data.

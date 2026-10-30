@@ -11,7 +11,7 @@
 -- written without a prime, keeps its value; a primed part (Files') gets
 -- a new value. See "Source and target" in spec/spec-v1.md.
 
-__version 1.0
+__version 1.1
 
 __atomics {
   Hash
@@ -84,18 +84,18 @@ Remaining = [Hash]
 init :: Repository.Uninitialized
      -> Repository.Initialized(Head.Unborn * Operation.Idle)
 
-edit :: FileState.Unmodified -> FileState.Modified
-edit :: FileState.Staged -> FileState.StagedAndModified
+edit Path#p :: File(p * FileState.Unmodified) -> File(FileState.Modified)
+edit Path#p :: File(p * FileState.Staged) -> File(FileState.StagedAndModified)
 
-add :: FileState.Untracked -> FileState.Staged
-add :: FileState.Modified -> FileState.Staged
-add :: FileState.StagedAndModified -> FileState.Staged
+add Path#p :: File(p * FileState.Untracked) -> File(FileState.Staged)
+add Path#p :: File(p * FileState.Modified) -> File(FileState.Staged)
+add Path#p :: File(p * FileState.StagedAndModified) -> File(FileState.Staged)
 
-unstage :: FileState.Staged -> FileState.Modified
-unstage :: FileState.StagedAndModified -> FileState.Modified
+unstage Path#p :: File(p * FileState.Staged) -> File(FileState.Modified)
+unstage Path#p :: File(p * FileState.StagedAndModified) -> File(FileState.Modified)
 
-restore :: FileState.Modified -> FileState.Unmodified
-restore :: FileState.StagedAndModified -> FileState.Staged
+restore Path#p :: File(p * FileState.Modified) -> File(FileState.Unmodified)
+restore Path#p :: File(p * FileState.StagedAndModified) -> File(FileState.Staged)
 
 commit :: Repository.Initialized(Head.Unborn * Operation.Idle)
        -> Repository.Initialized(Head.OnBranch * Branches' * Files')
@@ -103,6 +103,8 @@ commit :: Repository.Initialized(Head.Unborn * Operation.Idle)
 commit :: Repository.Initialized(Head.OnBranch * Operation.Idle)
        -> Repository.Initialized(Branches' * Files')
 
+-- Every staged file becomes unmodified. SumSpec can't say "every" yet,
+-- so the checker warns that this doesn't say which file.
 commit :: FileState.Staged -> FileState.Unmodified
 
 switch :: Repository.Initialized(Operation.Idle)
@@ -117,9 +119,11 @@ merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
 merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
       -> Repository.Initialized(Files' * Operation.Merging)
 
+-- The files both sides changed become conflicted. SumSpec can't say
+-- which yet, so the checker warns.
 merge :: FileState.Unmodified -> FileState.Conflicted
 
-resolve :: FileState.Conflicted -> FileState.Staged
+resolve Path#p :: File(p * FileState.Conflicted) -> File(FileState.Staged)
 
 mergeContinue :: Repository.Initialized(Operation.Merging)
               -> Repository.Initialized(Branches' * Operation.Idle)
@@ -127,6 +131,8 @@ mergeContinue :: Repository.Initialized(Operation.Merging)
 mergeAbort :: Repository.Initialized(Operation.Merging)
            -> Repository.Initialized(Files' * Operation.Idle)
 
+-- Every conflicted file goes back to unmodified; the checker warns, as
+-- for commit.
 mergeAbort :: FileState.Conflicted -> FileState.Unmodified
 
 rebase :: Repository.Initialized(Head.OnBranch * Operation.Idle)

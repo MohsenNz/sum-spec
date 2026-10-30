@@ -37,7 +37,12 @@ cabal install exe:sumspec
 
 Parses the spec and type-checks it. A valid spec prints nothing and exits
 with code 0. Otherwise every error is printed to stderr, sorted by
-position, and the exit code is 1:
+position, and the exit code is 1.
+
+Warnings point at parts of a valid spec that are less precise than they
+could be, such as a transition inside a list element that doesn't say
+which element it changes. They are printed like errors, marked
+`warning:`, and a spec with only warnings exits with code 0:
 
 ```
 $ sumspec check test/check/error-bad-path.sumspec

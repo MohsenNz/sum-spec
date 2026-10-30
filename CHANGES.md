@@ -25,6 +25,11 @@ implements. See `VERSIONING.md` for how versions are numbered.
   `__version 1.1`.
 - The checker reports an input whose type is unknown, signatures of one
   transition with different inputs, and inputs in a spec that is 1.0.
+- Warnings: the checker reports parts of a valid spec that are less
+  precise than they could be, marked `warning:`; `sumspec check` exits
+  with 0 when there are only warnings. The first warning: a transition
+  inside a list element that doesn't say which element it changes.
+- `example/git` is 1.1: per-file transitions pick the file by `Path`.
 - The parser and printer read named values; the checker reports unknown
   names, names given twice or on the target side, names of the wrong
   type, and names in a spec that is 1.0.

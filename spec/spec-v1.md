@@ -303,9 +303,13 @@ toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Complete
 ```
 
 Here `toggleTodo` changes the todo whose `TodoId` equals the input.
-Inside nested lists, the input names one key per list, and each level
-compares its own: `TodoRef(ProjectId#p * TodoId#t)`, with
-`Project(p * ...)` and `Todo(t * ...)`.
+
+Inside nested lists (`Projects = [Project]`, `Project = ProjectId *
+Todos`), a key picks only the innermost element: a pattern can't reach
+into an element of an outer list yet, so the project isn't picked.
+
+The type checker warns about a transition inside a list element that
+doesn't pick the element this way.
 
 ## List
 

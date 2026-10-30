@@ -47,6 +47,10 @@ Rules:
 
        toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
 
+   The checker warns about a transition inside a list element that
+   doesn't pick the element. Open: nested lists, where a pattern can't
+   pick an element of an outer list yet.
+
 3. The checker rejects a local transition whose type occurs at more than
    one place of `App` that isn't the same list. Such a transition is
    written from a common ancestor that tells the places apart.

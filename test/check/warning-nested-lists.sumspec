@@ -1,0 +1,15 @@
+-- A pattern can't reach into an element of an outer list yet, so a key
+-- picks only the innermost element; the checker warns about the outer one.
+__version 1.1
+
+__atomics { ProjectId TodoId }
+__txs { toggle }
+
+App = Projects
+Projects = [Project]
+Project = ProjectId * Todos
+Todos = [Todo]
+Todo = TodoId * Done
+Done = No | Yes
+
+toggle TodoId#t :: Todo(t * Done.No) -> Todo(Done.Yes)

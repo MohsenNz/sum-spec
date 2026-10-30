@@ -1,1 +1,12 @@
-OK
+test/check/patterns.sumspec:37:15:
+   |
+37 | newtypeArg :: Shape.Dot(Point) -> Shape.Dot(Point)
+   |               ^
+warning: newtypeArg changes one Shape of a list, but doesn't say which; to pick it, compare a key with a named value, such as Shape(id * ...)
+
+test/check/patterns.sumspec:39:12:
+   |
+39 | listArg :: Shape.Line([Point]) -> Shape.Line
+   |            ^
+warning: listArg changes one Shape of a list, but doesn't say which; to pick it, compare a key with a named value, such as Shape(id * ...)
+

@@ -1,1 +1,6 @@
-OK
+test/check/recursive.sumspec:8:9:
+  |
+8 | grow :: Tree.Leaf -> Tree.Node
+  |         ^
+warning: grow changes one Tree of a list, but doesn't say which; to pick it, compare a key with a named value, such as Tree(id * ...)
+

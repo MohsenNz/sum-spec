@@ -2,10 +2,12 @@
 
 -- | Type checker for SumSpec v1. It checks a parsed spec against the rules
 -- listed at the end of spec/grammar.ebnf and reports every error it finds,
--- sorted by position.
+-- sorted by position, with the warnings among them.
 module SumSpec.Check
   ( CheckError (..)
+  , Severity (..)
   , checkSpec
+  , hasErrors
   , renderCheckErrors
   ) where
 
@@ -29,14 +31,24 @@ import SumSpec.Version
 import Text.Megaparsec (SourcePos (..), initialPos, sourcePosPretty, unPos)
 
 data CheckError = CheckError
-  { errorPos :: SourcePos
+  { errorSeverity :: Severity
+  , errorPos :: SourcePos
   , errorMessage :: Text
   }
   deriving stock (Eq, Show)
 
--- | Checks a spec and returns its errors sorted by position; no errors
--- means the spec is valid. The file path is used for errors that have no
--- place in the source, such as a missing @App@.
+-- | An error makes a spec invalid. A warning points at a part of a valid
+-- spec that is less precise than it could be.
+data Severity = Error | Warning
+  deriving stock (Eq, Show)
+
+-- | Whether any of the reported problems is an error, not a warning.
+hasErrors :: [CheckError] -> Bool
+hasErrors = any ((== Error) . errorSeverity)
+
+-- | Checks a spec and returns its errors and warnings sorted by position;
+-- no errors means the spec is valid. The file path is used for errors
+-- that have no place in the source, such as a missing @App@.
 checkSpec :: FilePath -> Spec -> [CheckError]
 checkSpec file spec =
   sortOn (position . errorPos) $
@@ -45,6 +57,7 @@ checkSpec file spec =
       , checkApp file env
       , checkTypeDefs env typeDefs
       , checkTransitions env spec transitions
+      , warnListElements env transitions
       ]
   where
     position pos = (unPos (sourceLine pos), unPos (sourceColumn pos))
@@ -58,17 +71,20 @@ renderCheckErrors :: Text -> [CheckError] -> String
 renderCheckErrors source = unlines . map render
   where
     sourceLines = T.lines source
-    render (CheckError pos message) =
+    render (CheckError severity pos message) =
       unlines
         [ sourcePosPretty pos <> ":"
         , gutter <> " |"
         , lineNumber <> " | " <> T.unpack line
         , gutter <> " | " <> replicate (unPos (sourceColumn pos) - 1) ' ' <> "^"
-        , T.unpack message
+        , prefix <> T.unpack message
         ]
       where
         lineNumber = show (unPos (sourceLine pos))
         gutter = map (const ' ') lineNumber
+        prefix = case severity of
+          Error -> ""
+          Warning -> "warning: "
         line = case drop (unPos (sourceLine pos) - 1) sourceLines of
           l : _ -> l
           [] -> ""
@@ -111,7 +127,7 @@ checkApp :: FilePath -> Env -> [CheckError]
 checkApp file env
   | Map.member "App" (envTypes env) = []
   | otherwise =
-      [ CheckError
+      [ errorAtPos
           (initialPos file)
           "App is not defined; every spec needs an App type as its entry point"
       ]
@@ -298,14 +314,14 @@ data Side = Source | Target
 checkPrimes :: Side -> Pattern -> [CheckError]
 checkPrimes side = \case
   PatternPrimed pos inner ->
-    [ CheckError pos "a prime (') marks a new value, so it can only be on the target side"
+    [ errorAtPos pos "a prime (') marks a new value, so it can only be on the target side"
     | Source <- [side]
     ]
       <> case inner of
-        PatternPrimed _ _ -> [CheckError pos "a name takes at most one prime (')"]
+        PatternPrimed _ _ -> [errorAtPos pos "a name takes at most one prime (')"]
         PatternPath (_ :| []) [] -> []
         _ ->
-          [ CheckError pos $
+          [ errorAtPos pos $
               "a prime (') goes only on a bare type name; "
                 <> "a written variant or argument already says what the new value is"
           ]
@@ -458,10 +474,106 @@ checkArg env names term arg = case (term, arg) of
         "expected " <> termKey term <> " here, not " <> patternKey arg
     ]
 
+-- ---------- Warnings ----------
+
+-- | Where a type occurs inside @App@: the element types of the lists
+-- crossed on the way to it, innermost first, and whether the type is the
+-- element of the innermost list itself (@Todo@ in @[Todo]@).
+data Place = Place [Text] Bool
+
+-- | Every place of every type reachable from @App@. A recursive type is
+-- followed again on a path only when it is inside another list, so a
+-- tree's nodes are found both at the root and inside @[Tree]@.
+listPlaces :: Env -> Map Text [Place]
+listPlaces env =
+  Map.fromListWith (flip (<>)) [(t, [p]) | (t, p) <- goType Set.empty [] False "App"]
+  where
+    goType seen lists direct name
+      | Set.member visit seen = []
+      | otherwise =
+          (name, Place lists direct)
+            : maybe [] (goExpr (Set.insert visit seen) lists) (Map.lookup name (envTypes env))
+      where
+        visit = (name, take 1 lists)
+    goExpr seen lists = \case
+      TypeSum variants -> concat [goExpr seen lists p | Variant _ (Just p) <- variants]
+      TypeProduct terms -> concatMap (goTerm seen lists) terms
+      TypeTerm term -> goTerm seen lists term
+    goTerm seen lists = \case
+      TermName n -> goType seen lists False (nameText n)
+      TermList element -> goElement seen (termKey element : lists) element
+    goElement seen lists = \case
+      TermName n -> goType seen lists True (nameText n)
+      TermList element -> goElement seen (termKey element : lists) element
+
+-- | A transition on a part inside a list element changes one element, but
+-- says which only when it is written from the element and compares a key
+-- with a named value (@Todo(id * ...)@). Warns about the others, once per
+-- signature.
+warnListElements :: Env -> [Transition] -> [CheckError]
+warnListElements env transitions =
+  [ warningAt h (nameText n <> " " <> message)
+  | Transition n _ from _ <- transitions
+  , PatternPath (h :| _) args <- [bare from]
+  , Just message <- [firstJust (map (problem (nameText h) args) (placesOf (nameText h)))]
+  ]
+  where
+    places = listPlaces env
+    placesOf t = [p | p@(Place (_ : _) _) <- Map.findWithDefault [] t places]
+    keyed args = any (not . null . nameUses) args
+    problem t args (Place lists direct) = case lists of
+      element : outer
+        | not direct ->
+            Just $
+              "changes a "
+                <> t
+                <> " inside one "
+                <> element
+                <> " of a list, but doesn't say which "
+                <> element
+                <> "; to pick it, write the transition from "
+                <> element
+                <> " and compare a key with a named value, such as "
+                <> element
+                <> "(id * ...)"
+        | not (keyed args) ->
+            Just $
+              "changes one "
+                <> t
+                <> " of a list, but doesn't say which; to pick it, compare a key "
+                <> "with a named value, such as "
+                <> t
+                <> "(id * ...)"
+        | outerElement : _ <- outer ->
+            Just $
+              "picks a "
+                <> t
+                <> " by key, but not the "
+                <> outerElement
+                <> " it is in; a pattern can't pick an element of an outer list yet"
+        | otherwise -> Nothing
+      [] -> Nothing
+    firstJust = foldr (\m rest -> maybe rest Just m) Nothing
+
+-- | The names a pattern uses (@x@), not the ones it gives (@#x@).
+nameUses :: Pattern -> [Name]
+nameUses = \case
+  PatternName n -> [n]
+  PatternNamed p _ -> nameUses p
+  PatternPath _ args -> concatMap nameUses args
+  PatternPrimed _ p -> nameUses p
+  PatternList _ -> []
+
 -- ---------- Helpers ----------
 
 errorAt :: Name -> Text -> CheckError
-errorAt = CheckError . namePos
+errorAt = errorAtPos . namePos
+
+errorAtPos :: SourcePos -> Text -> CheckError
+errorAtPos = CheckError Error
+
+warningAt :: Name -> Text -> CheckError
+warningAt = CheckError Warning . namePos
 
 unknownType :: Name -> CheckError
 unknownType n =

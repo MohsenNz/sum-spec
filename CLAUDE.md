@@ -77,7 +77,8 @@ One cabal package, `sumspec` (`sumspec.cabal`, `cabal.project`):
 - `src/SumSpec.hs`: re-exports the public modules.
 - `app/Main.hs`: the `sumspec` command-line tool. `sumspec parse FILE`
   prints the canonical form or the parse error; `sumspec check FILE`
-  prints nothing for a valid spec, or every error (exit code 1).
+  prints nothing for a valid spec, or every error (exit code 1) and
+  warning (exit code 0 if there are only warnings).
 - `test/Main.hs`: the golden test runner; `test/parse/` and
   `test/check/`: the corpora.
 

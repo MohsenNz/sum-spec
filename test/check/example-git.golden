@@ -1,1 +1,18 @@
-OK
+example/git:111:11:
+    |
+111 | commit :: FileState.Staged -> FileState.Unmodified
+    |           ^
+warning: commit changes a FileState inside one File of a list, but doesn't say which File; to pick it, write the transition from File and compare a key with a named value, such as File(id * ...)
+
+example/git:127:10:
+    |
+127 | merge :: FileState.Unmodified -> FileState.Conflicted
+    |          ^
+warning: merge changes a FileState inside one File of a list, but doesn't say which File; to pick it, write the transition from File and compare a key with a named value, such as File(id * ...)
+
+example/git:139:15:
+    |
+139 | mergeAbort :: FileState.Conflicted -> FileState.Unmodified
+    |               ^
+warning: mergeAbort changes a FileState inside one File of a list, but doesn't say which File; to pick it, write the transition from File and compare a key with a named value, such as File(id * ...)
+
