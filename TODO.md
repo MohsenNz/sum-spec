@@ -8,6 +8,17 @@
 - [ ] Should the checker build a resolved model of the spec (e.g.
       `SumSpec.Model`) for code generators to consume?
 
+### Closer to an EFSM (`spec/efsm-gaps.md`)
+Decide on each gap, one at a time, then move it to `proposals.md`:
+- [ ] Where a local transition applies (decided in part; waits for
+      derived values in "How updates change values").
+- [ ] Guards on data.
+- [ ] How updates change values.
+- [ ] Event inputs and outputs.
+- [ ] Nondeterminism between signatures.
+- [ ] Initial state.
+- [ ] Values inside a new state.
+
 ### Versioning
 - [x] Versioning policy (`VERSIONING.md`) and `CHANGES.md`; proposals
       marked additive or breaking.

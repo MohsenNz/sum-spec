@@ -6,7 +6,7 @@ impact (see `VERSIONING.md`):
 - **additive**: it can go into the next minor language version
 - **breaking**: it waits for the next major language version
 
-## Two state transitions with the same signature
+## Two state transitions with the same signature (Postponed)
 
 Version impact: additive.
 
