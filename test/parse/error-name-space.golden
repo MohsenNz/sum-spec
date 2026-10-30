@@ -1,0 +1,6 @@
+test/parse/error-name-space.sumspec:7:5:
+  |
+7 | f A# a :: A -> a
+  |     ^
+unexpected space
+expecting name right after #

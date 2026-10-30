@@ -121,28 +121,40 @@ payload =
 typeTerm :: Parser TypeTerm
 typeTerm = TermName <$> upperName <|> TermList <$> brackets typeTerm
 
--- transition = LOWER , [ type_term ] , "::" , pattern , "->" , pattern ;
+-- transition = LOWER , [ input ] , "::" , pattern , "->" , pattern ;
 transition :: Parser Transition
 transition =
   Transition
     <$> lowerName
-    <*> optional (typeTerm <?> "input type")
+    <*> optional (input <?> "input type")
     <* symbol "::"
     <*> pattern
     <* symbol "->"
     <*> pattern
 
--- pattern = ( path , [ "(" , pattern , { "*" , pattern } , ")" ]
---           | "[" , type_term , "]" ) , { "'" } ;
+-- input = type_pattern , [ NAMING ] ;
+input :: Parser Pattern
+input = withNaming =<< typePattern
+
+-- pattern = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
 pattern :: Parser Pattern
 pattern = do
-  base <-
-    choice
-      [ PatternList <$> brackets typeTerm
-      , PatternPath <$> path <*> option [] (parens (sepBy1 pattern (symbol "*")))
-      ]
+  base <- typePattern <|> PatternName <$> valueName
   primes <- many (getSourcePos <* symbol "'")
-  pure (foldl (flip PatternPrimed) base primes)
+  withNaming (foldl (flip PatternPrimed) base primes)
+
+-- type_pattern = path , [ "(" , pattern , { "*" , pattern } , ")" ]
+--              | "[" , type_term , "]" ;
+typePattern :: Parser Pattern
+typePattern =
+  choice
+    [ PatternList <$> brackets typeTerm
+    , PatternPath <$> path <*> option [] (parens (sepBy1 pattern (symbol "*")))
+    ]
+
+-- [ NAMING ] after a pattern.
+withNaming :: Pattern -> Parser Pattern
+withNaming p = maybe p (PatternNamed p) <$> optional naming
 
 -- path = UPPER , { "." , UPPER } ;
 path :: Parser (NonEmpty Name)

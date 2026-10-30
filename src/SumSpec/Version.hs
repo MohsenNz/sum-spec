@@ -6,6 +6,7 @@ module SumSpec.Version
   , defaultVersion
   , latestVersion
   , inputsVersion
+  , namesVersion
   , isSupported
   , renderVersion
   ) where
@@ -28,6 +29,10 @@ latestVersion = LanguageVersion 1 1
 -- | The first version with transition inputs (@f X :: A -> B@).
 inputsVersion :: LanguageVersion
 inputsVersion = LanguageVersion 1 1
+
+-- | The first version with named values (@P#x@ and @x@ in patterns).
+namesVersion :: LanguageVersion
+namesVersion = LanguageVersion 1 1
 
 -- | A spec can be read if it has the same major version as
 -- 'latestVersion' and a minor version no newer than it.

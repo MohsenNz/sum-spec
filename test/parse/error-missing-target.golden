@@ -3,4 +3,4 @@ test/parse/error-missing-target.sumspec:4:1:
 4 | <empty line>
   | ^
 unexpected end of input
-expecting '[' or type or variant name
+expecting '[', type or variant name, or value name

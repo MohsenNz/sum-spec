@@ -6,8 +6,8 @@
 -- completed" button. The list and the footer are hidden while there are
 -- no todos.
 --
--- A transition on one todo takes its TodoId, which picks the todo in
--- Todos.
+-- A transition on one todo takes its TodoId, and changes the todo whose
+-- TodoId equals it (Todo(id * ...)).
 
 __version 1.1
 
@@ -84,7 +84,7 @@ Filter
   | Active
   | Completed
 
-startTyping Text :: NewTodo.Blank -> NewTodo.Typing(Text)
+startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
 
 addTodo :: App(Screen.NoTodos * NewTodo.Typing)
         -> App(Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank)
@@ -92,17 +92,19 @@ addTodo :: App(Screen.NoTodos * NewTodo.Typing)
 addTodo :: App(Screen.WithTodos * NewTodo.Typing)
         -> App(Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank)
 
-toggleTodo TodoId :: Completion.Active -> Completion.Completed
-toggleTodo TodoId :: Completion.Completed -> Completion.Active
+toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
+toggleTodo TodoId#id :: Todo(id * Completion.Completed) -> Todo(Completion.Active)
 
 toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
 toggleAll :: ToggleAll.AllDone -> ToggleAll.NotAllDone
 
-startEditing TodoId :: Todo(RowMode.Viewing) -> Todo(RowMode.Editing)
+startEditing TodoId#id :: Todo(id * Title(Text#t) * RowMode.Viewing)
+                       -> Todo(RowMode.Editing(EditText(t)))
 
-finishEditing TodoId :: Todo(RowMode.Editing) -> Todo(Title' * RowMode.Viewing)
+finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e)))
+                        -> Todo(Title(e) * RowMode.Viewing)
 
-cancelEditing TodoId :: RowMode.Editing -> RowMode.Viewing
+cancelEditing TodoId#id :: Todo(id * RowMode.Editing) -> Todo(RowMode.Viewing)
 
 deleteTodo TodoId :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
 deleteTodo TodoId :: Screen.WithTodos -> Screen.NoTodos

@@ -1,0 +1,42 @@
+test/check/error-names.sumspec:13:31:
+   |
+13 | unknown :: Todo -> Todo(Title(t))
+   |                               ^
+unknown name t; name a value with #t in the input or on the source side
+
+test/check/error-names.sumspec:14:26:
+   |
+14 | twice Id#x :: Todo(Title#x) -> Todo
+   |                          ^
+x is named twice in this signature
+
+test/check/error-names.sumspec:15:32:
+   |
+15 | onTarget :: Todo -> Todo(Title#t)
+   |                                ^
+a value is named only in the input or on the source side; on the target side, write the name alone: t
+
+test/check/error-names.sumspec:16:25:
+   |
+16 | nameName Id#i :: Todo(i#j) -> Todo
+   |                         ^
+only a type pattern can be named; i already names a value
+
+test/check/error-names.sumspec:17:58:
+   |
+17 | mismatch :: Todo(Mode.Editing(EditText#e)) -> Todo(Title(e))
+   |                                                          ^
+e has type EditText, but Text is expected here
+
+test/check/error-names.sumspec:18:33:
+   |
+18 | primed Title#t :: Todo -> Todo(t')
+   |                                 ^
+a prime (') goes only on a bare type name; a written variant or argument already says what the new value is
+
+test/check/error-names.sumspec:19:34:
+   |
+19 | notFactor Text#t :: Todo -> Todo(t)
+   |                                  ^
+t (of type Text) is not a factor of Todo (Id * Title * Mode)
+

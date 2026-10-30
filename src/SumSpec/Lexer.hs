@@ -10,6 +10,8 @@ module SumSpec.Lexer
   , symbol
   , upperName
   , lowerName
+  , valueName
+  , naming
   , versionNumber
   , parens
   , brackets
@@ -46,8 +48,20 @@ upperName = identifier isAsciiUpper <?> "type or variant name"
 lowerName :: Parser Name
 lowerName = identifier isAsciiLower <?> "transition name"
 
+-- | A name for a value in a pattern: @LOWER@.
+valueName :: Parser Name
+valueName = identifier isAsciiLower <?> "value name"
+
+-- | @#x@, naming the value of the pattern before it. One token: no space
+-- between the @#@ and the name.
+naming :: Parser Name
+naming = lexeme (char '#' *> (rawIdentifier isAsciiLower <?> "name right after #"))
+
 identifier :: (Char -> Bool) -> Parser Name
-identifier isFirst = lexeme $ do
+identifier = lexeme . rawIdentifier
+
+rawIdentifier :: (Char -> Bool) -> Parser Name
+rawIdentifier isFirst = do
   pos <- getSourcePos
   first <- satisfy isFirst
   rest <- takeWhileP Nothing isIdentChar

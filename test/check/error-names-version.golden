@@ -1,0 +1,12 @@
+test/check/error-names-version.sumspec:8:15:
+  |
+8 | f :: S.Y(Text#t) -> S.Y(t)
+  |               ^
+named values need SumSpec 1.1; declare __version 1.1 or later
+
+test/check/error-names-version.sumspec:8:25:
+  |
+8 | f :: S.Y(Text#t) -> S.Y(t)
+  |                         ^
+named values need SumSpec 1.1; declare __version 1.1 or later
+

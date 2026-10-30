@@ -78,7 +78,8 @@ To decide:
 
 ## 3. Updates say what changes, not how
 
-Status: open.
+Status: Part A (named values) decided, in 1.1 (see "Named values" in
+`spec-v1.md`); Parts B and C open.
 
 `Todos'` says the todos get a new value. It doesn't say a todo was added,
 removed or edited, or how `ItemsLeft'` relates to `Todos'`. An EFSM's
@@ -91,6 +92,44 @@ To decide:
 - How an update refers to old values, new values and inputs.
 - Derived values: `ItemsLeft` is the number of active todos. Saying so
   once (an invariant) may replace updating it in every transition.
+
+Proposal, in three parts. No arithmetic: atomics stay opaque, and
+everything is about structure (variants, lists, keys, named values).
+
+**Part A, named values (done, 1.1).** `P#x` names a value in the input
+or on the source side; `x` uses it. On the source side a name is an
+equality guard, on the target side it sets the value. Newtypes are
+strict: `EditText(Text#e)` then `Title(e)`.
+
+**Part B, derived values (open).** A part computed from others, which
+transitions read but never write:
+
+    ItemsLeft = Count := count Todos where Todo(Completion.Active)
+    ToggleAll = NotAllDone | AllDone
+      := AllDone if all Todos are Todo(Completion.Completed) else NotAllDone
+
+Patterns are the predicates: `count ... where P`, `all ... are P`,
+`any ... are P`, `empty ...`. The same vocabulary can serve gaps 2 and 5
+as guards.
+
+**Part C, list updates (open).**
+
+| Form | Meaning |
+|---|---|
+| `L += P` | add an element built by `P` |
+| `L -= x` | remove the element whose key is `x` |
+| `L -= where P` | remove every element that matches `P` |
+| `L each P` | apply `P` to every element (`toggleAll`) |
+
+Open questions for B and C:
+
+- Derivations on the type definition, or in a `__derived { }` block; the
+  keywords (`:=`, `if`, `else`, `are`, `where`).
+- How a derivation finds its sources (the nearest product holding both).
+- Fresh keys: `TodoId'` in `+=`, or a `fresh` keyword.
+- A list in a new state (`addTodo` from `Screen.NoTodos`): a list literal,
+  or "a new list starts empty".
+- The syntax of `+=`, `-=` and `each`.
 
 ## 4. Event inputs and outputs
 

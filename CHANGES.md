@@ -10,7 +10,12 @@ implements. See `VERSIONING.md` for how versions are numbered.
 - Language version 1.1: transition inputs. A transition may take an
   input, written after its name (`toggleTodo TodoId :: ...`). Every
   signature of a transition takes the same input, or none. An input
-  picks one list element by key. `example/todomvc` uses them.
+  picks one list element by key. The input is a type pattern, so it
+  can name its parts: `select Ref(Id#i * Name#n) :: ...`.
+- Named values, also in 1.1: `P#x` names the value a pattern matches, in
+  the input or on the source side, and `x` uses it. On the source side a
+  name is an equality guard; on the target side it sets the value.
+- `example/todomvc` uses inputs and named values.
 
 ### Tool
 
@@ -18,6 +23,9 @@ implements. See `VERSIONING.md` for how versions are numbered.
   `__version 1.1`.
 - The checker reports an input whose type is unknown, signatures of one
   transition with different inputs, and inputs in a spec that is 1.0.
+- The parser and printer read named values; the checker reports unknown
+  names, names given twice or on the target side, names of the wrong
+  type, and names in a spec that is 1.0.
 
 ## 0.1.0.0 (not released yet)
 

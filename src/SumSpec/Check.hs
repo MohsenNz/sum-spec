@@ -19,7 +19,13 @@ import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
 import SumSpec.Syntax
-import SumSpec.Version (defaultVersion, inputsVersion, renderVersion)
+import SumSpec.Version
+  ( LanguageVersion
+  , defaultVersion
+  , inputsVersion
+  , namesVersion
+  , renderVersion
+  )
 import Text.Megaparsec (SourcePos (..), initialPos, sourcePosPretty, unPos)
 
 data CheckError = CheckError
@@ -172,14 +178,8 @@ checkTransitions env spec transitions =
   | Transition n _ _ _ <- firsts (nameText . transitionName) transitions
   , nameText n `Set.notMember` listed
   ]
-    <> concat [checkTerm env i | Transition _ (Just i) _ _ <- transitions]
     <> checkInputs transitions
-    <> [ errorAt (termName i) $
-           "transition inputs need SumSpec "
-             <> T.pack (renderVersion inputsVersion)
-             <> "; declare __version "
-             <> T.pack (renderVersion inputsVersion)
-             <> " or later"
+    <> [ needsVersion inputsVersion "transition inputs" (patternHead i)
        | version < inputsVersion
        , Transition _ (Just i) _ _ <- transitions
        ]
@@ -187,24 +187,34 @@ checkTransitions env spec transitions =
        | n <- firsts nameText (specTxs spec)
        , nameText n `Set.notMember` signed
        ]
-    <> concat
-      [ checkPrimes Source from
-          <> checkPrimes Target to
-          <> checkPattern env from
-          <> checkPattern env to
-      | Transition _ _ from to <- transitions
-      ]
+    <> concatMap checkSignature transitions
   where
     listed = Set.fromList (map nameText (specTxs spec))
     signed = Set.fromList (map (nameText . transitionName) transitions)
     version = fromMaybe defaultVersion (specVersion spec)
+    -- The input is checked like the source: it's what the transition
+    -- receives, so it can name values but not give new ones.
+    checkSignature (Transition _ input from to) =
+      concatMap (checkPrimes Source) input
+        <> checkPrimes Source from
+        <> checkPrimes Target to
+        <> checkNamings input from to
+        <> concatMap (checkPattern env names) input
+        <> checkPattern env names from
+        <> checkPattern env names to
+        <> [ needsVersion namesVersion "named values" n
+           | version < namesVersion
+           , n <- nameRefs from <> nameRefs to
+           ]
+      where
+        names = Map.fromList [(nameText n, k) | (n, k) <- signatureNames input from]
 
 -- | An input belongs to the transition, not to one signature (as an EFSM
 -- event has one parameter list), so every signature takes the input of
 -- the first one, or none like it.
 checkInputs :: [Transition] -> [CheckError]
 checkInputs transitions =
-  [ errorAt (maybe n termName input) $
+  [ errorAt (maybe n patternHead input) $
       "transition "
         <> nameText n
         <> " takes "
@@ -215,7 +225,7 @@ checkInputs transitions =
         <> describe input
   | Transition n input _ _ <- transitions
   , Just (Transition firstName firstInput _ _) <- [Map.lookup (nameText n) firstByName]
-  , fmap termKey input /= fmap termKey firstInput
+  , fmap patternKey input /= fmap patternKey firstInput
   ]
   where
     firstByName =
@@ -223,7 +233,60 @@ checkInputs transitions =
         [ (nameText (transitionName t), t)
         | t <- firsts (nameText . transitionName) transitions
         ]
-    describe = maybe "no input" termKey
+    describe = maybe "no input" patternKey
+
+-- | The names a signature gives, with their types: in its input and on
+-- its source side.
+signatureNames :: Maybe Pattern -> Pattern -> [(Name, Text)]
+signatureNames input from = concatMap namings input <> namings from
+
+-- | The values a pattern names (@P#x@), with the type of each: the head
+-- type of @P@, or its list type. A name given to a name (@x#y@) is an
+-- error, so it gives no type here.
+namings :: Pattern -> [(Name, Text)]
+namings = \case
+  PatternNamed (PatternName _) _ -> []
+  PatternNamed p n -> (n, patternKey p) : namings p
+  PatternPath _ args -> concatMap namings args
+  PatternPrimed _ p -> namings p
+  PatternList _ -> []
+  PatternName _ -> []
+
+-- | Every name written in a pattern, given (@#x@) or used (@x@).
+nameRefs :: Pattern -> [Name]
+nameRefs = \case
+  PatternNamed p n -> n : nameRefs p
+  PatternName n -> [n]
+  PatternPath _ args -> concatMap nameRefs args
+  PatternPrimed _ p -> nameRefs p
+  PatternList _ -> []
+
+-- | Where names may be given: once each, in the input or on the source
+-- side, and only to a type pattern. On the target side a name is only
+-- used, to set a value.
+checkNamings :: Maybe Pattern -> Pattern -> Pattern -> [CheckError]
+checkNamings input from to =
+  [ errorAt n (nameText n <> " is named twice in this signature")
+  | ((n, _), _) <- repeats (nameText . fst) (signatureNames input from)
+  ]
+    <> [ errorAt n $
+           "a value is named only in the input or on the source side; "
+             <> "on the target side, write the name alone: "
+             <> nameText n
+       | (_, n) <- named to
+       ]
+    <> [ errorAt
+           n
+           ("only a type pattern can be named; " <> nameText x <> " already names a value")
+       | (PatternName x, n) <- concatMap named (maybe [] pure input <> [from])
+       ]
+  where
+    named = \case
+      PatternNamed p n -> (p, n) : named p
+      PatternPath _ args -> concatMap named args
+      PatternPrimed _ p -> named p
+      PatternList _ -> []
+      PatternName _ -> []
 
 -- | The side of a transition a pattern is on: the source is a
 -- precondition, the target is the effect.
@@ -248,7 +311,9 @@ checkPrimes side = \case
           ]
       <> checkPrimes side inner
   PatternPath _ args -> concatMap (checkPrimes side) args
+  PatternNamed p _ -> checkPrimes side p
   PatternList _ -> []
+  PatternName _ -> []
 
 -- | What a position in a pattern stands for: a type or a variant, with a
 -- label for messages (@Page.Plan@) and the type expression its path and
@@ -266,27 +331,33 @@ typeNode env name = case Map.lookup name (envTypes env) of
     | Set.member name (envAtomics env) -> Just (Node name Nothing)
     | otherwise -> Nothing
 
--- | A whole side of a transition. Its first name must be a type. Primes
--- are checked by 'checkPrimes'; here a primed pattern is checked like the
--- pattern it primes.
-checkPattern :: Env -> Pattern -> [CheckError]
-checkPattern env = \case
-  PatternPrimed _ inner -> checkPattern env inner
+-- | The names a signature gives, with the type of each.
+type Names = Map Text Text
+
+-- | A whole side of a transition, or an input. Its first name must be a
+-- type, or it's a name. Primes are checked by 'checkPrimes' and the
+-- places of names by 'checkNamings'; here a primed or named pattern is
+-- checked like the pattern inside.
+checkPattern :: Env -> Names -> Pattern -> [CheckError]
+checkPattern env names = \case
+  PatternPrimed _ inner -> checkPattern env names inner
+  PatternNamed inner _ -> checkPattern env names inner
+  PatternName n -> [unknownName n | nameText n `Map.notMember` names]
   PatternList term -> checkTerm env term
   PatternPath (h :| path) args -> case typeNode env (nameText h) of
     Nothing -> [unknownType h]
-    Just node -> walk env node h path args
+    Just node -> walk env names node h path args
 
 -- | Follows the rest of a path from a node, then checks the arguments at
 -- its end. @at@ is the last name read, where errors about the node go.
-walk :: Env -> Node -> Name -> [Name] -> [Pattern] -> [CheckError]
-walk env node at path args = case path of
-  [] -> checkArgs env node at args
+walk :: Env -> Names -> Node -> Name -> [Name] -> [Pattern] -> [CheckError]
+walk env names node at path args = case path of
+  [] -> checkArgs env names node at args
   v : rest -> case nodeBody node of
     Just (TypeSum variants) ->
       case find ((== nameText v) . nameText . variantName) variants of
         Just (Variant _ payload) ->
-          walk env (Node (nodeLabel node <> "." <> nameText v) payload) v rest args
+          walk env names (Node (nodeLabel node <> "." <> nameText v) payload) v rest args
         Nothing -> [errorAt v (nameText v <> " is not a variant of " <> nodeLabel node)]
     Just (TypeTerm (TermName base))
       | Just (TypeSum _) <- Map.lookup (nameText base) (envTypes env) ->
@@ -311,17 +382,17 @@ walk env node at path args = case path of
 -- sum (pick a variant with "." instead). What left-out parts mean depends
 -- on the side (see "Source and target" in spec-v1.md); either way they
 -- are valid.
-checkArgs :: Env -> Node -> Name -> [Pattern] -> [CheckError]
-checkArgs _ _ _ [] = []
-checkArgs env node at args = case nodeBody node of
+checkArgs :: Env -> Names -> Node -> Name -> [Pattern] -> [CheckError]
+checkArgs _ _ _ _ [] = []
+checkArgs env names node at args = case nodeBody node of
   Nothing -> [errorAt at (nodeLabel node <> " takes no arguments")]
   Just (TypeSum _) ->
     [ errorAt at $
         nodeLabel node <> " is a sum; pick a variant with \".\" instead of arguments"
     ]
-  Just (TypeProduct factors) -> checkFactors env node factors args
+  Just (TypeProduct factors) -> checkFactors env names node factors args
   Just (TypeTerm term) -> case args of
-    [arg] -> checkArg env term arg
+    [arg] -> checkArg env names term arg
     _ ->
       [ errorAt at $
           nodeLabel node
@@ -334,40 +405,52 @@ checkArgs env node at args = case nodeBody node of
 
 -- | Arguments of a product: each one is a factor, matched by type name in
 -- any order, and written at most once (@A * A'@ writes @A@ twice). Factors
--- may be left out.
-checkFactors :: Env -> Node -> [TypeTerm] -> [Pattern] -> [CheckError]
-checkFactors env node factors args =
-  [ errorAt (patternHead a) $
-      patternKey a
-        <> " is not a factor of "
-        <> nodeLabel node
-        <> " ("
-        <> T.intercalate " * " (map termKey factors)
-        <> ")"
-  | a <- args
-  , patternKey a `Map.notMember` byKey
-  ]
-    <> [ errorAt (patternHead a) ("factor " <> patternKey a <> " is written twice")
-       | (a, _) <- repeats patternKey args
+-- may be left out. A name stands for the factor of its type.
+checkFactors :: Env -> Names -> Node -> [TypeTerm] -> [Pattern] -> [CheckError]
+checkFactors env names node factors args =
+  [unknownName n | (a, Nothing) <- keyed, PatternName n <- [bare a]]
+    <> [ errorAt (patternHead a) $
+           describeArg a key
+             <> " is not a factor of "
+             <> nodeLabel node
+             <> " ("
+             <> T.intercalate " * " (map termKey factors)
+             <> ")"
+       | (a, Just key) <- keyed
+       , key `Map.notMember` byKey
+       ]
+    <> [ errorAt (patternHead a) ("factor " <> key <> " is written twice")
+       | ((a, key), _) <- repeats snd known
        ]
     <> concat
-      [ checkArg env factor a
-      | a <- firsts patternKey args
-      , Just factor <- [Map.lookup (patternKey a) byKey]
+      [ checkArg env names factor a
+      | (a, key) <- firsts snd known
+      , Just factor <- [Map.lookup key byKey]
       ]
   where
     byKey = Map.fromList [(termKey f, f) | f <- factors]
+    keyed = [(a, argKey names a) | a <- args]
+    known = [(a, key) | (a, Just key) <- keyed]
 
 -- | An argument where the type @term@ is expected: a pattern headed by
--- that type, or the same list type.
-checkArg :: Env -> TypeTerm -> Pattern -> [CheckError]
-checkArg env term arg = case (term, arg) of
-  (_, PatternPrimed _ inner) -> checkArg env term inner
+-- that type, the same list type, or a name of that type.
+checkArg :: Env -> Names -> TypeTerm -> Pattern -> [CheckError]
+checkArg env names term arg = case (term, arg) of
+  (_, PatternPrimed _ inner) -> checkArg env names term inner
+  (_, PatternNamed inner _) -> checkArg env names term inner
+  (_, PatternName n) -> case Map.lookup (nameText n) names of
+    Nothing -> [unknownName n]
+    Just key
+      | key == termKey term -> []
+      | otherwise ->
+          [ errorAt n $
+              nameText n <> " has type " <> key <> ", but " <> termKey term <> " is expected here"
+          ]
   (TermName expected, PatternPath (h :| path) args)
     | nameText h == nameText expected -> case typeNode env (nameText h) of
         -- An unknown type is already reported where it is defined.
         Nothing -> []
-        Just node -> walk env node h path args
+        Just node -> walk env names node h path args
   (TermList _, PatternList element)
     | termKey term == termKey (TermList element) -> []
   _ ->
@@ -384,6 +467,26 @@ unknownType :: Name -> CheckError
 unknownType n =
   errorAt n $
     "unknown type " <> nameText n <> "; declare it in __atomics or define it"
+
+unknownName :: Name -> CheckError
+unknownName n =
+  errorAt n $
+    "unknown name "
+      <> nameText n
+      <> "; name a value with #"
+      <> nameText n
+      <> " in the input or on the source side"
+
+-- | A feature used in a spec whose version doesn't have it.
+needsVersion :: LanguageVersion -> Text -> Name -> CheckError
+needsVersion since feature n =
+  errorAt n $
+    feature
+      <> " need SumSpec "
+      <> T.pack (renderVersion since)
+      <> "; declare __version "
+      <> T.pack (renderVersion since)
+      <> " or later"
 
 lineOf :: Name -> Text
 lineOf = T.pack . show . unPos . sourceLine . namePos
@@ -406,14 +509,39 @@ patternHead = \case
   PatternPath (h :| _) _ -> h
   PatternList t -> termName t
   PatternPrimed _ p -> patternHead p
+  PatternNamed p _ -> patternHead p
+  PatternName n -> n
 
--- | The factor an argument stands for: its first name, or its list type.
--- A prime doesn't change it: @A'@ stands for the factor @A@.
+-- | The type a pattern is headed by: its first name, or its list type.
+-- A prime or a naming doesn't change it: @A'@ and @A#x@ are headed by
+-- @A@. For a name (@x@) it is the name itself; see 'argKey' for its type.
 patternKey :: Pattern -> Text
 patternKey = \case
   PatternPath (h :| _) _ -> nameText h
   PatternList t -> termKey (TermList t)
   PatternPrimed _ p -> patternKey p
+  PatternNamed p _ -> patternKey p
+  PatternName n -> nameText n
+
+-- | The factor an argument stands for: 'patternKey', or for a name the
+-- type of the value it names ('Nothing' for an unknown name).
+argKey :: Names -> Pattern -> Maybe Text
+argKey names arg = case bare arg of
+  PatternName n -> Map.lookup (nameText n) names
+  _ -> Just (patternKey arg)
+
+-- | A pattern without its primes and naming.
+bare :: Pattern -> Pattern
+bare = \case
+  PatternPrimed _ p -> bare p
+  PatternNamed p _ -> bare p
+  p -> p
+
+-- | An argument in messages: its type, and for a name the name too.
+describeArg :: Pattern -> Text -> Text
+describeArg arg key = case bare arg of
+  PatternName n -> nameText n <> " (of type " <> key <> ")"
+  _ -> key
 
 -- | Every element whose key was already seen, paired with the first
 -- element that had that key.

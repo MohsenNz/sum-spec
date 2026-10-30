@@ -72,8 +72,9 @@ data TypeTerm
 -- | @t :: from -> to@, or @t X :: from -> to@ with an input
 data Transition = Transition
   { transitionName :: Name
-  , transitionInput :: Maybe TypeTerm
-  -- ^ The input, @X@ in @t X :: ...@ (added in 1.1).
+  , transitionInput :: Maybe Pattern
+  -- ^ The input, @X@ in @t X :: ...@ (added in 1.1): a pattern headed by
+  -- a type or a list, never a 'PatternName'.
   , transitionFrom :: Pattern
   , transitionTo :: Pattern
   }
@@ -85,6 +86,11 @@ data Pattern
     PatternPath (NonEmpty Name) [Pattern]
   | -- | @[T]@: any list of @T@.
     PatternList TypeTerm
+  | -- | @x@: the value named @x@ in this signature (added in 1.1).
+    PatternName Name
+  | -- | @P#x@: matches @P@ and names its value @x@ (added in 1.1). The
+    -- name is the one after the @#@.
+    PatternNamed Pattern Name
   | -- | A pattern followed by a prime, @A'@: a new value, set by the
     -- transition. The position is the prime's. The parser accepts a prime
     -- after any pattern; the checker allows it only on a bare type name on

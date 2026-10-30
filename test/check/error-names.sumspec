@@ -1,0 +1,19 @@
+-- Errors about named values.
+__version 1.1
+
+__atomics { Id Text }
+__txs { unknown twice onTarget nameName mismatch primed notFactor }
+
+App = Todo
+Todo = Id * Title * Mode
+Title = Text
+EditText = Text
+Mode = Viewing | Editing EditText
+
+unknown :: Todo -> Todo(Title(t))
+twice Id#x :: Todo(Title#x) -> Todo
+onTarget :: Todo -> Todo(Title#t)
+nameName Id#i :: Todo(i#j) -> Todo
+mismatch :: Todo(Mode.Editing(EditText#e)) -> Todo(Title(e))
+primed Title#t :: Todo -> Todo(t')
+notFactor Text#t :: Todo -> Todo(t)

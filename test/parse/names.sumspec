@@ -1,0 +1,23 @@
+-- Named values (added in 1.1): P#x names the value P matches, and x
+-- stands for it.
+__version 1.1
+
+__atomics { Id Text }
+__txs { rename select keep copy }
+
+App = Items * Selection
+Items = [Item]
+Item = Id * Name * State
+Name = Text
+State = Off | On
+Selection = None | Some Id | Many [Id]
+Ref = Id * Name
+
+-- The input is named, and a name in the source is compared with it.
+rename Text#t :: Item(Name(Text#old)) -> Item(Name(t))
+-- Factors inside the input are named.
+select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On)
+select Ref(Id#i * Name#n) :: Selection -> Selection.Some(i)
+-- Any pattern can be named, a list too; the space before # is style.
+keep [Id]#ids :: Selection.None -> Selection.Many(ids)
+copy :: Item(State.On #s * Name#n) -> Item(State.Off)

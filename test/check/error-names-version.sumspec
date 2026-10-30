@@ -1,0 +1,8 @@
+-- Named values are in SumSpec 1.1; a spec without a header is 1.0.
+__atomics { Text }
+__txs { f }
+
+App = S
+S = X | Y Text
+
+f :: S.Y(Text#t) -> S.Y(t)

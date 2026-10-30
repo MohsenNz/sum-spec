@@ -33,7 +33,7 @@ renderDefinition = \case
   DefType (TypeDef name body) -> nameText name <> " = " <> renderTypeExpr body
   DefTransition (Transition name input from to) ->
     nameText name
-      <> maybe "" ((" " <>) . renderTerm) input
+      <> maybe "" ((" " <>) . renderPattern) input
       <> " :: "
       <> renderPattern from
       <> " -> "
@@ -62,6 +62,8 @@ renderPattern = \case
   PatternPath names args ->
     T.intercalate "." (map nameText (NE.toList names)) <> renderArgs args
   PatternList term -> "[" <> renderTerm term <> "]"
+  PatternName name -> nameText name
+  PatternNamed p name -> renderPattern p <> "#" <> nameText name
   PatternPrimed _ p -> renderPattern p <> "'"
   where
     renderArgs [] = ""

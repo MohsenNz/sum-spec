@@ -141,6 +141,8 @@ When arguments are written, they must fit what they follow:
 - A sum takes no arguments; pick a variant with `.` instead.
 - An atomic type, and a variant without a payload, take no arguments.
 
+An argument may also be a named value (`t`), which fits where its type is expected; see "Named values".
+
 A path continues with `.` only into a sum: a named sum or an inline sum payload. To pick a variant of a payload that is a named type, use an argument: `Page.Plan(PMode.JustMap * Missions)`.
 
 The two sides of a transition don't have to be states of the same type.
@@ -150,7 +152,7 @@ The two sides of a transition don't have to be states of the same type.
 The two sides of a transition are read differently:
 
 - The **source** side is a precondition. A part that is left out may have any value.
-- The **target** side is the effect. A part that is left out, or written without a prime, keeps its value. A primed part, `A'`, gets a new value, set by the transition. A part whose variant differs from the source's is a **new state**.
+- The **target** side is the effect. A part that is left out, or written without a prime, keeps its value. A primed part, `A'`, gets a new value, set by the transition. A part whose variant differs from the source's is a **new state**. A named value (`Title(e)`) sets the part to that value; see "Named values".
 
 A new state didn't exist before the transition, so nothing in it can keep its value: inside a new state, a part that is left out may have any value.
 
@@ -220,9 +222,21 @@ Ref = Id * Name
 select Ref :: State.Off -> State.On
 ```
 
+The input is a pattern headed by its type, read like a source pattern.
+It can name the input or its parts (see "Named values"):
+
+```
+startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
+select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On)
+```
+
+A variant or argument written in the input is a precondition on it, as
+on the source side.
+
 The input belongs to the transition, not to one signature: like an
 event of a state machine, a transition has one input, whatever state it
-applies from. So every signature writes the same input, or none:
+applies from. So every signature writes an input of the same type, or
+none (the names in it may differ):
 
 ```
 toggleTodo TodoId :: Completion.Active -> Completion.Completed
@@ -251,7 +265,51 @@ Here `toggleTodo` changes the `Completion` of the todo whose `TodoId` is
 the input. Inside nested lists, the input is a product with one key per
 list (`TodoRef = ProjectId * TodoId`).
 
+With named values, the key can be written out: the transition is on
+`Todo`, and the source compares the todo's `TodoId` with the input.
+
+```
+toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
+```
+
+The two forms mean the same; the short one relies on the key rule above.
+
 The type checker doesn't check keys yet.
+
+## Named values
+
+Added in 1.1.
+
+A pattern followed by `#x` names the value it matches; a lowercase name
+alone in a pattern stands for that value:
+
+```
+startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
+
+finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e)))
+                        -> Todo(Title(e) * RowMode.Viewing)
+```
+
+- `P#x` matches `P` and names its value `x`. `P` is any pattern headed by
+  a type: `Text#t`, `Completion.Active#c`, `[Id]#ids`. `#x` is one
+  token: no space between `#` and the name. The canonical form writes no
+  space before `#` either.
+- A name is given in the input or on the source side, once per
+  signature. Its type is the type `P` is headed by (`Completion` for
+  `Completion.Active#c`).
+- A name is used anywhere in the signature, where its type is expected:
+  as an argument (`Typing(t)`), or as a product's factor, where it stands
+  for the factor of its type (`Todo(id * ...)`).
+- On the source side, a name used stands for a value that must be equal
+  to the named one: `Todo(id * ...)` matches the todo whose `TodoId`
+  equals the input `id`.
+- On the target side, a name sets the part to the named value:
+  `Title(e)` is the title, set to the text that was being edited.
+- Names belong to one signature. Two signatures of a transition may name
+  their input differently.
+
+A name says which value; a prime says only that the value is new.
+`Title'` is some new title, and `Title(e)` is the title `e`.
 
 ## List
 

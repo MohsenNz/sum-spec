@@ -57,10 +57,13 @@ type_term     = UPPER
 
 (* ---------- Transitions ---------- *)
 
-(* The optional type_term after the name is the transition's input
-   (added in 1.1):
-     toggleTodo TodoId :: Completion.Active -> Completion.Completed     *)
-transition    = LOWER , [ type_term ] , "::" , pattern , "->" , pattern ;
+(* The optional input after the name is the value the transition takes
+   (added in 1.1), a type pattern that may name values:
+     toggleTodo TodoId :: Completion.Active -> Completion.Completed
+     select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On) *)
+transition    = LOWER , [ input ] , "::" , pattern , "->" , pattern ;
+
+input         = type_pattern , [ NAMING ] ;
 
 (* A state pattern. A path picks a type and then nested variants; the
    optional arguments give the payload (variant) or factors (product):
@@ -72,9 +75,15 @@ transition    = LOWER , [ type_term ] , "::" , pattern , "->" , pattern ;
    A prime (') marks a new value on the target side. The grammar allows
    primes after any pattern; the type checker allows one prime, on a bare
    type name, on the target side. What a left-out or unprimed part means
-   is in "Source and target" in spec-v1.md. *)
-pattern       = ( path , [ "(" , pattern , { "*" , pattern } , ")" ]
-                | "[" , type_term , "]" ) , { "'" } ;
+   is in "Source and target" in spec-v1.md.
+   A LOWER is a named value, and NAMING after a pattern names its value
+   (added in 1.1; see "Named values" in spec-v1.md):
+     Todo(id * RowMode.Editing(EditText(Text#e)))
+     Todo(Title(e) * RowMode.Viewing)                                   *)
+pattern       = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
+
+type_pattern  = path , [ "(" , pattern , { "*" , pattern } , ")" ]
+              | "[" , type_term , "]" ;
 
 path          = UPPER , { "." , UPPER } ;
 
@@ -97,6 +106,9 @@ digit         = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
    the file) and is skipped like whitespace. *)
 (* A version is one token: no spaces around the ".". *)
 VERSION       = digit , { digit } , "." , digit , { digit } ;
+
+(* A naming is one token: no space between "#" and the name. *)
+NAMING        = "#" , LOWER ;
 
 comment       = "--" , { character - newline } , [ newline ] ;
 newline       = ? line feed ? ;
@@ -133,10 +145,16 @@ character     = ? any Unicode character ? ;
    - no name is listed twice in __atomics or in __txs;
    - every transition name is listed in __txs, and every name in __txs
      has at least one signature;
-   - a transition's input is an atomic or a defined type, every
-     signature of a transition takes the same input or none, and a spec
-     with an input declares __version 1.1 or later. See "Transition
-     inputs" in spec-v1.md;
+   - a transition's input is headed by an atomic or a defined type,
+     every signature of a transition takes an input of the same type or
+     none, and a spec with an input declares __version 1.1 or later. See
+     "Transition inputs" in spec-v1.md;
+   - a value is named (P#x) only in the input or on the source side,
+     once per signature, and only after a type pattern; a name used (x)
+     is named in the same signature and has the type expected where it
+     is used (as a factor, it stands for the factor of its type); a spec
+     with names declares __version 1.1 or later. See "Named values" in
+     spec-v1.md;
    - variant names are unique within one sum, and type names are unique
      within one product (T = A * A is invalid), including inline
      payloads;

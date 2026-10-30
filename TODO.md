@@ -17,7 +17,9 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
 - [x] Event inputs (language 1.1).
 - [ ] Event outputs.
 - [ ] Guards on data.
-- [ ] How updates change values.
+- [x] How updates change values, Part A: named values (language 1.1).
+- [ ] How updates change values, Part B: derived values.
+- [ ] How updates change values, Part C: list updates.
 - [ ] Nondeterminism between signatures.
 - [ ] Initial state.
 - [ ] Values inside a new state.
