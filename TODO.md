@@ -12,8 +12,8 @@
 Decide on each gap, one at a time, then move it to `proposals.md`:
 - [ ] Where a local transition applies (decided in part; waits for
       derived values in "How updates change values").
-- [ ] Check keys: a transition inside a list element takes an input
-      that is a key of the element.
+- [ ] Optional warning: a local transition inside a list element that
+      doesn't pick the element by key.
 - [x] Event inputs (language 1.1).
 - [ ] Event outputs.
 - [ ] Guards on data.

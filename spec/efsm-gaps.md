@@ -41,12 +41,11 @@ Rules:
 
 1. A local transition changes exactly one occurrence of its type, never
    all of them.
-2. Inside a list, an input picks the element by key. Decided in 1.1;
-   see "Transition inputs" and "Keys" in `spec-v1.md`:
+2. Inside a list, the element is picked by comparing its key with a
+   named input; without that, which element changes isn't said. Decided
+   in 1.1; see "Keys" under "Named values" in `spec-v1.md`:
 
-       toggleTodo TodoId :: Completion.Active -> Completion.Completed
-
-   The checker doesn't check keys yet.
+       toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
 
 3. The checker rejects a local transition whose type occurs at more than
    one place of `App` that isn't the same list. Such a transition is

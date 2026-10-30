@@ -248,34 +248,6 @@ A signature doesn't have to use the input.
 A spec that uses inputs declares `__version 1.1` or later (see "Language
 version").
 
-### Keys
-
-A transition written on a part inside a list element (see `toggleTodo`
-on `Completion`, inside `Todos = [Todo]`) changes one element. The input
-picks it: when the element type has a factor of the input's type, the
-input picks the element whose factor equals it.
-
-```
-Todo = TodoId * Title * Completion * RowMode
-
-toggleTodo TodoId :: Completion.Active -> Completion.Completed
-```
-
-Here `toggleTodo` changes the `Completion` of the todo whose `TodoId` is
-the input. Inside nested lists, the input is a product with one key per
-list (`TodoRef = ProjectId * TodoId`).
-
-With named values, the key can be written out: the transition is on
-`Todo`, and the source compares the todo's `TodoId` with the input.
-
-```
-toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
-```
-
-The two forms mean the same; the short one relies on the key rule above.
-
-The type checker doesn't check keys yet.
-
 ## Named values
 
 Added in 1.1.
@@ -310,6 +282,30 @@ finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e)))
 
 A name says which value; a prime says only that the value is new.
 `Title'` is some new title, and `Title(e)` is the title `e`.
+
+### Keys
+
+A transition written on a part inside a list element (`toggleTodo` on
+`Completion`, inside `Todos = [Todo]`) changes one element, but doesn't
+say which:
+
+```
+toggleTodo :: Completion.Active -> Completion.Completed
+```
+
+To pick the element, write the transition from the element and compare
+its key with a named input:
+
+```
+Todo = TodoId * Title * Completion * RowMode
+
+toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
+```
+
+Here `toggleTodo` changes the todo whose `TodoId` equals the input.
+Inside nested lists, the input names one key per list, and each level
+compares its own: `TodoRef(ProjectId#p * TodoId#t)`, with
+`Project(p * ...)` and `Todo(t * ...)`.
 
 ## List
 
