@@ -57,7 +57,10 @@ type_term     = UPPER
 
 (* ---------- Transitions ---------- *)
 
-transition    = LOWER , "::" , pattern , "->" , pattern ;
+(* The optional type_term after the name is the transition's input
+   (added in 1.1):
+     toggleTodo TodoId :: Completion.Active -> Completion.Completed     *)
+transition    = LOWER , [ type_term ] , "::" , pattern , "->" , pattern ;
 
 (* A state pattern. A path picks a type and then nested variants; the
    optional arguments give the payload (variant) or factors (product):
@@ -130,6 +133,10 @@ character     = ? any Unicode character ? ;
    - no name is listed twice in __atomics or in __txs;
    - every transition name is listed in __txs, and every name in __txs
      has at least one signature;
+   - a transition's input is an atomic or a defined type, every
+     signature of a transition takes the same input or none, and a spec
+     with an input declares __version 1.1 or later. See "Transition
+     inputs" in spec-v1.md;
    - variant names are unique within one sum, and type names are unique
      within one product (T = A * A is invalid), including inline
      payloads;
@@ -144,5 +151,4 @@ character     = ? any Unicode character ? ;
    - a prime goes only on a bare type name, at most once, and only on
      the target side. See "Source and target" in spec-v1.md.
 
-   Not in v1 (see proposals.md): "=>", "<-", annotations, transition
-   inputs, "g, h ::", variant refinement (PMode.ShowMission = ...). *)
+   Not in v1 (see proposals.md): "=>", "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

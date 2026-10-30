@@ -1,6 +1,6 @@
 # SumSpec
 
-This document defines SumSpec **1.x**; the current version is **1.0**. Features added in a later 1.x version carry an "Added in 1.x" note under their heading; see `VERSIONING.md`.
+This document defines SumSpec **1.x**; the current version is **1.1**. Features added in a later 1.x version carry an "Added in 1.x" note under their heading; see `VERSIONING.md`.
 
 ## State transitions
 
@@ -196,6 +196,62 @@ block per signature:
 f :: A -> B
 f :: C -> D
 ```
+
+Every signature of a transition takes the same input, or none; see
+"Transition inputs".
+
+## Transition inputs
+
+Added in 1.1.
+
+A transition may take an input, a value the event brings with it. The
+input's type goes after the transition's name:
+
+```
+startTyping Text :: NewTodo.Blank -> NewTodo.Typing(Text)
+```
+
+The input is one type: an atomic or a defined type, or a list (`[Id]`).
+A transition that needs several values takes a product defined for them:
+
+```
+Ref = Id * Name
+
+select Ref :: State.Off -> State.On
+```
+
+The input belongs to the transition, not to one signature: like an
+event of a state machine, a transition has one input, whatever state it
+applies from. So every signature writes the same input, or none:
+
+```
+toggleTodo TodoId :: Completion.Active -> Completion.Completed
+toggleTodo TodoId :: Completion.Completed -> Completion.Active
+```
+
+A signature doesn't have to use the input.
+
+A spec that uses inputs declares `__version 1.1` or later (see "Language
+version").
+
+### Keys
+
+A transition written on a part inside a list element (see `toggleTodo`
+on `Completion`, inside `Todos = [Todo]`) changes one element. The input
+picks it: when the element type has a factor of the input's type, the
+input picks the element whose factor equals it.
+
+```
+Todo = TodoId * Title * Completion * RowMode
+
+toggleTodo TodoId :: Completion.Active -> Completion.Completed
+```
+
+Here `toggleTodo` changes the `Completion` of the todo whose `TodoId` is
+the input. Inside nested lists, the input is a product with one key per
+list (`TodoRef = ProjectId * TodoId`).
+
+The type checker doesn't check keys yet.
 
 ## List
 

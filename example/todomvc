@@ -5,12 +5,16 @@
 -- footer with the number of items left, the filters, and a "Clear
 -- completed" button. The list and the footer are hidden while there are
 -- no todos.
+--
+-- A transition on one todo takes its TodoId, which picks the todo in
+-- Todos.
 
-__version 1.0
+__version 1.1
 
 __atomics {
   Text
   Count
+  TodoId
 }
 
 __txs {
@@ -44,7 +48,8 @@ Screen
 Todos = [Todo]
 
 Todo
-  = Title
+  = TodoId
+  * Title
   * Completion
   * RowMode
 
@@ -79,7 +84,7 @@ Filter
   | Active
   | Completed
 
-startTyping :: NewTodo.Blank -> NewTodo.Typing(Text)
+startTyping Text :: NewTodo.Blank -> NewTodo.Typing(Text)
 
 addTodo :: App(Screen.NoTodos * NewTodo.Typing)
         -> App(Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank)
@@ -87,20 +92,20 @@ addTodo :: App(Screen.NoTodos * NewTodo.Typing)
 addTodo :: App(Screen.WithTodos * NewTodo.Typing)
         -> App(Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank)
 
-toggleTodo :: Completion.Active -> Completion.Completed
-toggleTodo :: Completion.Completed -> Completion.Active
+toggleTodo TodoId :: Completion.Active -> Completion.Completed
+toggleTodo TodoId :: Completion.Completed -> Completion.Active
 
 toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
 toggleAll :: ToggleAll.AllDone -> ToggleAll.NotAllDone
 
-startEditing :: Todo(RowMode.Viewing) -> Todo(RowMode.Editing)
+startEditing TodoId :: Todo(RowMode.Viewing) -> Todo(RowMode.Editing)
 
-finishEditing :: Todo(RowMode.Editing) -> Todo(Title' * RowMode.Viewing)
+finishEditing TodoId :: Todo(RowMode.Editing) -> Todo(Title' * RowMode.Viewing)
 
-cancelEditing :: RowMode.Editing -> RowMode.Viewing
+cancelEditing TodoId :: RowMode.Editing -> RowMode.Viewing
 
-deleteTodo :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
-deleteTodo :: Screen.WithTodos -> Screen.NoTodos
+deleteTodo TodoId :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
+deleteTodo TodoId :: Screen.WithTodos -> Screen.NoTodos
 
 clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown))
                -> Screen.WithTodos( Todos'

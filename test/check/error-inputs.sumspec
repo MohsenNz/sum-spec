@@ -1,0 +1,18 @@
+-- The input type must be known, and every signature of a transition takes
+-- the same input, or none.
+__version 1.1
+
+__atomics { A B }
+__txs { f g h }
+
+App = S
+S = X | Y
+
+f Missing :: S.X -> S.Y
+
+g A :: S.X -> S.Y
+g :: S.Y -> S.X
+
+h A :: S.X -> S.Y
+h B :: S.Y -> S.X
+h [A] :: S.Y -> S.X

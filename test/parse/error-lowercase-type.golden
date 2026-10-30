@@ -3,4 +3,4 @@ test/parse/error-lowercase-type.sumspec:3:3:
 3 | t = A
   |   ^^
 unexpected "= "
-expecting "::"
+expecting "::" or input type

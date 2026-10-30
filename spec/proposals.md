@@ -12,16 +12,6 @@ Version impact: additive.
 
     g, h :: Y -> Z  -- two state transitions "g" and "h" with the same signature
 
-## transition that also takes an input
-
-Version impact: additive.
-
-    f X :: A -> B
-
-Transition f takes an X and moves the state from A to B.
-The input is a single type; a transition needing several values takes a
-product type defined for them.
-
 ## `=>` enters one construction level shared by both sides of a transition
 
 Version impact: additive.

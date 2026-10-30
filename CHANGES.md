@@ -5,7 +5,19 @@ implements. See `VERSIONING.md` for how versions are numbered.
 
 ## Unreleased
 
-Nothing yet.
+### Language
+
+- Language version 1.1: transition inputs. A transition may take an
+  input, written after its name (`toggleTodo TodoId :: ...`). Every
+  signature of a transition takes the same input, or none. An input
+  picks one list element by key. `example/todomvc` uses them.
+
+### Tool
+
+- The parser, printer and checker read transition inputs, and accept
+  `__version 1.1`.
+- The checker reports an input whose type is unknown, signatures of one
+  transition with different inputs, and inputs in a spec that is 1.0.
 
 ## 0.1.0.0 (not released yet)
 

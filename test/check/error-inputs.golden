@@ -1,0 +1,24 @@
+test/check/error-inputs.sumspec:11:3:
+   |
+11 | f Missing :: S.X -> S.Y
+   |   ^
+unknown type Missing; declare it in __atomics or define it
+
+test/check/error-inputs.sumspec:14:1:
+   |
+14 | g :: S.Y -> S.X
+   | ^
+transition g takes A (line 13), but this signature takes no input
+
+test/check/error-inputs.sumspec:17:3:
+   |
+17 | h B :: S.Y -> S.X
+   |   ^
+transition h takes A (line 16), but this signature takes B
+
+test/check/error-inputs.sumspec:18:4:
+   |
+18 | h [A] :: S.Y -> S.X
+   |    ^
+transition h takes A (line 16), but this signature takes [A]
+

@@ -14,17 +14,17 @@ test/check/error-primes.sumspec:10:33:
    |
 10 | onPath :: Page.Home -> Page.Plan'
    |                                 ^
-a prime (') goes only on a bare type name such as Missions'; a written variant or argument already says what the new value is
+a prime (') goes only on a bare type name; a written variant or argument already says what the new value is
 
 test/check/error-primes.sumspec:11:40:
    |
 11 | onArgs :: Page.Home -> Page.Plan(A * B)'
    |                                        ^
-a prime (') goes only on a bare type name such as Missions'; a written variant or argument already says what the new value is
+a prime (') goes only on a bare type name; a written variant or argument already says what the new value is
 
 test/check/error-primes.sumspec:12:37:
    |
 12 | onList :: Page.Home -> Page.Many([B]')
    |                                     ^
-a prime (') goes only on a bare type name such as Missions'; a written variant or argument already says what the new value is
+a prime (') goes only on a bare type name; a written variant or argument already says what the new value is
 

@@ -5,6 +5,7 @@ module SumSpec.Version
   ( LanguageVersion (..)
   , defaultVersion
   , latestVersion
+  , inputsVersion
   , isSupported
   , renderVersion
   ) where
@@ -22,7 +23,11 @@ defaultVersion = LanguageVersion 1 0
 -- | The newest language version this sumspec implements. Raise it when a
 -- new language version is implemented (see VERSIONING.md, "Releasing").
 latestVersion :: LanguageVersion
-latestVersion = LanguageVersion 1 0
+latestVersion = LanguageVersion 1 1
+
+-- | The first version with transition inputs (@f X :: A -> B@).
+inputsVersion :: LanguageVersion
+inputsVersion = LanguageVersion 1 1
 
 -- | A spec can be read if it has the same major version as
 -- 'latestVersion' and a minor version no newer than it.

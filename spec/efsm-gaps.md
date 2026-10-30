@@ -41,9 +41,12 @@ Rules:
 
 1. A local transition changes exactly one occurrence of its type, never
    all of them.
-2. Inside a list, an input picks the element (needs 4):
+2. Inside a list, an input picks the element by key. Decided in 1.1;
+   see "Transition inputs" and "Keys" in `spec-v1.md`:
 
        toggleTodo TodoId :: Completion.Active -> Completion.Completed
+
+   The checker doesn't check keys yet.
 
 3. The checker rejects a local transition whose type occurs at more than
    one place of `App` that isn't the same list. Such a transition is
@@ -91,7 +94,8 @@ To decide:
 
 ## 4. Event inputs and outputs
 
-Status: open.
+Status: inputs decided, in 1.1 (see "Transition inputs" in
+`spec-v1.md`); outputs open.
 
 A transition is only a name. It takes no input, so the typed text in
 `NewTodo.Typing(Text)` appears only as "Text has some value". It
@@ -100,9 +104,9 @@ device.
 
 To decide:
 
-- Inputs: "Transition that also takes an input" in `proposals.md`
-  (`f X :: A -> B`). Its target needs a way to say "this part is set to
-  the input".
+- Inputs (done): `f X :: A -> B`. Every signature of a transition takes
+  the same input, as an EFSM event has one parameter list. How the
+  target says "this part is set to the input" is part of 3.
 - Outputs: whether a transition can emit an event or effect, and its
   type.
 

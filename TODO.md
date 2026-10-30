@@ -12,9 +12,12 @@
 Decide on each gap, one at a time, then move it to `proposals.md`:
 - [ ] Where a local transition applies (decided in part; waits for
       derived values in "How updates change values").
+- [ ] Check keys: a transition inside a list element takes an input
+      that is a key of the element.
+- [x] Event inputs (language 1.1).
+- [ ] Event outputs.
 - [ ] Guards on data.
 - [ ] How updates change values.
-- [ ] Event inputs and outputs.
 - [ ] Nondeterminism between signatures.
 - [ ] Initial state.
 - [ ] Values inside a new state.
@@ -36,7 +39,7 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
 Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
 - [ ] Several transitions with one signature (`g, h :: Y -> Z`).
-- [ ] Transition inputs (`f X :: A -> B`).
+- [x] Transition inputs (`f X :: A -> B`), in 1.1.
 - [ ] `=>` (shared construction path) and `<-` shorthand.
 - [ ] Annotations (`__annotations`).
 - [ ] Dependent types and generic types.

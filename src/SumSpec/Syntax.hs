@@ -69,9 +69,11 @@ data TypeTerm
     TermList TypeTerm
   deriving stock (Eq, Show)
 
--- | @t :: from -> to@
+-- | @t :: from -> to@, or @t X :: from -> to@ with an input
 data Transition = Transition
   { transitionName :: Name
+  , transitionInput :: Maybe TypeTerm
+  -- ^ The input, @X@ in @t X :: ...@ (added in 1.1).
   , transitionFrom :: Pattern
   , transitionTo :: Pattern
   }

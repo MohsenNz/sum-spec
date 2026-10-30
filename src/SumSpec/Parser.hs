@@ -121,9 +121,16 @@ payload =
 typeTerm :: Parser TypeTerm
 typeTerm = TermName <$> upperName <|> TermList <$> brackets typeTerm
 
+-- transition = LOWER , [ type_term ] , "::" , pattern , "->" , pattern ;
 transition :: Parser Transition
 transition =
-  Transition <$> lowerName <* symbol "::" <*> pattern <* symbol "->" <*> pattern
+  Transition
+    <$> lowerName
+    <*> optional (typeTerm <?> "input type")
+    <* symbol "::"
+    <*> pattern
+    <* symbol "->"
+    <*> pattern
 
 -- pattern = ( path , [ "(" , pattern , { "*" , pattern } , ")" ]
 --           | "[" , type_term , "]" ) , { "'" } ;

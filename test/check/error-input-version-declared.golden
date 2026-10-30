@@ -1,0 +1,6 @@
+test/check/error-input-version-declared.sumspec:10:3:
+   |
+10 | f A :: S.X -> S.Y
+   |   ^
+transition inputs need SumSpec 1.1; declare __version 1.1 or later
+

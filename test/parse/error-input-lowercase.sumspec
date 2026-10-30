@@ -1,0 +1,6 @@
+__atomics { A }
+__txs { f }
+
+App = A
+
+f a :: A -> A

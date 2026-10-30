@@ -1,8 +1,9 @@
-__version 1.0
+__version 1.1
 
 __atomics {
   Text
   Count
+  TodoId
 }
 
 __txs {
@@ -24,7 +25,7 @@ App = Screen * NewTodo * Filter
 NewTodo = Blank | Typing Text
 Screen = NoTodos | WithTodos (Todos * ToggleAll * Footer)
 Todos = [Todo]
-Todo = Title * Completion * RowMode
+Todo = TodoId * Title * Completion * RowMode
 Title = Text
 Completion = Active | Completed
 RowMode = Viewing | Editing EditText
@@ -34,18 +35,18 @@ Footer = ItemsLeft * ClearCompleted
 ItemsLeft = Count
 ClearCompleted = Hidden | Shown
 Filter = All | Active | Completed
-startTyping :: NewTodo.Blank -> NewTodo.Typing(Text)
+startTyping Text :: NewTodo.Blank -> NewTodo.Typing(Text)
 addTodo :: App(Screen.NoTodos * NewTodo.Typing) -> App(Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank)
 addTodo :: App(Screen.WithTodos * NewTodo.Typing) -> App(Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank)
-toggleTodo :: Completion.Active -> Completion.Completed
-toggleTodo :: Completion.Completed -> Completion.Active
+toggleTodo TodoId :: Completion.Active -> Completion.Completed
+toggleTodo TodoId :: Completion.Completed -> Completion.Active
 toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
 toggleAll :: ToggleAll.AllDone -> ToggleAll.NotAllDone
-startEditing :: Todo(RowMode.Viewing) -> Todo(RowMode.Editing)
-finishEditing :: Todo(RowMode.Editing) -> Todo(Title' * RowMode.Viewing)
-cancelEditing :: RowMode.Editing -> RowMode.Viewing
-deleteTodo :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
-deleteTodo :: Screen.WithTodos -> Screen.NoTodos
+startEditing TodoId :: Todo(RowMode.Viewing) -> Todo(RowMode.Editing)
+finishEditing TodoId :: Todo(RowMode.Editing) -> Todo(Title' * RowMode.Viewing)
+cancelEditing TodoId :: RowMode.Editing -> RowMode.Viewing
+deleteTodo TodoId :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
+deleteTodo TodoId :: Screen.WithTodos -> Screen.NoTodos
 clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown)) -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ClearCompleted.Hidden))
 clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown)) -> Screen.NoTodos
 showAll :: Filter -> Filter.All

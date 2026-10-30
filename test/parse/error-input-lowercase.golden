@@ -1,0 +1,6 @@
+test/parse/error-input-lowercase.sumspec:6:3:
+  |
+6 | f a :: A -> A
+  |   ^^
+unexpected "a "
+expecting "::" or input type

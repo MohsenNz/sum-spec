@@ -31,8 +31,13 @@ renderSpec (Spec version atomics txs defs) =
 renderDefinition :: Definition -> Text
 renderDefinition = \case
   DefType (TypeDef name body) -> nameText name <> " = " <> renderTypeExpr body
-  DefTransition (Transition name from to) ->
-    nameText name <> " :: " <> renderPattern from <> " -> " <> renderPattern to
+  DefTransition (Transition name input from to) ->
+    nameText name
+      <> maybe "" ((" " <>) . renderTerm) input
+      <> " :: "
+      <> renderPattern from
+      <> " -> "
+      <> renderPattern to
 
 renderTypeExpr :: TypeExpr -> Text
 renderTypeExpr = \case

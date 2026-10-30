@@ -13,12 +13,13 @@ import Data.List (find, sortOn)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe (mapMaybe)
+import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
 import SumSpec.Syntax
+import SumSpec.Version (defaultVersion, inputsVersion, renderVersion)
 import Text.Megaparsec (SourcePos (..), initialPos, sourcePosPretty, unPos)
 
 data CheckError = CheckError
@@ -168,9 +169,20 @@ newtypeCycle env (TypeDef start _) = go [nameText start] (nameText start)
 checkTransitions :: Env -> Spec -> [Transition] -> [CheckError]
 checkTransitions env spec transitions =
   [ errorAt n ("transition " <> nameText n <> " is not listed in __txs")
-  | Transition n _ _ <- firsts (nameText . transitionName) transitions
+  | Transition n _ _ _ <- firsts (nameText . transitionName) transitions
   , nameText n `Set.notMember` listed
   ]
+    <> concat [checkTerm env i | Transition _ (Just i) _ _ <- transitions]
+    <> checkInputs transitions
+    <> [ errorAt (termName i) $
+           "transition inputs need SumSpec "
+             <> T.pack (renderVersion inputsVersion)
+             <> "; declare __version "
+             <> T.pack (renderVersion inputsVersion)
+             <> " or later"
+       | version < inputsVersion
+       , Transition _ (Just i) _ _ <- transitions
+       ]
     <> [ errorAt n ("transition " <> nameText n <> " is listed in __txs but has no signature")
        | n <- firsts nameText (specTxs spec)
        , nameText n `Set.notMember` signed
@@ -180,11 +192,38 @@ checkTransitions env spec transitions =
           <> checkPrimes Target to
           <> checkPattern env from
           <> checkPattern env to
-      | Transition _ from to <- transitions
+      | Transition _ _ from to <- transitions
       ]
   where
     listed = Set.fromList (map nameText (specTxs spec))
     signed = Set.fromList (map (nameText . transitionName) transitions)
+    version = fromMaybe defaultVersion (specVersion spec)
+
+-- | An input belongs to the transition, not to one signature (as an EFSM
+-- event has one parameter list), so every signature takes the input of
+-- the first one, or none like it.
+checkInputs :: [Transition] -> [CheckError]
+checkInputs transitions =
+  [ errorAt (maybe n termName input) $
+      "transition "
+        <> nameText n
+        <> " takes "
+        <> describe firstInput
+        <> " (line "
+        <> lineOf firstName
+        <> "), but this signature takes "
+        <> describe input
+  | Transition n input _ _ <- transitions
+  , Just (Transition firstName firstInput _ _) <- [Map.lookup (nameText n) firstByName]
+  , fmap termKey input /= fmap termKey firstInput
+  ]
+  where
+    firstByName =
+      Map.fromList
+        [ (nameText (transitionName t), t)
+        | t <- firsts (nameText . transitionName) transitions
+        ]
+    describe = maybe "no input" termKey
 
 -- | The side of a transition a pattern is on: the source is a
 -- precondition, the target is the effect.
