@@ -14,13 +14,15 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
       derived values in "How updates change values").
 - [x] Warning: a local transition inside a list element that doesn't
       pick the element by key.
-- [ ] Nested lists: pick an element of an outer list in a pattern.
+- [ ] Nested lists: pick an element of an outer list in a pattern
+      (proposed: element paths `L[x]`).
 - [x] Event inputs (language 1.1).
 - [ ] Event outputs.
 - [ ] Guards on data.
 - [x] How updates change values, Part A: named values (language 1.1).
 - [ ] How updates change values, Part B: derived values.
-- [ ] How updates change values, Part C: list updates.
+- [ ] How updates change values, Part C: list updates (form chosen:
+      an action clause, `// __remove ts[id]`).
 - [ ] Nondeterminism between signatures.
 - [ ] Initial state.
 - [ ] Values inside a new state.
@@ -47,3 +49,5 @@ update before any code:
 - [ ] Annotations (`__annotations`).
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
+- [ ] Several signatures under one name (input written once).
+- [ ] Element paths (`Todos[id]`).

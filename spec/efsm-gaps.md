@@ -49,7 +49,8 @@ Rules:
 
    The checker warns about a transition inside a list element that
    doesn't pick the element. Open: nested lists, where a pattern can't
-   pick an element of an outer list yet.
+   pick an element of an outer list yet. Proposed: "Element paths
+   `L[x]`" in `proposals.md`.
 
 3. The checker rejects a local transition whose type occurs at more than
    one place of `App` that isn't the same list. Such a transition is
@@ -113,16 +114,36 @@ transitions read but never write:
 
 Patterns are the predicates: `count ... where P`, `all ... are P`,
 `any ... are P`, `empty ...`. The same vocabulary can serve gaps 2 and 5
-as guards.
+as guards. `efsm-derived-values.md` shows how an EFSM handles derived
+values, with the TodoMVC example and the syntax under discussion.
 
-**Part C, list updates (open).**
+**Part C, list updates (open; form chosen).** An action clause, between
+the source and the target, says how a value changes, like an EFSM's
+`event / update`:
 
-| Form | Meaning |
+    deleteTodo TodoId#id
+      :: Screen.WithTodos(Todos#ts)
+      // __remove ts[id]
+      -> Screen.WithTodos(ToggleAll' * Footer')
+
+- An action works on a named value from the source (`ts`). `ts[id]` is
+  the element whose key is `id`, as in "Element paths `L[x]`" in
+  `proposals.md`.
+- A part changed by an action isn't primed or set in the target: the
+  action is the only place that says how it changes (`Todos'` is gone
+  above).
+- Actions are builtins, named with the `__` prefix like `__txs`:
+
+| Action | Meaning |
 |---|---|
-| `L += P` | add an element built by `P` |
-| `L -= x` | remove the element whose key is `x` |
-| `L -= where P` | remove every element that matches `P` |
-| `L each P` | apply `P` to every element (`toggleAll`) |
+| `__add ts P` | add an element built by `P` |
+| `__remove ts[x]` | remove the element whose key is `x` |
+| `__remove ts where P` | remove every element that matches `P` |
+| `__each ts P` | apply `P` to every element (`toggleAll`) |
+
+The action doesn't make the second signature of `deleteTodo` (to
+`Screen.NoTodos` when the last todo goes) or `ToggleAll'` and `Footer'`
+go away; those follow from the list through derived values (Part B).
 
 Open questions for B and C:
 
@@ -132,7 +153,13 @@ Open questions for B and C:
 - Fresh keys: `TodoId'` in `+=`, or a `fresh` keyword.
 - A list in a new state (`addTodo` from `Screen.NoTodos`): a list literal,
   or "a new list starts empty".
-- The syntax of `+=`, `-=` and `each`.
+- The separator: `//` is already "such that" in the "Dependent type"
+  proposal; `/` (as in an EFSM) or a keyword are the alternatives.
+- One action per signature, or several (`toggleAll` may need `__each`
+  together with others).
+- Which names an action may use: the source's, the input's (`__add ts
+  Todo(Title(t) * ...)` for `addTodo`), or both.
+- Where the action clause goes in a signature written on one line.
 
 ## 4. Event inputs and outputs
 
