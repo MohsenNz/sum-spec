@@ -122,65 +122,23 @@ Open:
 - Does the canonical form print every signature of a name as one group?
 - Must the signatures of a name then be adjacent?
 
-## Element paths `L[x]`
+## Element paths through a variant
 
 Version impact: additive.
 
-    toggleTodo TodoId#id
-      :: Screen.WithTodos(Todos[id](Completion.Active))
-      -> Screen.WithTodos(Todos[id](Completion.Completed))
+    Ring = Open | Points [Point]
 
-    deleteTodo TodoId#id
-      :: Screen.WithTodos(Todos[id])
-      -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
+    move Id#i :: Ring.Points[i](...) -> Ring.Points[i](...)
 
-`L[x]` is the element of the list `L` whose key equals the named value
-`x`. Keys are types: the element type of `L` must have exactly one
-factor of `x`'s type (`Todo` has one `TodoId`). Arguments after `L[x]`
-are read as arguments of the element type.
+An element path picks from a variant's inline list, written as the path
+to the variant. In 1.2 only a named list type can be picked from
+(`Points = [Point]`); see "Element paths" in `spec-v1.md`.
 
-- On the source side, `L[x]` is a precondition: the element exists and
-  matches its arguments.
-- On the target side, `L[x](...)` is that element's new state.
-- Nested lists: a path picks an element of each list (see below).
+## Naming an element
 
-**Nested lists.** With projects that each hold their todos:
+Version impact: additive.
 
-    Projects = [Project]
-    Project  = ProjectId * Todos
-    Todos    = [Todo]
-    Todo     = TodoId * Title * Completion * RowMode
+    rename TodoId#id :: Todos[id]#t -> ...
 
-toggling one todo picks two elements: the project, and the todo in it.
-In 1.1, `Todo(id * ...)` picks the todo but not the project, so if todo
-ids are unique only within a project, which todo changes isn't said.
-Writing from the project, `Project(p * Todos)`, picks the project, but a
-pattern can't go inside `Todos` to pick a todo. Only the innermost
-element can be picked (see gap 1 in `efsm-gaps.md`). With a path, each
-list takes its own key:
-
-    Ref = ProjectId * TodoId
-
-    toggleTodo Ref(ProjectId#p * TodoId#t)
-      :: Projects[p](Todos[t](Completion.Active))
-      -> Projects[p](Todos[t](Completion.Completed))
-
-`Projects[p]` picks the project, and `Todos[t]` the todo inside it.
-
-The 1.1 idiom, `Todo(id * ...)` written from the element, stays valid.
-The key warning could suggest `L[x]` instead.
-
-Not covered here, see gap 3 in `efsm-gaps.md`:
-
-- Removal: the target of `deleteTodo` still says only `Todos'`, not
-  that the element `id` is gone (Part C, an action clause:
-  `// __remove ts[id]`).
-- The second signature, `Screen.NoTodos` when the last todo goes, and
-  `ToggleAll'` and `Footer'`, which follow from the list (Part B,
-  derived values).
-
-Open:
-
-- May an element take a prime (`Todos[id]'`)?
-- Is `L[x]` allowed on an inline list (`[Todo]`), or only on a named
-  list type?
+`L[x]#t` names the element, with the element type (`Todo`), not the
+list type. Not allowed in 1.2.

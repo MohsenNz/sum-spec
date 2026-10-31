@@ -79,11 +79,17 @@ input         = type_pattern , [ NAMING ] ;
    A LOWER is a named value, and NAMING after a pattern names its value
    (added in 1.1; see "Named values" in spec-v1.md):
      Todo(id * RowMode.Editing(EditText(Text#e)))
-     Todo(Title(e) * RowMode.Viewing)                                   *)
+     Todo(Title(e) * RowMode.Viewing)
+   An element_key after a path picks one element of a list type by key
+   (added in 1.2; see "Element paths" in spec-v1.md):
+     Projects[p](Todos[t](Completion.Active))                           *)
 pattern       = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
 
-type_pattern  = path , [ "(" , pattern , { "*" , pattern } , ")" ]
+type_pattern  = path , [ element_key ] ,
+                [ "(" , pattern , { "*" , pattern } , ")" ]
               | "[" , type_term , "]" ;
+
+element_key   = "[" , LOWER , "]" ;
 
 path          = UPPER , { "." , UPPER } ;
 
@@ -167,12 +173,20 @@ character     = ? any Unicode character ? ;
      a newtype; none for a sum, an atomic, or a variant without a
      payload. See "Arguments in state patterns" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
-     the target side. See "Source and target" in spec-v1.md.
+     the target side. See "Source and target" in spec-v1.md;
+   - an element path L[x] is written where L is expected, on the source
+     or target side, never in the input: L is one name, of a type
+     defined as a list of a product; x is a name of the signature whose
+     type is a factor of that product (the key); the arguments don't
+     write the key; the element takes no prime and no naming; a spec
+     with element paths declares __version 1.2 or later. See "Element
+     paths" in spec-v1.md.
 
    Warnings (the checker reports them, but the spec is valid):
    - a transition on a part inside a list element that doesn't pick
      the element: it isn't written from the element, or doesn't compare
      a key with a named value (Todo(id * ...)), or the element is inside
-     another list. See "Keys" in spec-v1.md.
+     another list. The warning suggests an element path when the list
+     has a type name. See "Keys" and "Element paths" in spec-v1.md.
 
    Not in v1 (see proposals.md): "=>", "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

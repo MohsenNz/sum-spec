@@ -2,17 +2,17 @@ example/git:108:11:
     |
 108 | commit :: FileState.Staged -> FileState.Unmodified
     |           ^
-warning: commit changes a FileState inside one File of a list, but doesn't say which File; to pick it, write the transition from File and compare a key with a named value, such as File(id * ...)
+warning: commit changes a FileState inside one File of a list, but doesn't say which File; to pick it, use an element path, such as Files[id](...)
 
 example/git:124:10:
     |
 124 | merge :: FileState.Unmodified -> FileState.Conflicted
     |          ^
-warning: merge changes a FileState inside one File of a list, but doesn't say which File; to pick it, write the transition from File and compare a key with a named value, such as File(id * ...)
+warning: merge changes a FileState inside one File of a list, but doesn't say which File; to pick it, use an element path, such as Files[id](...)
 
 example/git:136:15:
     |
 136 | mergeAbort :: FileState.Conflicted -> FileState.Unmodified
     |               ^
-warning: mergeAbort changes a FileState inside one File of a list, but doesn't say which File; to pick it, write the transition from File and compare a key with a named value, such as File(id * ...)
+warning: mergeAbort changes a FileState inside one File of a list, but doesn't say which File; to pick it, use an element path, such as Files[id](...)
 

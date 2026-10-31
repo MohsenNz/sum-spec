@@ -84,6 +84,10 @@ data Pattern
   = -- | A path such as @Page.Plan@, with the arguments written in
     -- parentheses after it. No parentheses means no arguments.
     PatternPath (NonEmpty Name) [Pattern]
+  | -- | @L[x]@: the element of the list type @L@ whose key equals the
+    -- named value @x@, with the element's arguments after it (added in
+    -- 1.2). The path is the list type; the checker allows only one name.
+    PatternElement (NonEmpty Name) Name [Pattern]
   | -- | @[T]@: any list of @T@.
     PatternList TypeTerm
   | -- | @x@: the value named @x@ in this signature (added in 1.1).

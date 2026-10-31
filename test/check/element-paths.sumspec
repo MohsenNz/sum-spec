@@ -1,0 +1,28 @@
+-- An element path, L[x], picks the element of the list type L whose key
+-- equals x (added in 1.2). Paths nest, so an element of an outer list can
+-- be picked too. None of these warn.
+__version 1.2
+
+__atomics { ProjectId TodoId Text }
+__txs { toggle rename remove keep }
+
+App = Projects * Selected
+Projects = [Project]
+Project = ProjectId * Todos
+Todos = [Todo]
+Todo = TodoId * Title * Done
+Title = Text
+Done = No | Yes
+Selected = None | One ProjectId
+Ref = ProjectId * TodoId
+
+-- Nested: the project p, and the todo t inside it.
+toggle Ref(ProjectId#p * TodoId#t)
+  :: App(Projects[p](Todos[t](Done.No)))
+  -> App(Projects[p](Todos[t](Done.Yes)))
+-- The key may also be named on the source side.
+rename :: App(Selected.One(ProjectId#p)) -> App(Projects[p](Todos'))
+-- Without arguments: a precondition that the element exists.
+remove ProjectId#p :: App(Projects[p]) -> App(Projects')
+-- On the target, an element without arguments keeps its value.
+keep ProjectId#p :: Projects[p](Todos) -> Projects[p]

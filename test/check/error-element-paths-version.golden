@@ -1,0 +1,12 @@
+test/check/error-element-paths-version.sumspec:12:17:
+   |
+12 | f Id#i :: Items[i](State.Off) -> Items[i](State.On)
+   |                 ^
+element paths need SumSpec 1.2; declare __version 1.2 or later
+
+test/check/error-element-paths-version.sumspec:12:40:
+   |
+12 | f Id#i :: Items[i](State.Off) -> Items[i](State.On)
+   |                                        ^
+element paths need SumSpec 1.2; declare __version 1.2 or later
+

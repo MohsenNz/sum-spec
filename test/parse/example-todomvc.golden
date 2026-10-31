@@ -1,4 +1,4 @@
-__version 1.1
+__version 1.2
 
 __atomics {
   Text
@@ -45,8 +45,8 @@ toggleAll :: ToggleAll.AllDone -> ToggleAll.NotAllDone
 startEditing TodoId#id :: Todo(id * Title(Text#t) * RowMode.Viewing) -> Todo(RowMode.Editing(EditText(t)))
 finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e))) -> Todo(Title(e) * RowMode.Viewing)
 cancelEditing TodoId#id :: Todo(id * RowMode.Editing) -> Todo(RowMode.Viewing)
-deleteTodo TodoId :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
-deleteTodo TodoId :: Screen.WithTodos -> Screen.NoTodos
+deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
+deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
 clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown)) -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ClearCompleted.Hidden))
 clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown)) -> Screen.NoTodos
 showAll :: Filter -> Filter.All

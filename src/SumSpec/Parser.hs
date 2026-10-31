@@ -143,14 +143,23 @@ pattern = do
   primes <- many (getSourcePos <* symbol "'")
   withNaming (foldl (flip PatternPrimed) base primes)
 
--- type_pattern = path , [ "(" , pattern , { "*" , pattern } , ")" ]
+-- type_pattern = path , [ element_key ] ,
+--                [ "(" , pattern , { "*" , pattern } , ")" ]
 --              | "[" , type_term , "]" ;
 typePattern :: Parser Pattern
 typePattern =
   choice
     [ PatternList <$> brackets typeTerm
-    , PatternPath <$> path <*> option [] (parens (sepBy1 pattern (symbol "*")))
+    , do
+        names <- path
+        key <- optional elementKey
+        args <- option [] (parens (sepBy1 pattern (symbol "*")))
+        pure (maybe (PatternPath names args) (\k -> PatternElement names k args) key)
     ]
+
+-- element_key = "[" , LOWER , "]" ;
+elementKey :: Parser Name
+elementKey = brackets valueName
 
 -- [ NAMING ] after a pattern.
 withNaming :: Pattern -> Parser Pattern

@@ -1,0 +1,12 @@
+-- Element paths are in SumSpec 1.2.
+__version 1.1
+
+__atomics { Id }
+__txs { f }
+
+App = Items
+Items = [Item]
+Item = Id * State
+State = Off | On
+
+f Id#i :: Items[i](State.Off) -> Items[i](State.On)

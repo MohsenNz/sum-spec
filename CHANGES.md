@@ -18,6 +18,14 @@ implements. See `VERSIONING.md` for how versions are numbered.
 - A list element is picked by comparing its key with a named input:
   `toggleTodo TodoId#id :: Todo(id * ...)`.
 - `example/todomvc` uses inputs and named values.
+- Language version 1.2: element paths. `L[x]` is the element of the
+  list type `L` whose key equals the named value `x`, written where `L`
+  is expected, with the element's arguments after it:
+  `Projects[p](Todos[t](Completion.Active))`. Paths nest, so an element
+  of an outer list can be picked. An element takes no prime, and its
+  arguments don't write the key.
+- `example/todomvc` is 1.2: `deleteTodo` picks the todo with
+  `Todos[id]`.
 
 ### Tool
 
@@ -33,6 +41,14 @@ implements. See `VERSIONING.md` for how versions are numbered.
 - The parser and printer read named values; the checker reports unknown
   names, names given twice or on the target side, names of the wrong
   type, and names in a spec that is 1.0.
+- The parser, printer and checker read element paths, and accept
+  `__version 1.2`. The checker reports an element path on a type that
+  isn't a named list, through a variant, with a key that isn't a factor
+  of the element, with the key written in its arguments, primed, named
+  or in the input, and in a spec older than 1.2.
+- The warning about a transition inside a list element suggests an
+  element path when the list has a type name (`Files[id](...)`), and
+  nested paths for an element of an outer list.
 
 ## 0.1.0.0 (not released yet)
 

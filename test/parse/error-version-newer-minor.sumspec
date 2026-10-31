@@ -1,4 +1,4 @@
-__version 1.2
+__version 1.3
 __atomics { A }
 __txs {}
 App = A

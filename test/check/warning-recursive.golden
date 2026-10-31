@@ -2,5 +2,5 @@ test/check/warning-recursive.sumspec:12:9:
    |
 12 | open :: Fold.Closed -> Fold.Open
    |         ^
-warning: open changes a Fold inside one Tree of a list, but doesn't say which Tree; to pick it, write the transition from Tree and compare a key with a named value, such as Tree(id * ...)
+warning: open changes a Fold inside one Tree of a list, but doesn't say which Tree; to pick it, use an element path, such as Children[id](...)
 

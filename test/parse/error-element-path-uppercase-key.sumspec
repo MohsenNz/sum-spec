@@ -1,0 +1,9 @@
+__version 1.2
+__atomics { Id }
+__txs { f }
+App = Items
+Items = [Item]
+Item = Id * S
+S = A | B
+
+f Id#i :: Items[Id](S.A) -> Items[i](S.B)

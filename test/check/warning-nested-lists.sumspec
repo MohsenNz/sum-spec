@@ -1,5 +1,5 @@
--- A pattern can't reach into an element of an outer list yet, so a key
--- picks only the innermost element; the checker warns about the outer one.
+-- Written from the element, a key picks only the innermost element; the
+-- checker warns about the outer one, and suggests element paths (1.2).
 __version 1.1
 
 __atomics { ProjectId TodoId }

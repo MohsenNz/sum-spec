@@ -7,9 +7,10 @@
 -- no todos.
 --
 -- A transition on one todo takes its TodoId, and changes the todo whose
--- TodoId equals it (Todo(id * ...)).
+-- TodoId equals it (Todo(id * ...)). deleteTodo, written from the screen,
+-- picks the todo with an element path instead (Todos[id]).
 
-__version 1.1
+__version 1.2
 
 __atomics {
   Text
@@ -106,8 +107,9 @@ finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e)))
 
 cancelEditing TodoId#id :: Todo(id * RowMode.Editing) -> Todo(RowMode.Viewing)
 
-deleteTodo TodoId :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
-deleteTodo TodoId :: Screen.WithTodos -> Screen.NoTodos
+deleteTodo TodoId#id :: Screen.WithTodos(Todos[id])
+                     -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
+deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
 
 clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown))
                -> Screen.WithTodos( Todos'

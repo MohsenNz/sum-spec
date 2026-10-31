@@ -7,6 +7,7 @@ module SumSpec.Version
   , latestVersion
   , inputsVersion
   , namesVersion
+  , elementPathsVersion
   , isSupported
   , renderVersion
   ) where
@@ -24,7 +25,7 @@ defaultVersion = LanguageVersion 1 0
 -- | The newest language version this sumspec implements. Raise it when a
 -- new language version is implemented (see VERSIONING.md, "Releasing").
 latestVersion :: LanguageVersion
-latestVersion = LanguageVersion 1 1
+latestVersion = LanguageVersion 1 2
 
 -- | The first version with transition inputs (@f X :: A -> B@).
 inputsVersion :: LanguageVersion
@@ -33,6 +34,10 @@ inputsVersion = LanguageVersion 1 1
 -- | The first version with named values (@P#x@ and @x@ in patterns).
 namesVersion :: LanguageVersion
 namesVersion = LanguageVersion 1 1
+
+-- | The first version with element paths (@Todos[id]@ in patterns).
+elementPathsVersion :: LanguageVersion
+elementPathsVersion = LanguageVersion 1 2
 
 -- | A spec can be read if it has the same major version as
 -- 'latestVersion' and a minor version no newer than it.

@@ -1,0 +1,25 @@
+__version 1.2
+
+__atomics {
+  ProjectId
+  TodoId
+  Text
+}
+
+__txs {
+  toggle
+  rename
+  remove
+}
+
+App = Projects
+Projects = [Project]
+Project = ProjectId * Todos
+Todos = [Todo]
+Todo = TodoId * Title * Done
+Title = Text
+Done = No | Yes
+Ref = ProjectId * TodoId
+toggle Ref(ProjectId#p * TodoId#t) :: Projects[p](Todos[t](Done.No)) -> Projects[p](Todos[t](Done.Yes))
+rename Ref(ProjectId#p * TodoId#t) :: App(Projects[p](Todos[t])) -> App(Projects[p](Todos[t](Title')))
+remove ProjectId#p :: Projects[p] -> Projects'

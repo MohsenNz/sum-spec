@@ -1,6 +1,6 @@
 # SumSpec
 
-This document defines SumSpec **1.x**; the current version is **1.1**. Features added in a later 1.x version carry an "Added in 1.x" note under their heading; see `VERSIONING.md`.
+This document defines SumSpec **1.x**; the current version is **1.2**. Features added in a later 1.x version carry an "Added in 1.x" note under their heading; see `VERSIONING.md`.
 
 ## State transitions
 
@@ -141,7 +141,7 @@ When arguments are written, they must fit what they follow:
 - A sum takes no arguments; pick a variant with `.` instead.
 - An atomic type, and a variant without a payload, take no arguments.
 
-An argument may also be a named value (`t`), which fits where its type is expected; see "Named values".
+An argument may also be a named value (`t`), which fits where its type is expected; see "Named values". An element path (`Todos[id]`) fits where its list type is expected; see "Element paths".
 
 A path continues with `.` only into a sum: a named sum or an inline sum payload. To pick a variant of a payload that is a named type, use an argument: `Page.Plan(PMode.JustMap * Missions)`.
 
@@ -270,8 +270,9 @@ finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e)))
   signature. Its type is the type `P` is headed by (`Completion` for
   `Completion.Active#c`).
 - A name is used anywhere in the signature, where its type is expected:
-  as an argument (`Typing(t)`), or as a product's factor, where it stands
-  for the factor of its type (`Todo(id * ...)`).
+  as an argument (`Typing(t)`), as a product's factor, where it stands
+  for the factor of its type (`Todo(id * ...)`), or as the key of an
+  element path (`Todos[id]`; see "Element paths").
 - On the source side, a name used stands for a value that must be equal
   to the named one: `Todo(id * ...)` matches the todo whose `TodoId`
   equals the input `id`.
@@ -304,12 +305,66 @@ toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Complete
 
 Here `toggleTodo` changes the todo whose `TodoId` equals the input.
 
-Inside nested lists (`Projects = [Project]`, `Project = ProjectId *
-Todos`), a key picks only the innermost element: a pattern can't reach
-into an element of an outer list yet, so the project isn't picked.
+Written this way, a key picks only the innermost element. Inside
+nested lists (`Projects = [Project]`, `Project = ProjectId * Todos`), the
+project isn't picked; use an element path for that (see "Element
+paths").
 
 The type checker warns about a transition inside a list element that
-doesn't pick the element this way.
+doesn't pick the element, by key or with an element path.
+
+## Element paths
+
+Added in 1.2.
+
+`L[x]` is the element of the list type `L` whose key equals the named
+value `x`. It's written where `L` is expected, and the arguments after
+it are the element's:
+
+```
+Todos = [Todo]
+Todo  = TodoId * Title * Completion * RowMode
+
+toggleTodo TodoId#id
+  :: Screen.WithTodos(Todos[id](Completion.Active))
+  -> Screen.WithTodos(Todos[id](Completion.Completed))
+```
+
+- `L` is a type defined as a list (`Todos = [Todo]`). An inline list,
+  such as a variant's payload `[Point]`, can't be picked from; give it
+  a type name.
+- `x` is a name given in the input or on the source side. Its type is
+  the key: a factor of the element type (`TodoId` in `Todo`). Products
+  are keyed by type, so there's at most one such factor.
+- The key isn't written in the arguments: `[x]` gives it, and the
+  element keeps it. `Todos[id](TodoId * ...)` is invalid.
+- On the source side, `L[x]` is a precondition: the element exists and
+  matches its arguments. Without arguments, it only has to exist.
+- On the target side, `L[x](...)` is that element's new state, read as
+  any target. Without arguments, the element keeps its value.
+- An element takes no prime (`Todos[id]'`): prime its parts instead,
+  `Todos[id](Title')`. It can't be named (`Todos[id]#t`) either, and it
+  doesn't go in the input.
+
+A path picks an element of each list it goes through, so nested lists
+work:
+
+```
+Projects = [Project]
+Project  = ProjectId * Todos
+Ref      = ProjectId * TodoId
+
+toggleTodo Ref(ProjectId#p * TodoId#t)
+  :: Projects[p](Todos[t](Completion.Active))
+  -> Projects[p](Todos[t](Completion.Completed))
+```
+
+`Projects[p]` is the project, and `Todos[t]` the todo inside it.
+
+The form in "Keys", `Todo(id * ...)` written from the element, stays
+valid.
+
+A spec that uses element paths declares `__version 1.2` or later.
 
 ## List
 

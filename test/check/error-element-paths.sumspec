@@ -1,0 +1,34 @@
+-- Errors in element paths, L[x].
+__version 1.2
+
+__atomics { Id Other Text }
+__txs { notList variant noKey notProduct keyWritten primed named input unknown }
+
+App = Items * Ring * Names * Tags
+Items = [Item]
+Item = Id * Name * State
+Name = Text
+State = Off | On
+Ring = Open | Points [Item]
+Names = [Text]
+Tags = [Tag]
+Tag = Id | None
+
+-- Item is not a list type.
+notList Id#i :: Item[i](State.Off) -> Item[i](State.On)
+-- Only a named list type, not a variant's list.
+variant Id#i :: Ring.Points[i] -> Ring.Points[i]
+-- The elements of Items have no factor of type Other.
+noKey Other#o :: Items[o] -> Items[o]
+-- The elements of Names and Tags are not products.
+notProduct Text#t :: Names[t] -> Tags[t]
+-- The key is given by [i], not in the arguments.
+keyWritten Id#i :: Items[i](Id * State.Off) -> Items[i](State.On)
+-- An element takes no prime.
+primed Id#i :: Items[i] -> Items[i]'
+-- An element can't be named yet.
+named Id#i :: Items[i]#x -> Items[i]
+-- Not in the input.
+input Items[i] :: Items -> Items'
+-- An unknown key.
+unknown :: Items[k](State.Off) -> Items[k](State.On)

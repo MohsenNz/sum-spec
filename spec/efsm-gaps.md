@@ -48,9 +48,10 @@ Rules:
        toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
 
    The checker warns about a transition inside a list element that
-   doesn't pick the element. Open: nested lists, where a pattern can't
-   pick an element of an outer list yet. Proposed: "Element paths
-   `L[x]`" in `proposals.md`.
+   doesn't pick the element. Nested lists, where a key written from
+   the element can't pick an element of an outer list: decided in 1.2,
+   with element paths (`Projects[p](Todos[t](...))`); see "Element
+   paths" in `spec-v1.md`.
 
 3. The checker rejects a local transition whose type occurs at more than
    one place of `App` that isn't the same list. Such a transition is
@@ -127,8 +128,8 @@ the source and the target, says how a value changes, like an EFSM's
       -> Screen.WithTodos(ToggleAll' * Footer')
 
 - An action works on a named value from the source (`ts`). `ts[id]` is
-  the element whose key is `id`, as in "Element paths `L[x]`" in
-  `proposals.md`.
+  the element whose key is `id`, as in "Element paths" in
+  `spec-v1.md`.
 - A part changed by an action isn't primed or set in the target: the
   action is the only place that says how it changes (`Todos'` is gone
   above).

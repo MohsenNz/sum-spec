@@ -2,5 +2,5 @@ test/check/warning-nested-lists.sumspec:15:20:
    |
 15 | toggle TodoId#t :: Todo(t * Done.No) -> Todo(Done.Yes)
    |                    ^
-warning: toggle picks a Todo by key, but not the Project it is in; a pattern can't pick an element of an outer list yet
+warning: toggle picks a Todo by key, but not the Project it is in; to pick both, use element paths, such as Projects[x](Todos[y](...))
 
