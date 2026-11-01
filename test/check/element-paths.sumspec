@@ -1,7 +1,7 @@
 -- An element path, L[x], picks the element of the keyed list type L whose
--- key equals x (added in 1.2). Paths nest, so an element of an outer list
--- can be picked too. None of these warn.
-__version 1.2
+-- key equals x. Paths nest, so an element of an outer list can be picked
+-- too. None of these warn.
+__version 1.0
 
 __atomics { ProjectId TodoId Path Text }
 __txs { toggle rename remove keep stage }

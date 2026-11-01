@@ -1,9 +1,0 @@
--- Transition inputs are in SumSpec 1.1; a spec without a header is 1.0.
-__atomics { A }
-__txs { f }
-
-App = S
-S = X | Y
-
-f A :: S.X -> S.Y
-f A :: S.Y -> S.X

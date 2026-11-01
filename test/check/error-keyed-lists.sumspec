@@ -1,5 +1,5 @@
 -- The key type of a keyed list must be known.
-__version 1.2
+__version 1.0
 
 __atomics { Id }
 __txs {}

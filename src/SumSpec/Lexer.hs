@@ -77,11 +77,11 @@ rawIdentifier isFirst = do
 isIdentChar :: Char -> Bool
 isIdentChar c = isAsciiUpper c || isAsciiLower c || isDigit c
 
--- | A language version, @major.minor@, written as one token (@1.1@).
+-- | A language version, @major.minor@, written as one token (@1.0@).
 versionNumber :: Parser LanguageVersion
 versionNumber =
   lexeme (LanguageVersion <$> L.decimal <* char '.' <*> L.decimal)
-    <?> "version number such as 1.1"
+    <?> "version number such as 1.0"
 
 parens, brackets, braces :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")

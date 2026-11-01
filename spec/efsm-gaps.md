@@ -42,14 +42,14 @@ Rules:
 1. A local transition changes exactly one occurrence of its type, never
    all of them.
 2. Inside a list, the element is picked by comparing its key with a
-   named input; without that, which element changes isn't said. Decided
-   in 1.1; see "Keys" under "Named values" in `spec-v1.md`:
+   named input; without that, which element changes isn't said.
+   Decided; see "Keys" under "Named values" in `spec-v1.md`:
 
        toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
 
    The checker warns about a transition inside a list element that
    doesn't pick the element. Nested lists, where a key written from
-   the element can't pick an element of an outer list: decided in 1.2,
+   the element can't pick an element of an outer list: decided,
    with keyed lists (`Todos = [Todo by TodoId]`) and element paths
    (`Projects[p](Todos[t](...))`); see "Keyed lists" and "Element
    paths" in `spec-v1.md`.
@@ -84,7 +84,7 @@ To decide:
 
 ## 3. Updates say what changes, not how
 
-Status: Part A (named values) decided, in 1.1 (see "Named values" in
+Status: Part A (named values) decided (see "Named values" in
 `spec-v1.md`); Parts B and C open.
 
 `Todos'` says the todos get a new value. It doesn't say a todo was added,
@@ -102,7 +102,7 @@ To decide:
 Proposal, in three parts. No arithmetic: atomics stay opaque, and
 everything is about structure (variants, lists, keys, named values).
 
-**Part A, named values (done, 1.1).** `P#x` names a value in the input
+**Part A, named values (done).** `P#x` names a value in the input
 or on the source side; `x` uses it. On the source side a name is an
 equality guard, on the target side it sets the value. Newtypes are
 strict: `EditText(Text#e)` then `Title(e)`.
@@ -152,7 +152,7 @@ Open questions for B and C:
 - Derivations on the type definition, or in a `__derived { }` block; the
   keywords (`:=`, `if`, `else`, `are`, `where`).
 - How a derivation finds its sources (the nearest product holding both).
-- Fresh keys: with a keyed list (`Todos = [Todo by TodoId]`, in 1.2),
+- Fresh keys: with a keyed list (`Todos = [Todo by TodoId]`),
   the key belongs to the list, so `__add` can make it. To decide:
   whether the new key can be named, for a target that uses it.
 - A list in a new state (`addTodo` from `Screen.NoTodos`): a list literal,
@@ -167,7 +167,7 @@ Open questions for B and C:
 
 ## 4. Event inputs and outputs
 
-Status: inputs decided, in 1.1 (see "Transition inputs" in
+Status: inputs decided (see "Transition inputs" in
 `spec-v1.md`); outputs open.
 
 A transition is only a name. It takes no input, so the typed text in

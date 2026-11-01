@@ -1,5 +1,5 @@
 -- The places of a recursive type are found once on each path.
-__version 1.1
+__version 1.0
 
 __atomics { Id }
 __txs { open close }

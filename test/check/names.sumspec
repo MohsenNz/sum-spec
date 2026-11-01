@@ -1,6 +1,6 @@
 -- Named values: given in the input or on the source side, used on
 -- either side. Newtypes are strict: unwrap and wrap to change the type.
-__version 1.1
+__version 1.0
 
 __atomics { Id Text }
 __txs { finish select keep reset }
@@ -11,12 +11,13 @@ Todo = Id * Title * Mode
 Title = Text
 EditText = Text
 Mode = Viewing | Editing EditText
-Selection = None | Some Id | Many [Id]
+Selection = None | Some Id | Many Ids
+Ids = [Id]
 Ref = Id * Title
 
 finish Id#id :: Todo(id * Mode.Editing(EditText(Text#e)))
              -> Todo(Title(e) * Mode.Viewing)
 select Ref(Id#i * Title#t) :: Selection -> Selection.Some(i)
 select Ref(Id#j) :: Selection.Some(j) -> Selection.None
-keep [Id]#ids :: Selection.None -> Selection.Many(ids)
+keep Ids#ids :: Selection.None -> Selection.Many(ids)
 reset :: App(Selection.Some#s) -> App(Selection.None)

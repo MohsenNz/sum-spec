@@ -1,7 +1,9 @@
 -- A keyed list, [T by K], is a list whose elements are identified by a
--- unique key of type K (added in 1.2). "by" is a word only inside the
--- brackets, so it can still be a name elsewhere.
-__version 1.2
+-- unique key of type K. "by" is a word only inside the brackets, so it
+-- can still be a name elsewhere. The parser reads a list wherever a type
+-- goes; the checker rejects the inline forms here (a payload, an
+-- element, a pattern), since a list goes only as a whole definition.
+__version 1.0
 
 __atomics { Id Row Cell }
 __txs { by }

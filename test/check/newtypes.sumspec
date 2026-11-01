@@ -7,6 +7,7 @@ App = Event * Boundary
 Event = At * Timestamp
 At = Timestamp
 Boundary = Ring
-Ring = Partial [Point] | Enclosed [Point]
+Ring = Partial Points | Enclosed Points
+Points = [Point]
 
 t :: App(Event * Boundary(Ring.Partial)) -> App(Event * Boundary(Ring.Enclosed))

@@ -22,16 +22,6 @@ import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
 import SumSpec.Syntax
-import SumSpec.Version
-  ( LanguageVersion
-  , defaultVersion
-  , elementPathsVersion
-  , inputsVersion
-  , keyedListsVersion
-  , namedListsVersion
-  , namesVersion
-  , renderVersion
-  )
 import Text.Megaparsec (SourcePos (..), initialPos, sourcePosPretty, unPos)
 
 data CheckError = CheckError
@@ -61,8 +51,7 @@ checkSpec file spec =
       , checkApp file env
       , checkTypeDefs env typeDefs
       , checkTransitions env spec transitions
-      , checkKeyedLists spec typeDefs transitions
-      , checkListPlaces spec typeDefs transitions
+      , checkListPlaces typeDefs transitions
       , warnListElements env transitions
       ]
   where
@@ -201,10 +190,6 @@ checkTransitions env spec transitions =
   , nameText n `Set.notMember` listed
   ]
     <> checkInputs transitions
-    <> [ needsVersion inputsVersion "transition inputs" (patternHead i)
-       | version < inputsVersion
-       , Transition _ (Just i) _ _ <- transitions
-       ]
     <> [ errorAt n ("transition " <> nameText n <> " is listed in __txs but has no signature")
        | n <- firsts nameText (specTxs spec)
        , nameText n `Set.notMember` signed
@@ -213,7 +198,6 @@ checkTransitions env spec transitions =
   where
     listed = Set.fromList (map nameText (specTxs spec))
     signed = Set.fromList (map (nameText . transitionName) transitions)
-    version = fromMaybe defaultVersion (specVersion spec)
     -- The input is checked like the source: it's what the transition
     -- receives, so it can name values but not give new ones.
     checkSignature (Transition _ input from to) =
@@ -229,62 +213,22 @@ checkTransitions env spec transitions =
         <> concat [checkPattern env names i | i <- maybe [] pure input, null (elementKeys i)]
         <> checkPattern env names from
         <> checkPattern env names to
-        <> [ needsVersion namesVersion "named values" n
-           | version < namesVersion
-           , n <- nameRefs from <> nameRefs to
-           ]
-        <> [ needsVersion elementPathsVersion "element paths" k
-           | version < elementPathsVersion
-           , k <- concatMap elementKeys input <> elementKeys from <> elementKeys to
-           ]
       where
         names = Map.fromList [(nameText n, k) | (n, k) <- signatureNames input from]
-
--- | Keyed lists (@[T by K]@) are in 1.2, in type definitions and in
--- patterns alike.
-checkKeyedLists :: Spec -> [TypeDef] -> [Transition] -> [CheckError]
-checkKeyedLists spec defs transitions =
-  [ needsVersion keyedListsVersion "keyed lists" k
-  | fromMaybe defaultVersion (specVersion spec) < keyedListsVersion
-  , k <-
-      concatMap (exprKeys . typeDefBody) defs
-        <> concat
-          [ concatMap patternKeys (maybe [] pure i <> [from, to])
-          | Transition _ i from to <- transitions
-          ]
-  ]
-  where
-    exprKeys = \case
-      TypeSum variants -> concat [exprKeys p | Variant _ (Just p) <- variants]
-      TypeProduct terms -> concatMap termKeys terms
-      TypeTerm term -> termKeys term
-    patternKeys = \case
-      PatternList t key -> termKeys (TermList t key)
-      PatternPath _ args -> concatMap patternKeys args
-      PatternElement _ _ args -> concatMap patternKeys args
-      PatternNamed p _ -> patternKeys p
-      PatternPrimed _ p -> patternKeys p
-      PatternName _ -> []
 
 -- | A list goes only as the whole body of a type definition, so every
 -- list has a type name (@Points = [Point]@) and is written by it, in
 -- patterns as well. A list's element is a type name too (@Row = [Cell]@
--- for a list of lists). A spec for 1.2 or later gets an error for a list
--- written elsewhere; an older one, where such lists were valid, a
--- warning.
-checkListPlaces :: Spec -> [TypeDef] -> [Transition] -> [CheckError]
-checkListPlaces spec defs transitions =
+-- for a list of lists).
+checkListPlaces :: [TypeDef] -> [Transition] -> [CheckError]
+checkListPlaces defs transitions =
   concatMap (definitionLists . typeDefBody) defs
     <> concat
       [ concatMap patternLists (maybe [] pure i <> [from, to])
       | Transition _ i from to <- transitions
       ]
   where
-    version = fromMaybe defaultVersion (specVersion spec)
-    report term message =
-      if version >= namedListsVersion
-        then errorAt (termName term) message
-        else warningAt (termName term) (message <> " (an error from SumSpec 1.2)")
+    report term = errorAt (termName term)
     definitionLists = \case
       TypeTerm (TermList element _) -> elementLists element
       TypeTerm (TermName _) -> []
@@ -364,16 +308,6 @@ namings = \case
   PatternPrimed _ p -> namings p
   PatternList _ _ -> []
   PatternName _ -> []
-
--- | Every name written in a pattern, given (@#x@) or used (@x@).
-nameRefs :: Pattern -> [Name]
-nameRefs = \case
-  PatternNamed p n -> n : nameRefs p
-  PatternName n -> [n]
-  PatternPath _ args -> concatMap nameRefs args
-  PatternElement _ k args -> k : concatMap nameRefs args
-  PatternPrimed _ p -> nameRefs p
-  PatternList _ _ -> []
 
 -- | The keys of the element paths in a pattern (@id@ in @Todos[id]@).
 elementKeys :: Pattern -> [Name]
@@ -615,9 +549,9 @@ checkArgs env names node at args = case nodeBody node of
         nodeLabel node <> " is a sum; pick a variant with \".\" instead of arguments"
     ]
   Just (TypeProduct factors) -> checkFactors env names node factors args
-  -- A list type is written bare, or picks an element with [x]. Before
-  -- 1.2 it could take a list pattern, which 'checkListPlaces' reports,
-  -- or a name of the list (a variant carrying an inline list).
+  -- A list type is written bare, or picks an element with [x]. A list
+  -- pattern is reported by 'checkListPlaces', and a name of the list
+  -- fits where an inline list was written (also reported there).
   Just (TypeTerm (TermList _ _))
     | any (not . listOrName . bare) args ->
         [ errorAt at $
@@ -794,8 +728,8 @@ warnListElements env transitions =
                   _ -> "give both lists a type name and a key, and use element paths"
         | otherwise -> Nothing
       [] -> Nothing
-    -- An element path when the list has a type name; otherwise the 1.1
-    -- form, from the element.
+    -- An element path when the list has a type name; otherwise the form
+    -- written from the element.
     pickHint element listName listKey fallback = case (listName, listKey) of
       (Just list, Just _) -> "use an element path, such as " <> list <> "[id](...)"
       (Just list, Nothing) ->
@@ -848,17 +782,6 @@ unknownName n =
       <> "; name a value with #"
       <> nameText n
       <> " in the input or on the source side"
-
--- | A feature used in a spec whose version doesn't have it.
-needsVersion :: LanguageVersion -> Text -> Name -> CheckError
-needsVersion since feature n =
-  errorAt n $
-    feature
-      <> " need SumSpec "
-      <> T.pack (renderVersion since)
-      <> "; declare __version "
-      <> T.pack (renderVersion since)
-      <> " or later"
 
 lineOf :: Name -> Text
 lineOf = T.pack . show . unPos . sourceLine . namePos

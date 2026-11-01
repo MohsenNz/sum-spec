@@ -1,6 +1,6 @@
 -- Written from the element, a key picks only the innermost element; the
--- checker warns about the outer one, and suggests element paths (1.2).
-__version 1.1
+-- checker warns about the outer one, and suggests element paths.
+__version 1.0
 
 __atomics { ProjectId TodoId }
 __txs { toggle }

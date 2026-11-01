@@ -11,6 +11,20 @@ The language version belongs to the language, not to the `sumspec`
 tool: agents and other tools read SumSpec too, and they need to know
 which features a spec may use without looking at this implementation.
 
+## Before the first release
+
+Until the first tool release, nobody depends on a released version of
+the language, so none of the rules below apply yet. The language is
+**1.0, in development**:
+
+- Every change, additive or breaking, goes straight into 1.0 and
+  `spec/spec-v1.md`.
+- No version checks in the tool, no "Added in" notes, and no warnings
+  kept for older forms. A form that's removed is just an error.
+- `CHANGES.md` describes the language as it is, under **Unreleased**.
+
+The first release freezes 1.0; from then on, the rules below apply.
+
 ## Language version
 
 The language version is `major.minor`:

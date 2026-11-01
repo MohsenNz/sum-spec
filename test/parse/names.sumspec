@@ -1,6 +1,6 @@
--- Named values (added in 1.1): P#x names the value P matches, and x
+-- Named values: P#x names the value P matches, and x
 -- stands for it.
-__version 1.1
+__version 1.0
 
 __atomics { Id Text }
 __txs { rename select keep copy }

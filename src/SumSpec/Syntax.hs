@@ -24,7 +24,7 @@ import Text.Megaparsec (SourcePos)
 -- the definitions in source order.
 data Spec = Spec
   { specVersion :: Maybe LanguageVersion
-  -- ^ The version in @__version 1.1@; 'Nothing' without a header, which
+  -- ^ The version in @__version 1.0@; 'Nothing' without a header, which
   -- means 'SumSpec.Version.defaultVersion'.
   , specAtomics :: [Name]
   -- ^ Names declared in @__atomics { ... }@.
@@ -65,9 +65,9 @@ data Variant = Variant
 
 data TypeTerm
   = TermName Name
-  | -- | @[T]@, or @[T by K]@ with the key type @K@ (added in 1.2): a list
-    -- whose elements are identified by a unique key, which isn't part of
-    -- the element.
+  | -- | @[T]@, or @[T by K]@ with the key type @K@: a list whose elements
+    -- are identified by a unique key, which isn't part of the element. The
+    -- checker allows a list only as the whole body of a type definition.
     TermList TypeTerm (Maybe Name)
   deriving stock (Eq, Show)
 
@@ -75,8 +75,8 @@ data TypeTerm
 data Transition = Transition
   { transitionName :: Name
   , transitionInput :: Maybe Pattern
-  -- ^ The input, @X@ in @t X :: ...@ (added in 1.1): a pattern headed by
-  -- a type or a list, never a 'PatternName'.
+  -- ^ The input, @X@ in @t X :: ...@: a pattern headed by a type, never a
+  -- 'PatternName'.
   , transitionFrom :: Pattern
   , transitionTo :: Pattern
   }
@@ -87,16 +87,16 @@ data Pattern
     -- parentheses after it. No parentheses means no arguments.
     PatternPath (NonEmpty Name) [Pattern]
   | -- | @L[x]@: the element of the keyed list type @L@ whose key equals
-    -- the named value @x@, with the element's arguments after it (added
-    -- in 1.2). The path is the list type; the checker allows only one
-    -- name.
+    -- the named value @x@, with the element's arguments after it. The
+    -- path is the list type; the checker allows only one name.
     PatternElement (NonEmpty Name) Name [Pattern]
-  | -- | @[T]@ or @[T by K]@: any list of that type.
+  | -- | @[T]@ or @[T by K]@: any list of that type. The parser reads it;
+    -- the checker reports it, since a list is written by its type name.
     PatternList TypeTerm (Maybe Name)
-  | -- | @x@: the value named @x@ in this signature (added in 1.1).
+  | -- | @x@: the value named @x@ in this signature.
     PatternName Name
-  | -- | @P#x@: matches @P@ and names its value @x@ (added in 1.1). The
-    -- name is the one after the @#@.
+  | -- | @P#x@: matches @P@ and names its value @x@. The name is the one
+    -- after the @#@.
     PatternNamed Pattern Name
   | -- | A pattern followed by a prime, @A'@: a new value, set by the
     -- transition. The position is the prime's. The parser accepts a prime

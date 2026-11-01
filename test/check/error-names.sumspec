@@ -1,5 +1,5 @@
 -- Errors about named values.
-__version 1.1
+__version 1.0
 
 __atomics { Id Text }
 __txs { unknown twice onTarget nameName mismatch primed notFactor }

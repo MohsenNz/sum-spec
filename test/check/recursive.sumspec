@@ -3,6 +3,7 @@ __atomics { Text }
 __txs { grow }
 
 App = Tree
-Tree = Leaf Text | Node [Tree]
+Tree = Leaf Text | Node Trees
+Trees = [Tree]
 
 grow :: Tree.Leaf -> Tree.Node

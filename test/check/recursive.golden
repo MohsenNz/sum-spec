@@ -1,12 +1,6 @@
-test/check/recursive.sumspec:6:26:
+test/check/recursive.sumspec:9:9:
   |
-6 | Tree = Leaf Text | Node [Tree]
-  |                          ^
-warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
-
-test/check/recursive.sumspec:8:9:
-  |
-8 | grow :: Tree.Leaf -> Tree.Node
+9 | grow :: Tree.Leaf -> Tree.Node
   |         ^
-warning: grow changes one Tree of a list, but doesn't say which; to pick it, compare a key with a named value, such as Tree(id * ...)
+warning: grow changes one Tree of a list, but doesn't say which; to pick it, give Trees a key (Trees = [Tree by Id]) and use an element path, such as Trees[id](...)
 

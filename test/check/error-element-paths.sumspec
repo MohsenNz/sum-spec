@@ -1,5 +1,5 @@
 -- Errors in element paths, L[x].
-__version 1.2
+__version 1.0
 
 __atomics { Id Other Text }
 __txs { notList variant unkeyed wrongKey sumArgs primed named input unknown }

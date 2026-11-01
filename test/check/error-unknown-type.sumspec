@@ -4,5 +4,6 @@ __txs { t }
 
 App = Missing
 P = A * Gone
-S = X Nope | Y [Lost]
+S = X Nope | Y Losts
+Losts = [Lost]
 t :: Nowhere -> App

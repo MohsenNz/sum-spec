@@ -1,60 +1,48 @@
-test/check/error-bad-arguments.sumspec:6:52:
-  |
-6 | Page = Home | Plan Mode | Pick (One | Two) | Many [A]
-  |                                                    ^
-warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
-
-test/check/error-bad-arguments.sumspec:9:10:
-  |
-9 | onSum :: Mode(Map) -> Mode
-  |          ^
+test/check/error-bad-arguments.sumspec:11:10:
+   |
+11 | onSum :: Mode(Map) -> Mode
+   |          ^
 Mode is a sum; pick a variant with "." instead of arguments
 
-test/check/error-bad-arguments.sumspec:10:13:
+test/check/error-bad-arguments.sumspec:12:13:
    |
-10 | onAtomic :: A(B) -> A
+12 | onAtomic :: A(B) -> A
    |             ^
 A takes no arguments
 
-test/check/error-bad-arguments.sumspec:10:13:
+test/check/error-bad-arguments.sumspec:12:13:
    |
-10 | onAtomic :: A(B) -> A
+12 | onAtomic :: A(B) -> A
    |             ^
-warning: onAtomic changes one A of a list, but doesn't say which; to pick it, compare a key with a named value, such as A(id * ...)
+warning: onAtomic changes one A of a list, but doesn't say which; to pick it, give As a key (As = [A by Id]) and use an element path, such as As[id](...)
 
-test/check/error-bad-arguments.sumspec:11:21:
+test/check/error-bad-arguments.sumspec:13:21:
    |
-11 | onNoPayload :: Page.Home(A) -> Page.Home
+13 | onNoPayload :: Page.Home(A) -> Page.Home
    |                     ^
 Page.Home takes no arguments
 
-test/check/error-bad-arguments.sumspec:12:17:
+test/check/error-bad-arguments.sumspec:14:17:
    |
-12 | tooMany :: Page.Plan(Mode.Map * Mode.Plot) -> Page.Home
+14 | tooMany :: Page.Plan(Mode.Map * Mode.Plot) -> Page.Home
    |                 ^
 Page.Plan takes one argument, Mode, but 2 are given
 
-test/check/error-bad-arguments.sumspec:13:24:
+test/check/error-bad-arguments.sumspec:15:24:
    |
-13 | wrongType :: Page.Plan(A) -> Page.Home
+15 | wrongType :: Page.Plan(A) -> Page.Home
    |                        ^
 expected Mode here, not A
 
-test/check/error-bad-arguments.sumspec:14:25:
+test/check/error-bad-arguments.sumspec:16:24:
    |
-14 | wrongList :: Page.Many([B]) -> Page.Pick(One)
-   |                         ^
-expected [A] here, not [B]
+16 | wrongList :: Page.Many(Bs) -> Page.Pick(One)
+   |                        ^
+expected As here, not Bs
 
-test/check/error-bad-arguments.sumspec:14:25:
+test/check/error-bad-arguments.sumspec:16:36:
    |
-14 | wrongList :: Page.Many([B]) -> Page.Pick(One)
-   |                         ^
-warning: a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it) (an error from SumSpec 1.2)
-
-test/check/error-bad-arguments.sumspec:14:37:
-   |
-14 | wrongList :: Page.Many([B]) -> Page.Pick(One)
-   |                                     ^
+16 | wrongList :: Page.Many(Bs) -> Page.Pick(One)
+   |                                    ^
 Page.Pick is a sum; pick a variant with "." instead of arguments
 

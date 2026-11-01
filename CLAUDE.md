@@ -31,6 +31,10 @@ the notes at the end of `grammar.ebnf`; the pattern rules are in
 
 See `VERSIONING.md`. In short:
 
+- Until the first release, the language is 1.0 in development: every
+  change, breaking or not, goes straight into 1.0, with no version
+  checks, "Added in" notes or warnings for old forms. The rules below
+  apply from the first release.
 - The language version is `major.minor` (currently 1.0). A breaking
   change raises the major version and starts `spec-v<major>.md`; an
   additive change raises the minor version and goes into the current

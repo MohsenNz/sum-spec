@@ -1,6 +1,6 @@
 # SumSpec
 
-This document defines SumSpec **1.x**; the current version is **1.2**. Features added in a later 1.x version carry an "Added in 1.x" note under their heading; see `VERSIONING.md`.
+This document defines SumSpec **1.0**. It's in development until the first release: until then it changes in place, without version notes; see `VERSIONING.md`.
 
 ## State transitions
 
@@ -208,8 +208,6 @@ Every signature of a transition takes the same input, or none; see
 
 ## Transition inputs
 
-Added in 1.1.
-
 A transition may take an input, a value the event brings with it. The
 input's type goes after the transition's name:
 
@@ -250,12 +248,7 @@ toggleTodo TodoId :: Completion.Completed -> Completion.Active
 
 A signature doesn't have to use the input.
 
-A spec that uses inputs declares `__version 1.1` or later (see "Language
-version").
-
 ## Named values
-
-Added in 1.1.
 
 A pattern followed by `#x` names the value it matches; a lowercase name
 alone in a pattern stands for that value:
@@ -322,8 +315,6 @@ doesn't pick the element, by key or with an element path.
 
 ## Element paths
 
-Added in 1.2.
-
 `L[x]` is the element of the keyed list type `L` (see "Keyed lists")
 whose key equals the named value `x`. It's written where `L` is
 expected, and the arguments after it are the element's:
@@ -376,8 +367,6 @@ toggleTodo Ref(ProjectId#p * TodoId#t)
 
 `Projects[p]` is the project, and `Todos[t]` the todo inside it.
 
-A spec that uses element paths declares `__version 1.2` or later.
-
 ## List
 
 We show a list of T like: `[T]`
@@ -401,14 +390,7 @@ pick Points#ps :: Ring.Partial -> Ring.Enclosed(ps)
 - A list type takes no arguments; see "Element paths" to pick an
   element.
 
-Changed in 1.2: in a 1.0 or 1.1 spec, a list may still be written
-anywhere a type may (`V [A]`, `pick [Id] :: ...`). The checker accepts
-it with a warning, and it means what it did before. In a spec for 1.2 or
-later, it's an error.
-
 ### Keyed lists
-
-Added in 1.2.
 
 A keyed list, `[T by K]`, is a list whose elements are identified by a
 key of type `K`:
@@ -431,8 +413,6 @@ Branches = [Tip by BranchName]
 
 An element of a keyed list is picked with an element path,
 `Todos[id]`; see "Element paths".
-
-A spec that uses keyed lists declares `__version 1.2` or later.
 
 ## Naming
 

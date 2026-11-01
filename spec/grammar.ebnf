@@ -52,20 +52,20 @@ payload       = type_term
 product       = type_term , "*" , type_term , { "*" , type_term } ;
 
 (* A list, [T], or a keyed list, [T by K], whose elements are identified
-   by a unique key of type K (added in 1.2; see "Keyed lists" in
-   spec-v1.md). "by" is a terminal only here; it isn't reserved:
+   by a unique key of type K (see "Keyed lists" in spec-v1.md). "by" is
+   a terminal only here; it isn't reserved:
      Todos = [Todo by TodoId]
-   The grammar reads a list wherever a type_term goes, as 1.0 and 1.1
-   allow. From 1.2, the type checker allows a list only as the whole
-   body of a type definition (see "List" in spec-v1.md).               *)
+   The grammar reads a list wherever a type_term goes; the type checker
+   allows a list only as the whole body of a type definition (see
+   "List" in spec-v1.md).                                              *)
 type_term     = UPPER
               | "[" , type_term , [ "by" , UPPER ] , "]" ;
 
 
 (* ---------- Transitions ---------- *)
 
-(* The optional input after the name is the value the transition takes
-   (added in 1.1), a type pattern that may name values:
+(* The optional input after the name is the value the transition takes,
+   a type pattern that may name values:
      toggleTodo TodoId :: Completion.Active -> Completion.Completed
      select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On) *)
 transition    = LOWER , [ input ] , "::" , pattern , "->" , pattern ;
@@ -84,11 +84,11 @@ input         = type_pattern , [ NAMING ] ;
    type name, on the target side. What a left-out or unprimed part means
    is in "Source and target" in spec-v1.md.
    A LOWER is a named value, and NAMING after a pattern names its value
-   (added in 1.1; see "Named values" in spec-v1.md):
+   (see "Named values" in spec-v1.md):
      Todo(id * RowMode.Editing(EditText(Text#e)))
      Todo(Title(e) * RowMode.Viewing)
    An element_key after a path picks one element of a list type by key
-   (added in 1.2; see "Element paths" in spec-v1.md):
+   (see "Element paths" in spec-v1.md):
      Projects[p](Todos[t](Completion.Active))                           *)
 pattern       = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
 
@@ -160,14 +160,12 @@ character     = ? any Unicode character ? ;
      has at least one signature;
    - a transition's input is headed by an atomic or a defined type,
      every signature of a transition takes an input of the same type or
-     none, and a spec with an input declares __version 1.1 or later. See
-     "Transition inputs" in spec-v1.md;
+     none. See "Transition inputs" in spec-v1.md;
    - a value is named (P#x) only in the input or on the source side,
      once per signature, and only after a type pattern; a name used (x)
      is named in the same signature and has the type expected where it
-     is used (as a factor, it stands for the factor of its type); a spec
-     with names declares __version 1.1 or later. See "Named values" in
-     spec-v1.md;
+     is used (as a factor, it stands for the factor of its type). See
+     "Named values" in spec-v1.md;
    - variant names are unique within one sum, and type names are unique
      within one product (T = A * A is invalid), including inline
      payloads;
@@ -181,27 +179,22 @@ character     = ? any Unicode character ? ;
      payload. See "Arguments in state patterns" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
      the target side. See "Source and target" in spec-v1.md;
+   - a list ([T], [T by K]) is only the whole body of a type definition
+     (Points = [Point]); its element is a type name; it isn't a factor,
+     a payload or a pattern (in an input or on a side). A list type
+     takes no arguments. See "List" in spec-v1.md;
    - the key type of a keyed list ([T by K]) is an atomic or a defined
-     type, and a spec with keyed lists declares __version 1.2 or later.
-     [T by K] and [T] are different types. See "Keyed lists" in
+     type. [T by K] and [T] are different types. See "Keyed lists" in
      spec-v1.md;
    - an element path L[x] is written where L is expected, on the source
      or target side, never in the input: L is one name, of a type
      defined as a keyed list; x is a name of the signature, of the
      list's key type; the arguments are the element's factors when it
      is a product, or else one argument headed by the element type; the
-     element takes no prime and no naming; a spec with element paths
-     declares __version 1.2 or later. See "Element paths" in spec-v1.md.
-
-   - in a spec for 1.2 or later, a list ([T], [T by K]) is only the
-     whole body of a type definition (Points = [Point]); its element is
-     a type name; it isn't a factor, a payload or a pattern (in an
-     input or on a side). A list type takes no arguments. See "List" in
+     element takes no prime and no naming. See "Element paths" in
      spec-v1.md.
 
    Warnings (the checker reports them, but the spec is valid):
-   - in a 1.0 or 1.1 spec, a list written anywhere else than as the
-     whole body of a type definition (an error from 1.2).
    - a transition on a part inside a list element that doesn't pick
      the element: in a keyed list, it doesn't use an element path; in a
      list without a key, it isn't written from the element, or doesn't

@@ -4,7 +4,7 @@ SumSpec is a language we define our application specification in, with types and
 
 ## Specification
 
-Check out `./spec/spec-v1.md` (language version 1.2). Ideas for later versions are in `./spec/proposals.md`.
+Check out `./spec/spec-v1.md` (language version 1.0, in development). Ideas for later versions are in `./spec/proposals.md`.
 
 Example specs, in `example/`:
 

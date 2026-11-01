@@ -10,15 +10,18 @@ Screen
   | Browse
       ( List
           ( Empty
-          | Full [Shape] )
+          | Full Shapes )
       | One Shape )
 
 Shape
   = Dot Point
   | Ring (Ring)
-  | Line [Point]
+  | Line Points
 
-Ring = Open [Point] | Closed [Point]
+Shapes = [Shape]
+Points = [Point]
+
+Ring = Open Points | Closed Points
 
 Label = Text
 
@@ -35,8 +38,8 @@ factorsAnyOrder :: App(Screen.Home * Shape * Label)
                 -> App(Label * Shape.Ring(Ring.Closed) * Screen.Edit(Shape.Dot * Label))
 -- A newtype takes one argument headed by its base type.
 newtypeArg :: Shape.Dot(Point) -> Shape.Dot(Point)
--- A list payload takes the list type as its argument.
-listArg :: Shape.Line([Point]) -> Shape.Line
+-- A payload of a list type takes the list type, bare, as its argument.
+listArg :: Shape.Line(Points) -> Shape.Line
 -- A single payload takes one argument headed by its type.
 singlePayload :: Screen.Browse.One(Shape.Dot) -> Screen.Browse.One(Shape.Line)
 -- The two sides may be different types.

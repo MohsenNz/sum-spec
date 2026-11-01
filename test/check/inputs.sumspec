@@ -1,5 +1,5 @@
--- A transition may take an input, written after its name (added in 1.1).
-__version 1.1
+-- A transition may take an input, written after its name.
+__version 1.0
 
 __atomics { Id Text }
 __txs { rename pick select }
@@ -10,10 +10,11 @@ Item = Id * Name * State
 Name = Text
 State = Off | On
 Selection = None | Some Id
+Ids = [Id]
 Ref = Id * Name
 
 rename Name :: Item(Name) -> Item(Name')
-pick [Id] :: Selection.None -> Selection.Some(Id)
+pick Ids :: Selection.None -> Selection.Some(Id)
 -- Every signature writes the input.
 select Ref :: State.Off -> State.On
 select Ref :: State.On -> State.Off

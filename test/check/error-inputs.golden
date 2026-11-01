@@ -1,30 +1,24 @@
-test/check/error-inputs.sumspec:11:3:
+test/check/error-inputs.sumspec:12:3:
    |
-11 | f Missing :: S.X -> S.Y
+12 | f Missing :: S.X -> S.Y
    |   ^
 unknown type Missing; declare it in __atomics or define it
 
-test/check/error-inputs.sumspec:14:1:
+test/check/error-inputs.sumspec:15:1:
    |
-14 | g :: S.Y -> S.X
+15 | g :: S.Y -> S.X
    | ^
-transition g takes A (line 13), but this signature takes no input
+transition g takes A (line 14), but this signature takes no input
 
-test/check/error-inputs.sumspec:17:3:
+test/check/error-inputs.sumspec:18:3:
    |
-17 | h B :: S.Y -> S.X
+18 | h B :: S.Y -> S.X
    |   ^
-transition h takes A (line 16), but this signature takes B
+transition h takes A (line 17), but this signature takes B
 
-test/check/error-inputs.sumspec:18:4:
+test/check/error-inputs.sumspec:19:3:
    |
-18 | h [A] :: S.Y -> S.X
-   |    ^
-transition h takes A (line 16), but this signature takes [A]
-
-test/check/error-inputs.sumspec:18:4:
-   |
-18 | h [A] :: S.Y -> S.X
-   |    ^
-warning: a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it) (an error from SumSpec 1.2)
+19 | h As :: S.Y -> S.X
+   |   ^
+transition h takes A (line 17), but this signature takes As
 

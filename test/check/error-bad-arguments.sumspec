@@ -3,7 +3,9 @@ __atomics { A B }
 __txs { onSum onAtomic onNoPayload tooMany wrongType wrongList }
 
 App = Page * A
-Page = Home | Plan Mode | Pick (One | Two) | Many [A]
+Page = Home | Plan Mode | Pick (One | Two) | Many As
+As = [A]
+Bs = [B]
 Mode = Map | Plot
 
 onSum :: Mode(Map) -> Mode
@@ -11,4 +13,4 @@ onAtomic :: A(B) -> A
 onNoPayload :: Page.Home(A) -> Page.Home
 tooMany :: Page.Plan(Mode.Map * Mode.Plot) -> Page.Home
 wrongType :: Page.Plan(A) -> Page.Home
-wrongList :: Page.Many([B]) -> Page.Pick(One)
+wrongList :: Page.Many(Bs) -> Page.Pick(One)

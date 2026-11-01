@@ -1,7 +1,7 @@
 -- A transition on a part inside a list element changes one element; it
 -- says which only when it's written from the element and compares a key
 -- with a named value. The checker warns about the others.
-__version 1.2
+__version 1.0
 
 __atomics { Id Text }
 __txs { inside noKey keyed above outside keyedInside keyedElement picked }

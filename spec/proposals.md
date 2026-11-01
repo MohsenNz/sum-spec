@@ -6,6 +6,9 @@ impact (see `VERSIONING.md`):
 - **additive**: it can go into the next minor language version
 - **breaking**: it waits for the next major language version
 
+Until the first release, any proposal can go straight into 1.0 (see
+"Before the first release" in `VERSIONING.md`).
+
 ## Two state transitions with the same signature (Postponed)
 
 Version impact: additive.
@@ -108,8 +111,8 @@ knows where the next arm starts.
 
 - Names bound in the input are visible in every arm. Names bound in a
   source belong to that arm.
-- The input belongs to the transition, as in 1.1, so it's written in
-  one place.
+- The input belongs to the transition (see "Transition inputs" in
+  `spec-v1.md`), so it's written in one place.
 
 Writing the source first and grouping events below it (a state table)
 was considered and rejected: an event's signatures end up in several
@@ -129,4 +132,4 @@ Version impact: additive.
     rename TodoId#id :: Todos[id]#t -> ...
 
 `L[x]#t` names the element, with the element type (`Todo`), not the
-list type. Not allowed in 1.2.
+list type. Not allowed yet.

@@ -15,7 +15,7 @@
 -- and a branch by its BranchName. A transition on one file takes a Path
 -- and picks the file with an element path (Files[p](...)).
 
-__version 1.2
+__version 1.0
 
 __atomics {
   Hash

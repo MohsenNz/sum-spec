@@ -10,7 +10,7 @@
 -- list holds. A transition on one todo takes a TodoId, and picks the todo
 -- with an element path (Todos[id](...)).
 
-__version 1.2
+__version 1.0
 
 __atomics {
   Text

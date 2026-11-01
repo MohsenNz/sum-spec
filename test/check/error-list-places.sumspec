@@ -1,6 +1,6 @@
--- From 1.2, a list goes only as the whole body of a type definition, so
--- every list has a type name and is written by it; in patterns too.
-__version 1.2
+-- A list goes only as the whole body of a type definition, so every list
+-- has a type name and is written by it; in patterns too.
+__version 1.0
 
 __atomics { Id Cell }
 __txs { source target input named }

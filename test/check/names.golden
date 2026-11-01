@@ -1,12 +1,1 @@
-test/check/names.sumspec:14:36:
-   |
-14 | Selection = None | Some Id | Many [Id]
-   |                                    ^
-warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
-
-test/check/names.sumspec:21:7:
-   |
-21 | keep [Id]#ids :: Selection.None -> Selection.Many(ids)
-   |       ^
-warning: a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it) (an error from SumSpec 1.2)
-
+OK
