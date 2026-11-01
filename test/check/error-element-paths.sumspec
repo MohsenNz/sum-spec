@@ -9,13 +9,13 @@ Items = [Item by Id]
 Item = Name * State
 Name = Text
 State = Off | On
-Ring = Open | Points [Item by Id]
+Ring = Open | Points Items
 Plain = [Item]
 States = [State by Id]
 
 -- Item is not a list type.
 notList Id#i :: Item[i](State.Off) -> Item[i](State.On)
--- Only a named list type, not a variant's list.
+-- A path starts at the list type, not at the variant that carries it.
 variant Id#i :: Ring.Points[i] -> Ring.Points[i]
 -- Plain has no key.
 unkeyed Id#i :: Plain[i] -> Plain[i]

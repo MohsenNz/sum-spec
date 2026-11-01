@@ -14,13 +14,13 @@ test/check/error-element-paths.sumspec:19:22:
    |
 19 | variant Id#i :: Ring.Points[i] -> Ring.Points[i]
    |                      ^
-an element path picks from a named list type (Points = [Point by PointId]); picking from the list of Ring.Points isn't supported yet
+an element path starts at a list type, not at a variant; write Ring.Points(Items[i](...))
 
 test/check/error-element-paths.sumspec:19:40:
    |
 19 | variant Id#i :: Ring.Points[i] -> Ring.Points[i]
    |                                        ^
-an element path picks from a named list type (Points = [Point by PointId]); picking from the list of Ring.Points isn't supported yet
+an element path starts at a list type, not at a variant; write Ring.Points(Items[i](...))
 
 test/check/error-element-paths.sumspec:21:17:
    |

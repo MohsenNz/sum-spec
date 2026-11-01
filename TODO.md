@@ -52,5 +52,6 @@ update before any code:
 - [ ] Several signatures under one name (input written once).
 - [x] Element paths (`Todos[id]`), in 1.2.
 - [x] Keyed lists (`[Todo by TodoId]`), in 1.2; element paths need them.
-- [ ] Element paths through a variant (`Ring.Points[i]`).
+- [x] Lists only as whole type definitions (`Points = [Point]`), in 1.2;
+      a warning in 1.0 and 1.1 specs.
 - [ ] Naming an element (`Todos[id]#t`).

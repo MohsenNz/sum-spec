@@ -1,1 +1,12 @@
-OK
+test/check/newtypes.sumspec:10:17:
+   |
+10 | Ring = Partial [Point] | Enclosed [Point]
+   |                 ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
+test/check/newtypes.sumspec:10:36:
+   |
+10 | Ring = Partial [Point] | Enclosed [Point]
+   |                                    ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+

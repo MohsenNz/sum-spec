@@ -1,3 +1,9 @@
+test/check/error-primes.sumspec:6:36:
+  |
+6 | Page = Home | Plan (A * B) | Many [B]
+  |                                    ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
 test/check/error-primes.sumspec:8:18:
   |
 8 | onSource :: App(A') -> App(A)
@@ -21,6 +27,12 @@ test/check/error-primes.sumspec:11:40:
 11 | onArgs :: Page.Home -> Page.Plan(A * B)'
    |                                        ^
 a prime (') goes only on a bare type name; a written variant or argument already says what the new value is
+
+test/check/error-primes.sumspec:12:35:
+   |
+12 | onList :: Page.Home -> Page.Many([B]')
+   |                                   ^
+warning: a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it) (an error from SumSpec 1.2)
 
 test/check/error-primes.sumspec:12:37:
    |

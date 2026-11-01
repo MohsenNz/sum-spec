@@ -22,6 +22,12 @@ test/check/error-unknown-type.sumspec:7:17:
   |                 ^
 unknown type Lost; declare it in __atomics or define it
 
+test/check/error-unknown-type.sumspec:7:17:
+  |
+7 | S = X Nope | Y [Lost]
+  |                 ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
 test/check/error-unknown-type.sumspec:8:6:
   |
 8 | t :: Nowhere -> App

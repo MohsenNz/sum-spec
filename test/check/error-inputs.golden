@@ -22,3 +22,9 @@ test/check/error-inputs.sumspec:18:4:
    |    ^
 transition h takes A (line 16), but this signature takes [A]
 
+test/check/error-inputs.sumspec:18:4:
+   |
+18 | h [A] :: S.Y -> S.X
+   |    ^
+warning: a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it) (an error from SumSpec 1.2)
+

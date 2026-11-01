@@ -122,19 +122,6 @@ Open:
 - Does the canonical form print every signature of a name as one group?
 - Must the signatures of a name then be adjacent?
 
-## Element paths through a variant
-
-Version impact: additive.
-
-    Ring = Open | Points [Point by PointId]
-
-    move PointId#i :: Ring.Points[i](...) -> Ring.Points[i](...)
-
-An element path picks from a variant's inline keyed list, written as
-the path to the variant. In 1.2 only a named list type can be picked
-from (`Points = [Point by PointId]`); see "Element paths" in
-`spec-v1.md`.
-
 ## Naming an element
 
 Version impact: additive.

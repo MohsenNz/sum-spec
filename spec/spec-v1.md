@@ -110,13 +110,16 @@ PMode
   | ShowMission
       ( List
           ( Empty
-          | NonEmpty [MissionSummary]
+          | NonEmpty MissionSummaries
           )
       | Selected Mission
       )
 ```
 
 A path selects nested variants with dots: `PMode.ShowMission.List.Empty`.
+
+A list isn't inline: it has a type name (`MissionSummaries =
+[MissionSummary]`); see "List".
 
 ## Sum without a variant
 
@@ -136,10 +139,11 @@ Arguments may be left out: a bare type (`Missions`), a bare sum (`PMode.ShowMiss
 When arguments are written, they must fit what they follow:
 
 - A product, or a variant carrying a product, takes some or all of its factors, in any order, each at most once: `Z(C * Y.V1)`, `Z(C)`.
-- A variant carrying one type takes one argument headed by that type: `Y.V3(A)`, `Ring.Closed([Point])`.
+- A variant carrying one type takes one argument headed by that type: `Y.V3(A)`, `Plot.Drawn(Boundary)`.
 - A newtype takes one argument headed by its base type. With `Boundary = Ring`, write `Boundary(Ring.Enclosed)`, not `Boundary.Enclosed`.
 - A sum takes no arguments; pick a variant with `.` instead.
 - An atomic type, and a variant without a payload, take no arguments.
+- A list type takes no arguments; pick an element with an element path instead (`Todos[id](...)`).
 
 An argument may also be a named value (`t`), which fits where its type is expected; see "Named values". An element path (`Todos[id]`) fits where its list type is expected; see "Element paths".
 
@@ -213,7 +217,8 @@ input's type goes after the transition's name:
 startTyping Text :: NewTodo.Blank -> NewTodo.Typing(Text)
 ```
 
-The input is one type: an atomic or a defined type, or a list (`[Id]`).
+The input is one type: an atomic or a defined type, such as a list type
+(`Ids = [Id]`).
 A transition that needs several values takes a product defined for them:
 
 ```
@@ -263,7 +268,7 @@ finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e)))
 ```
 
 - `P#x` matches `P` and names its value `x`. `P` is any pattern headed by
-  a type: `Text#t`, `Completion.Active#c`, `[Id]#ids`. `#x` is one
+  a type: `Text#t`, `Completion.Active#c`, `Ids#ids`. `#x` is one
   token: no space between `#` and the name. The canonical form writes no
   space before `#` either.
 - A name is given in the input or on the source side, once per
@@ -331,8 +336,8 @@ toggleTodo TodoId#id :: Todos[id](Completion.Active) -> Todos[id](Completion.Com
 ```
 
 - `L` is a type defined as a keyed list (`Todos = [Todo by TodoId]`).
-  An inline list, such as a variant's payload `[Point by PointId]`,
-  can't be picked from; give it a type name.
+  The path starts at the list type, so from a variant that carries the
+  list, the list type is its argument: `Ring.Points(Points[i](...))`.
 - `x` is a name given in the input or on the source side, of the list's
   key type (`TodoId`).
 - The arguments are the element's. When the element type is a product,
@@ -376,6 +381,30 @@ A spec that uses element paths declares `__version 1.2` or later.
 ## List
 
 We show a list of T like: `[T]`
+
+A list goes only as the whole body of a type definition, so every list
+has a type name, and is written by it everywhere else:
+
+```
+Points = [Point]
+
+Ring = Partial Points | Enclosed Points
+
+pick Points#ps :: Ring.Partial -> Ring.Enclosed(ps)
+```
+
+- A list's element is a type name too. A list of lists names the inner
+  list: `Row = [Cell]`, `Grid = [Row]`.
+- A list isn't a product's factor (`[A] * B`), a variant's payload
+  (`V [A]`) or a pattern (`[A]`, in an input or on a side): write its
+  type name.
+- A list type takes no arguments; see "Element paths" to pick an
+  element.
+
+Changed in 1.2: in a 1.0 or 1.1 spec, a list may still be written
+anywhere a type may (`V [A]`, `pick [Id] :: ...`). The checker accepts
+it with a warning, and it means what it did before. In a spec for 1.2 or
+later, it's an error.
 
 ### Keyed lists
 

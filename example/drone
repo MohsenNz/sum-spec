@@ -35,13 +35,15 @@ PMode
   | ShowMission
       ( List
           ( Empty
-          | NonEmpty [MissionSummary] )
+          | NonEmpty MissionSummaries )
       | Selected Mission )
 
 Flight
   = Arming
   | Flying
   | Failed FailureReason
+
+MissionSummaries = [MissionSummary]
 
 MissionSummary = MissionName * At * Area * Distance * MissionState
 
@@ -92,13 +94,15 @@ Marking
   | MarkPoint     Spot
 
 Ring
-  = Partial   [Point]
-  | Closeable [Point]
-  | Enclosed  [Point]
+  = Partial   Points
+  | Closeable Points
+  | Enclosed  Points
 
 Path
   = Partial Point
-  | Total   [Point]
+  | Total   Points
+
+Points = [Point]
 
 Spot = Point
 

@@ -21,8 +21,9 @@ __txs {
 
 App = Page * Settings
 Page = Home | Plan (PMode * Missions) | Devices
-PMode = JustMap | Plot (PlotOrigin * Plot) | Flight | ShowMission (List (Empty | NonEmpty [MissionSummary]) | Selected Mission)
+PMode = JustMap | Plot (PlotOrigin * Plot) | Flight | ShowMission (List (Empty | NonEmpty MissionSummaries) | Selected Mission)
 Flight = Arming | Flying | Failed FailureReason
+MissionSummaries = [MissionSummary]
 MissionSummary = MissionName * At * Area * Distance * MissionState
 PlotOrigin = Draft | Editing
 Missions = [Mission]
@@ -38,8 +39,9 @@ Plot = Empty | Drawn (Boundary * Markings)
 Boundary = Ring
 Markings = [Marking]
 Marking = Obstacle Ring | RoundObstacle Spot | PowerLine Path | NonSprayArea Ring | MarkPoint Spot
-Ring = Partial [Point] | Closeable [Point] | Enclosed [Point]
-Path = Partial Point | Total [Point]
+Ring = Partial Points | Closeable Points | Enclosed Points
+Path = Partial Point | Total Points
+Points = [Point]
 Spot = Point
 goToPlan :: Page.Home -> Page.Plan(PMode.JustMap * Missions)
 goToDevices :: Page.Home -> Page.Devices

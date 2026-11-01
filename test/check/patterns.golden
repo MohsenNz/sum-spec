@@ -1,3 +1,27 @@
+test/check/patterns.sumspec:13:19:
+   |
+13 |           | Full [Shape] )
+   |                   ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
+test/check/patterns.sumspec:19:11:
+   |
+19 |   | Line [Point]
+   |           ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
+test/check/patterns.sumspec:21:14:
+   |
+21 | Ring = Open [Point] | Closed [Point]
+   |              ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
+test/check/patterns.sumspec:21:31:
+   |
+21 | Ring = Open [Point] | Closed [Point]
+   |                               ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
 test/check/patterns.sumspec:37:15:
    |
 37 | newtypeArg :: Shape.Dot(Point) -> Shape.Dot(Point)
@@ -9,4 +33,10 @@ test/check/patterns.sumspec:39:12:
 39 | listArg :: Shape.Line([Point]) -> Shape.Line
    |            ^
 warning: listArg changes one Shape of a list, but doesn't say which; to pick it, compare a key with a named value, such as Shape(id * ...)
+
+test/check/patterns.sumspec:39:24:
+   |
+39 | listArg :: Shape.Line([Point]) -> Shape.Line
+   |                        ^
+warning: a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it) (an error from SumSpec 1.2)
 

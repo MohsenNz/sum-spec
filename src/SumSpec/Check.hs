@@ -28,6 +28,7 @@ import SumSpec.Version
   , elementPathsVersion
   , inputsVersion
   , keyedListsVersion
+  , namedListsVersion
   , namesVersion
   , renderVersion
   )
@@ -61,6 +62,7 @@ checkSpec file spec =
       , checkTypeDefs env typeDefs
       , checkTransitions env spec transitions
       , checkKeyedLists spec typeDefs transitions
+      , checkListPlaces spec typeDefs transitions
       , warnListElements env transitions
       ]
   where
@@ -262,6 +264,59 @@ checkKeyedLists spec defs transitions =
       PatternElement _ _ args -> concatMap patternKeys args
       PatternNamed p _ -> patternKeys p
       PatternPrimed _ p -> patternKeys p
+      PatternName _ -> []
+
+-- | A list goes only as the whole body of a type definition, so every
+-- list has a type name (@Points = [Point]@) and is written by it, in
+-- patterns as well. A list's element is a type name too (@Row = [Cell]@
+-- for a list of lists). A spec for 1.2 or later gets an error for a list
+-- written elsewhere; an older one, where such lists were valid, a
+-- warning.
+checkListPlaces :: Spec -> [TypeDef] -> [Transition] -> [CheckError]
+checkListPlaces spec defs transitions =
+  concatMap (definitionLists . typeDefBody) defs
+    <> concat
+      [ concatMap patternLists (maybe [] pure i <> [from, to])
+      | Transition _ i from to <- transitions
+      ]
+  where
+    version = fromMaybe defaultVersion (specVersion spec)
+    report term message =
+      if version >= namedListsVersion
+        then errorAt (termName term) message
+        else warningAt (termName term) (message <> " (an error from SumSpec 1.2)")
+    definitionLists = \case
+      TypeTerm (TermList element _) -> elementLists element
+      TypeTerm (TermName _) -> []
+      expr -> inlineLists expr
+    inlineLists = \case
+      TypeSum variants -> concat [inlineLists p | Variant _ (Just p) <- variants]
+      TypeProduct terms -> concatMap termLists terms
+      TypeTerm term -> termLists term
+    termLists = \case
+      TermName _ -> []
+      term ->
+        [ report term $
+            "a list goes only as a whole type definition; give it a type name, "
+              <> "such as Points = [Point], and write the name here"
+        ]
+    elementLists = \case
+      TermName _ -> []
+      term ->
+        [ report term $
+            "the element of a list is a type name; give the inner list a type name, "
+              <> "such as Row = [Cell]"
+        ]
+    patternLists = \case
+      PatternList t key ->
+        [ report (TermList t key) $
+            "a list isn't written in a pattern; give it a type name, such as "
+              <> "Ids = [Id], and write the name (Ids, or Ids#ids to name it)"
+        ]
+      PatternPath _ args -> concatMap patternLists args
+      PatternElement _ _ args -> concatMap patternLists args
+      PatternNamed p _ -> patternLists p
+      PatternPrimed _ p -> patternLists p
       PatternName _ -> []
 
 -- | An input belongs to the transition, not to one signature (as an EFSM
@@ -474,9 +529,9 @@ resolve env node at path = case path of
 -- (@Todos = [Todo by TodoId]@), and @x@ a named value of its key type.
 -- The arguments are the element's: its factors when it is a product, or
 -- else one argument headed by the element type, as for a variant
--- payload. The path is resolved like any other, but only a single name
--- is allowed for now; picking from a variant's list (@Ring.Points[x]@)
--- may come later.
+-- payload. The path is resolved like any other, but must be a single
+-- name: from a variant, the list type is its argument
+-- (@Ring.Points(Points[x])@).
 checkElement
   :: Env -> Names -> Node -> Name -> [Name] -> Name -> [Pattern] -> [CheckError]
 checkElement env names node h path key args = case resolve env node h path of
@@ -484,10 +539,17 @@ checkElement env names node h path key args = case resolve env node h path of
   Right (list, at)
     | not (null path) ->
         [ errorAt at $
-            "an element path picks from a named list type (Points = [Point by PointId]); "
-              <> "picking from the list of "
-              <> nodeLabel list
-              <> " isn't supported yet"
+            "an element path starts at a list type, not at a variant; "
+              <> case nodeBody list of
+                Just (TypeTerm (TermName base)) ->
+                  "write "
+                    <> nodeLabel list
+                    <> "("
+                    <> nameText base
+                    <> "["
+                    <> nameText key
+                    <> "](...))"
+                _ -> "write the path to the variant, then the list type as its argument"
         ]
     | Just (TypeTerm (TermList element (Just keyType))) <- nodeBody list ->
         checkKey (nodeLabel list) keyType <> checkElementArgs (nodeLabel list) element at
@@ -553,6 +615,22 @@ checkArgs env names node at args = case nodeBody node of
         nodeLabel node <> " is a sum; pick a variant with \".\" instead of arguments"
     ]
   Just (TypeProduct factors) -> checkFactors env names node factors args
+  -- A list type is written bare, or picks an element with [x]. Before
+  -- 1.2 it could take a list pattern, which 'checkListPlaces' reports,
+  -- or a name of the list (a variant carrying an inline list).
+  Just (TypeTerm (TermList _ _))
+    | any (not . listOrName . bare) args ->
+        [ errorAt at $
+            nodeLabel node
+              <> " is a list type and takes no arguments; pick an element with "
+              <> nodeLabel node
+              <> "[x](...)"
+        ]
+    where
+      listOrName = \case
+        PatternList _ _ -> True
+        PatternName _ -> True
+        _ -> False
   Just (TypeTerm term) -> case args of
     [arg] -> checkArg env names term arg
     _ ->

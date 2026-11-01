@@ -1,3 +1,9 @@
+test/check/recursive.sumspec:6:26:
+  |
+6 | Tree = Leaf Text | Node [Tree]
+  |                          ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
 test/check/recursive.sumspec:8:9:
   |
 8 | grow :: Tree.Leaf -> Tree.Node

@@ -1,0 +1,24 @@
+-- From 1.2, a list goes only as the whole body of a type definition, so
+-- every list has a type name and is written by it; in patterns too.
+__version 1.2
+
+__atomics { Id Cell }
+__txs { source target input named }
+
+App = Ids * Grid * Holder * Pair * Choice
+Ids = [Id]
+-- Fine: a list type, and a list of a named list type.
+Row = [Cell]
+Grid = [Row]
+Holder = Empty | Full Ids
+-- Errors: a list as a factor, as a payload, and as an element.
+Pair = [Id] * Cell
+Choice = None | Some [Id]
+Nested = [[Cell]]
+
+-- Errors: a list in a pattern, on either side and in the input.
+source :: Holder.Full([Id]) -> Holder.Empty
+target :: Holder.Empty -> Holder.Full([Id])
+input [Id] :: Holder.Empty -> Holder.Empty
+-- Fine: the list type, named.
+named :: Holder.Full(Ids#ids) -> Choice.None

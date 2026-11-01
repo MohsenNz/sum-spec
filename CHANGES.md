@@ -29,6 +29,12 @@ implements. See `VERSIONING.md` for how versions are numbered.
   of an outer list can be picked. An element that isn't a product takes
   one argument headed by its type (`Files[p](FileState.Staged)`). An
   element takes no prime.
+- Also in 1.2: a list goes only as the whole body of a type definition
+  (`Points = [Point]`), so every list has a type name. A list isn't a
+  factor, a payload or a pattern, and its element is a type name
+  (`Row = [Cell]`, `Grid = [Row]`). A list type takes no arguments. In
+  1.0 and 1.1 specs, lists elsewhere stay valid.
+- `example/drone` names its lists (`Points`, `MissionSummaries`).
 - `example/todomvc` and `example/git` are 1.2: `Todos`, `Files` and
   `Branches` are keyed lists, and per-todo and per-file transitions use
   element paths.
@@ -54,6 +60,11 @@ implements. See `VERSIONING.md` for how versions are numbered.
   through a variant, a key of the wrong type, arguments that don't fit
   the element, a prime, a naming, a path in the input, and a spec older
   than 1.2.
+- The checker reports a list written anywhere but as a whole type
+  definition: an error in a 1.2 spec, a warning in a 1.0 or 1.1 spec.
+  It reports arguments after a list type, and suggests
+  `Ring.Points(Points[i])` for an element path written through a
+  variant.
 - The warning about a transition inside a list element suggests an
   element path (`Files[id](...)`), and a key for a named list that has
   none. In a keyed list, a transition written from the element always

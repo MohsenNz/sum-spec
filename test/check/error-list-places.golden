@@ -1,0 +1,48 @@
+test/check/error-list-places.sumspec:15:9:
+   |
+15 | Pair = [Id] * Cell
+   |         ^
+a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here
+
+test/check/error-list-places.sumspec:16:23:
+   |
+16 | Choice = None | Some [Id]
+   |                       ^
+a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here
+
+test/check/error-list-places.sumspec:17:12:
+   |
+17 | Nested = [[Cell]]
+   |            ^
+the element of a list is a type name; give the inner list a type name, such as Row = [Cell]
+
+test/check/error-list-places.sumspec:20:24:
+   |
+20 | source :: Holder.Full([Id]) -> Holder.Empty
+   |                        ^
+expected Ids here, not [Id]
+
+test/check/error-list-places.sumspec:20:24:
+   |
+20 | source :: Holder.Full([Id]) -> Holder.Empty
+   |                        ^
+a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it)
+
+test/check/error-list-places.sumspec:21:40:
+   |
+21 | target :: Holder.Empty -> Holder.Full([Id])
+   |                                        ^
+expected Ids here, not [Id]
+
+test/check/error-list-places.sumspec:21:40:
+   |
+21 | target :: Holder.Empty -> Holder.Full([Id])
+   |                                        ^
+a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it)
+
+test/check/error-list-places.sumspec:22:8:
+   |
+22 | input [Id] :: Holder.Empty -> Holder.Empty
+   |        ^
+a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it)
+

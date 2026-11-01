@@ -54,7 +54,10 @@ product       = type_term , "*" , type_term , { "*" , type_term } ;
 (* A list, [T], or a keyed list, [T by K], whose elements are identified
    by a unique key of type K (added in 1.2; see "Keyed lists" in
    spec-v1.md). "by" is a terminal only here; it isn't reserved:
-     Todos = [Todo by TodoId]                                           *)
+     Todos = [Todo by TodoId]
+   The grammar reads a list wherever a type_term goes, as 1.0 and 1.1
+   allow. From 1.2, the type checker allows a list only as the whole
+   body of a type definition (see "List" in spec-v1.md).               *)
 type_term     = UPPER
               | "[" , type_term , [ "by" , UPPER ] , "]" ;
 
@@ -91,7 +94,7 @@ pattern       = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
 
 type_pattern  = path , [ element_key ] ,
                 [ "(" , pattern , { "*" , pattern } , ")" ]
-              | "[" , type_term , "]" ;
+              | "[" , type_term , [ "by" , UPPER ] , "]" ;
 
 element_key   = "[" , LOWER , "]" ;
 
@@ -190,7 +193,15 @@ character     = ? any Unicode character ? ;
      element takes no prime and no naming; a spec with element paths
      declares __version 1.2 or later. See "Element paths" in spec-v1.md.
 
+   - in a spec for 1.2 or later, a list ([T], [T by K]) is only the
+     whole body of a type definition (Points = [Point]); its element is
+     a type name; it isn't a factor, a payload or a pattern (in an
+     input or on a side). A list type takes no arguments. See "List" in
+     spec-v1.md.
+
    Warnings (the checker reports them, but the spec is valid):
+   - in a 1.0 or 1.1 spec, a list written anywhere else than as the
+     whole body of a type definition (an error from 1.2).
    - a transition on a part inside a list element that doesn't pick
      the element: in a keyed list, it doesn't use an element path; in a
      list without a key, it isn't written from the element, or doesn't

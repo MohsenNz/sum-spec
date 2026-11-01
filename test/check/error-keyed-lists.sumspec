@@ -1,13 +1,10 @@
--- The key type of a keyed list must be known, in definitions and in
--- patterns.
+-- The key type of a keyed list must be known.
 __version 1.2
 
 __atomics { Id }
-__txs { f }
+__txs {}
 
-App = Items * Mode
+App = Items * Others
 Items = [Item by Key]
+Others = [Item by Missing]
 Item = On | Off
-Mode = Plain | Listed [Item by Missing]
-
-f :: Mode.Listed([Item by Unknown]) -> Mode.Plain

@@ -10,9 +10,21 @@ test/check/error-duplicate-factor.sumspec:6:16:
   |                ^
 factor B appears twice in this product
 
+test/check/error-duplicate-factor.sumspec:7:6:
+  |
+7 | L = [A] * [A] * A
+  |      ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
+
 test/check/error-duplicate-factor.sumspec:7:12:
   |
 7 | L = [A] * [A] * A
   |            ^
 factor [A] appears twice in this product
+
+test/check/error-duplicate-factor.sumspec:7:12:
+  |
+7 | L = [A] * [A] * A
+  |            ^
+warning: a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here (an error from SumSpec 1.2)
 

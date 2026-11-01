@@ -9,6 +9,7 @@ module SumSpec.Version
   , namesVersion
   , elementPathsVersion
   , keyedListsVersion
+  , namedListsVersion
   , isSupported
   , renderVersion
   ) where
@@ -43,6 +44,11 @@ elementPathsVersion = LanguageVersion 1 2
 -- | The first version with keyed lists (@[T by K]@).
 keyedListsVersion :: LanguageVersion
 keyedListsVersion = LanguageVersion 1 2
+
+-- | The first version where a list goes only as the whole body of a type
+-- definition (@Points = [Point]@), and nowhere else.
+namedListsVersion :: LanguageVersion
+namedListsVersion = LanguageVersion 1 2
 
 -- | A spec can be read if it has the same major version as
 -- 'latestVersion' and a minor version no newer than it.
