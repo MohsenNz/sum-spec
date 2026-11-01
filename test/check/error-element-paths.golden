@@ -1,84 +1,90 @@
-test/check/error-element-paths.sumspec:18:17:
+test/check/error-element-paths.sumspec:17:17:
    |
-18 | notList Id#i :: Item[i](State.Off) -> Item[i](State.On)
+17 | notList Id#i :: Item[i](State.Off) -> Item[i](State.On)
    |                 ^
-Item is not a list type; [i] picks an element of a list type, such as Todos = [Todo]
+Item is not a list type; [i] picks an element of a keyed list type, such as Todos = [Todo by TodoId]
 
-test/check/error-element-paths.sumspec:18:39:
+test/check/error-element-paths.sumspec:17:39:
    |
-18 | notList Id#i :: Item[i](State.Off) -> Item[i](State.On)
+17 | notList Id#i :: Item[i](State.Off) -> Item[i](State.On)
    |                                       ^
-Item is not a list type; [i] picks an element of a list type, such as Todos = [Todo]
+Item is not a list type; [i] picks an element of a keyed list type, such as Todos = [Todo by TodoId]
 
-test/check/error-element-paths.sumspec:20:22:
+test/check/error-element-paths.sumspec:19:22:
    |
-20 | variant Id#i :: Ring.Points[i] -> Ring.Points[i]
+19 | variant Id#i :: Ring.Points[i] -> Ring.Points[i]
    |                      ^
-an element path picks from a named list type (Points = [Point]); picking from the list of Ring.Points isn't supported yet
+an element path picks from a named list type (Points = [Point by PointId]); picking from the list of Ring.Points isn't supported yet
 
-test/check/error-element-paths.sumspec:20:40:
+test/check/error-element-paths.sumspec:19:40:
    |
-20 | variant Id#i :: Ring.Points[i] -> Ring.Points[i]
+19 | variant Id#i :: Ring.Points[i] -> Ring.Points[i]
    |                                        ^
-an element path picks from a named list type (Points = [Point]); picking from the list of Ring.Points isn't supported yet
+an element path picks from a named list type (Points = [Point by PointId]); picking from the list of Ring.Points isn't supported yet
 
-test/check/error-element-paths.sumspec:22:24:
+test/check/error-element-paths.sumspec:21:17:
    |
-22 | noKey Other#o :: Items[o] -> Items[o]
-   |                        ^
-the elements of Items (Item) have no factor of type Other, the type of o
+21 | unkeyed Id#i :: Plain[i] -> Plain[i]
+   |                 ^
+Plain has no key, so [i] can't pick an element; declare one, such as Plain = [Item by Id]
 
-test/check/error-element-paths.sumspec:22:36:
+test/check/error-element-paths.sumspec:21:29:
    |
-22 | noKey Other#o :: Items[o] -> Items[o]
-   |                                    ^
-the elements of Items (Item) have no factor of type Other, the type of o
-
-test/check/error-element-paths.sumspec:24:28:
-   |
-24 | notProduct Text#t :: Names[t] -> Tags[t]
-   |                            ^
-the elements of Names (Text) are not a product, so they have no key to pick one by
-
-test/check/error-element-paths.sumspec:24:39:
-   |
-24 | notProduct Text#t :: Names[t] -> Tags[t]
-   |                                       ^
-the elements of Tags (Tag) are not a product, so they have no key to pick one by
-
-test/check/error-element-paths.sumspec:26:29:
-   |
-26 | keyWritten Id#i :: Items[i](Id * State.Off) -> Items[i](State.On)
+21 | unkeyed Id#i :: Plain[i] -> Plain[i]
    |                             ^
-Id is the key of Items[i], given by [i]; don't write it in the arguments
+Plain has no key, so [i] can't pick an element; declare one, such as Plain = [Item by Id]
 
-test/check/error-element-paths.sumspec:28:36:
+test/check/error-element-paths.sumspec:23:27:
    |
-28 | primed Id#i :: Items[i] -> Items[i]'
+23 | wrongKey Other#o :: Items[o] -> Items[o]
+   |                           ^
+o has type Other, but the key of Items is Id
+
+test/check/error-element-paths.sumspec:23:39:
+   |
+23 | wrongKey Other#o :: Items[o] -> Items[o]
+   |                                       ^
+o has type Other, but the key of Items is Id
+
+test/check/error-element-paths.sumspec:25:17:
+   |
+25 | sumArgs Id#i :: States[i](State.Off * Name) -> States[i](Off)
+   |                 ^
+an element of States takes one argument, State, but 2 are given
+
+test/check/error-element-paths.sumspec:25:58:
+   |
+25 | sumArgs Id#i :: States[i](State.Off * Name) -> States[i](Off)
+   |                                                          ^
+expected State here, not Off
+
+test/check/error-element-paths.sumspec:27:36:
+   |
+27 | primed Id#i :: Items[i] -> Items[i]'
    |                                    ^
 an element takes no prime ('); prime its parts instead, such as Items[x](A')
 
-test/check/error-element-paths.sumspec:30:24:
+test/check/error-element-paths.sumspec:29:24:
    |
-30 | named Id#i :: Items[i]#x -> Items[i]
+29 | named Id#i :: Items[i]#x -> Items[i]
    |                        ^
 an element can't be named yet; name its parts instead
 
-test/check/error-element-paths.sumspec:32:13:
+test/check/error-element-paths.sumspec:31:13:
    |
-32 | input Items[i] :: Items -> Items'
+31 | input Items[i] :: Items -> Items'
    |             ^
 an element path goes on the source or target side, not in the input
 
-test/check/error-element-paths.sumspec:34:18:
+test/check/error-element-paths.sumspec:33:18:
    |
-34 | unknown :: Items[k](State.Off) -> Items[k](State.On)
+33 | unknown :: Items[k](State.Off) -> Items[k](State.On)
    |                  ^
 unknown name k; name a value with #k in the input or on the source side
 
-test/check/error-element-paths.sumspec:34:41:
+test/check/error-element-paths.sumspec:33:41:
    |
-34 | unknown :: Items[k](State.Off) -> Items[k](State.On)
+33 | unknown :: Items[k](State.Off) -> Items[k](State.On)
    |                                         ^
 unknown name k; name a value with #k in the input or on the source side
 

@@ -1,18 +1,18 @@
-example/git:108:11:
+example/git:104:11:
     |
-108 | commit :: FileState.Staged -> FileState.Unmodified
+104 | commit :: FileState.Staged -> FileState.Unmodified
     |           ^
-warning: commit changes a FileState inside one File of a list, but doesn't say which File; to pick it, use an element path, such as Files[id](...)
+warning: commit changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:124:10:
+example/git:120:10:
     |
-124 | merge :: FileState.Unmodified -> FileState.Conflicted
+120 | merge :: FileState.Unmodified -> FileState.Conflicted
     |          ^
-warning: merge changes a FileState inside one File of a list, but doesn't say which File; to pick it, use an element path, such as Files[id](...)
+warning: merge changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:136:15:
+example/git:132:15:
     |
-136 | mergeAbort :: FileState.Conflicted -> FileState.Unmodified
+132 | mergeAbort :: FileState.Conflicted -> FileState.Unmodified
     |               ^
-warning: mergeAbort changes a FileState inside one File of a list, but doesn't say which File; to pick it, use an element path, such as Files[id](...)
+warning: mergeAbort changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 

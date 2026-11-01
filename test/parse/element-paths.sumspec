@@ -1,15 +1,16 @@
--- An element path picks one element of a list type by key (added in 1.2).
--- The printer writes it without spaces.
+-- An element path picks one element of a keyed list type by its key
+-- (added in 1.2). The printer writes it without spaces.
 __version 1.2
 
 __atomics { ProjectId TodoId Text }
 __txs { toggle rename remove }
 
 App = Projects
-Projects = [Project]
-Project = ProjectId * Todos
-Todos = [Todo]
-Todo = TodoId * Title * Done
+Projects = [Project by ProjectId]
+Project = Name * Todos
+Name = Text
+Todos = [Todo by TodoId]
+Todo = Title * Done
 Title = Text
 Done = No | Yes
 Ref = ProjectId * TodoId

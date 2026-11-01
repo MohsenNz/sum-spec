@@ -6,9 +6,9 @@
 -- completed" button. The list and the footer are hidden while there are
 -- no todos.
 --
--- A transition on one todo takes its TodoId, and changes the todo whose
--- TodoId equals it (Todo(id * ...)). deleteTodo, written from the screen,
--- picks the todo with an element path instead (Todos[id]).
+-- Todos is a keyed list: each todo is identified by its TodoId, which the
+-- list holds. A transition on one todo takes a TodoId, and picks the todo
+-- with an element path (Todos[id](...)).
 
 __version 1.2
 
@@ -46,11 +46,10 @@ Screen
   = NoTodos
   | WithTodos (Todos * ToggleAll * Footer)
 
-Todos = [Todo]
+Todos = [Todo by TodoId]
 
 Todo
-  = TodoId
-  * Title
+  = Title
   * Completion
   * RowMode
 
@@ -93,19 +92,19 @@ addTodo :: App(Screen.NoTodos * NewTodo.Typing)
 addTodo :: App(Screen.WithTodos * NewTodo.Typing)
         -> App(Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank)
 
-toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
-toggleTodo TodoId#id :: Todo(id * Completion.Completed) -> Todo(Completion.Active)
+toggleTodo TodoId#id :: Todos[id](Completion.Active) -> Todos[id](Completion.Completed)
+toggleTodo TodoId#id :: Todos[id](Completion.Completed) -> Todos[id](Completion.Active)
 
 toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
 toggleAll :: ToggleAll.AllDone -> ToggleAll.NotAllDone
 
-startEditing TodoId#id :: Todo(id * Title(Text#t) * RowMode.Viewing)
-                       -> Todo(RowMode.Editing(EditText(t)))
+startEditing TodoId#id :: Todos[id](Title(Text#t) * RowMode.Viewing)
+                       -> Todos[id](RowMode.Editing(EditText(t)))
 
-finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e)))
-                        -> Todo(Title(e) * RowMode.Viewing)
+finishEditing TodoId#id :: Todos[id](RowMode.Editing(EditText(Text#e)))
+                        -> Todos[id](Title(e) * RowMode.Viewing)
 
-cancelEditing TodoId#id :: Todo(id * RowMode.Editing) -> Todo(RowMode.Viewing)
+cancelEditing TodoId#id :: Todos[id](RowMode.Editing) -> Todos[id](RowMode.Viewing)
 
 deleteTodo TodoId#id :: Screen.WithTodos(Todos[id])
                      -> Screen.WithTodos(Todos' * ToggleAll' * Footer')

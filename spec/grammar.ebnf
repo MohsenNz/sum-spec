@@ -51,8 +51,12 @@ payload       = type_term
    products, because a product is keyed by its factors' type names. *)
 product       = type_term , "*" , type_term , { "*" , type_term } ;
 
+(* A list, [T], or a keyed list, [T by K], whose elements are identified
+   by a unique key of type K (added in 1.2; see "Keyed lists" in
+   spec-v1.md). "by" is a terminal only here; it isn't reserved:
+     Todos = [Todo by TodoId]                                           *)
 type_term     = UPPER
-              | "[" , type_term , "]" ;
+              | "[" , type_term , [ "by" , UPPER ] , "]" ;
 
 
 (* ---------- Transitions ---------- *)
@@ -174,19 +178,25 @@ character     = ? any Unicode character ? ;
      payload. See "Arguments in state patterns" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
      the target side. See "Source and target" in spec-v1.md;
+   - the key type of a keyed list ([T by K]) is an atomic or a defined
+     type, and a spec with keyed lists declares __version 1.2 or later.
+     [T by K] and [T] are different types. See "Keyed lists" in
+     spec-v1.md;
    - an element path L[x] is written where L is expected, on the source
      or target side, never in the input: L is one name, of a type
-     defined as a list of a product; x is a name of the signature whose
-     type is a factor of that product (the key); the arguments don't
-     write the key; the element takes no prime and no naming; a spec
-     with element paths declares __version 1.2 or later. See "Element
-     paths" in spec-v1.md.
+     defined as a keyed list; x is a name of the signature, of the
+     list's key type; the arguments are the element's factors when it
+     is a product, or else one argument headed by the element type; the
+     element takes no prime and no naming; a spec with element paths
+     declares __version 1.2 or later. See "Element paths" in spec-v1.md.
 
    Warnings (the checker reports them, but the spec is valid):
    - a transition on a part inside a list element that doesn't pick
-     the element: it isn't written from the element, or doesn't compare
-     a key with a named value (Todo(id * ...)), or the element is inside
-     another list. The warning suggests an element path when the list
-     has a type name. See "Keys" and "Element paths" in spec-v1.md.
+     the element: in a keyed list, it doesn't use an element path; in a
+     list without a key, it isn't written from the element, or doesn't
+     compare a key with a named value (Todo(id * ...)), or the element
+     is inside another list. The warning suggests an element path, and
+     a key for a named list without one. See "Keys" and "Element paths"
+     in spec-v1.md.
 
    Not in v1 (see proposals.md): "=>", "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

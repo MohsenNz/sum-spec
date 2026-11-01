@@ -50,7 +50,8 @@ Rules:
    The checker warns about a transition inside a list element that
    doesn't pick the element. Nested lists, where a key written from
    the element can't pick an element of an outer list: decided in 1.2,
-   with element paths (`Projects[p](Todos[t](...))`); see "Element
+   with keyed lists (`Todos = [Todo by TodoId]`) and element paths
+   (`Projects[p](Todos[t](...))`); see "Keyed lists" and "Element
    paths" in `spec-v1.md`.
 
 3. The checker rejects a local transition whose type occurs at more than
@@ -151,7 +152,9 @@ Open questions for B and C:
 - Derivations on the type definition, or in a `__derived { }` block; the
   keywords (`:=`, `if`, `else`, `are`, `where`).
 - How a derivation finds its sources (the nearest product holding both).
-- Fresh keys: `TodoId'` in `+=`, or a `fresh` keyword.
+- Fresh keys: with a keyed list (`Todos = [Todo by TodoId]`, in 1.2),
+  the key belongs to the list, so `__add` can make it. To decide:
+  whether the new key can be named, for a target that uses it.
 - A list in a new state (`addTodo` from `Screen.NoTodos`): a list literal,
   or "a new list starts empty".
 - The separator: `//` is already "such that" in the "Dependent type"

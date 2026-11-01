@@ -16,7 +16,7 @@ import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Maybe (fromMaybe, isJust, mapMaybe)
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
@@ -27,6 +27,7 @@ import SumSpec.Version
   , defaultVersion
   , elementPathsVersion
   , inputsVersion
+  , keyedListsVersion
   , namesVersion
   , renderVersion
   )
@@ -59,6 +60,7 @@ checkSpec file spec =
       , checkApp file env
       , checkTypeDefs env typeDefs
       , checkTransitions env spec transitions
+      , checkKeyedLists spec typeDefs transitions
       , warnListElements env transitions
       ]
   where
@@ -163,11 +165,11 @@ checkTypeExpr env = \case
   TypeTerm term -> checkTerm env term
 
 checkTerm :: Env -> TypeTerm -> [CheckError]
-checkTerm env term
-  | isKnownType env (nameText n) = []
-  | otherwise = [unknownType n]
-  where
-    n = termName term
+checkTerm env term =
+  [ unknownType n
+  | n <- termName term : termKeys term
+  , not (isKnownType env (nameText n))
+  ]
 
 -- | A newtype that leads back to itself (@A = B@, @B = A@) has no
 -- structure at all. Reported at the definition, with the chain.
@@ -236,6 +238,32 @@ checkTransitions env spec transitions =
       where
         names = Map.fromList [(nameText n, k) | (n, k) <- signatureNames input from]
 
+-- | Keyed lists (@[T by K]@) are in 1.2, in type definitions and in
+-- patterns alike.
+checkKeyedLists :: Spec -> [TypeDef] -> [Transition] -> [CheckError]
+checkKeyedLists spec defs transitions =
+  [ needsVersion keyedListsVersion "keyed lists" k
+  | fromMaybe defaultVersion (specVersion spec) < keyedListsVersion
+  , k <-
+      concatMap (exprKeys . typeDefBody) defs
+        <> concat
+          [ concatMap patternKeys (maybe [] pure i <> [from, to])
+          | Transition _ i from to <- transitions
+          ]
+  ]
+  where
+    exprKeys = \case
+      TypeSum variants -> concat [exprKeys p | Variant _ (Just p) <- variants]
+      TypeProduct terms -> concatMap termKeys terms
+      TypeTerm term -> termKeys term
+    patternKeys = \case
+      PatternList t key -> termKeys (TermList t key)
+      PatternPath _ args -> concatMap patternKeys args
+      PatternElement _ _ args -> concatMap patternKeys args
+      PatternNamed p _ -> patternKeys p
+      PatternPrimed _ p -> patternKeys p
+      PatternName _ -> []
+
 -- | An input belongs to the transition, not to one signature (as an EFSM
 -- event has one parameter list), so every signature takes the input of
 -- the first one, or none like it.
@@ -279,7 +307,7 @@ namings = \case
   PatternPath _ args -> concatMap namings args
   PatternElement _ _ args -> concatMap namings args
   PatternPrimed _ p -> namings p
-  PatternList _ -> []
+  PatternList _ _ -> []
   PatternName _ -> []
 
 -- | Every name written in a pattern, given (@#x@) or used (@x@).
@@ -290,7 +318,7 @@ nameRefs = \case
   PatternPath _ args -> concatMap nameRefs args
   PatternElement _ k args -> k : concatMap nameRefs args
   PatternPrimed _ p -> nameRefs p
-  PatternList _ -> []
+  PatternList _ _ -> []
 
 -- | The keys of the element paths in a pattern (@id@ in @Todos[id]@).
 elementKeys :: Pattern -> [Name]
@@ -299,7 +327,7 @@ elementKeys = \case
   PatternPath _ args -> concatMap elementKeys args
   PatternNamed p _ -> elementKeys p
   PatternPrimed _ p -> elementKeys p
-  PatternList _ -> []
+  PatternList _ _ -> []
   PatternName _ -> []
 
 -- | Where names may be given: once each, in the input or on the source
@@ -330,7 +358,7 @@ checkNamings input from to =
       PatternPath _ args -> concatMap named args
       PatternElement _ _ args -> concatMap named args
       PatternPrimed _ p -> named p
-      PatternList _ -> []
+      PatternList _ _ -> []
       PatternName _ -> []
 
 -- | The side of a transition a pattern is on: the source is a
@@ -364,7 +392,7 @@ checkPrimes side = \case
   PatternPath _ args -> concatMap (checkPrimes side) args
   PatternElement _ _ args -> concatMap (checkPrimes side) args
   PatternNamed p _ -> checkPrimes side p
-  PatternList _ -> []
+  PatternList _ _ -> []
   PatternName _ -> []
 
 -- | What a position in a pattern stands for: a type or a variant, with a
@@ -395,7 +423,7 @@ checkPattern env names = \case
   PatternPrimed _ inner -> checkPattern env names inner
   PatternNamed inner _ -> checkPattern env names inner
   PatternName n -> [unknownName n | nameText n `Map.notMember` names]
-  PatternList term -> checkTerm env term
+  PatternList term key -> checkTerm env (TermList term key)
   PatternPath (h :| path) args -> case typeNode env (nameText h) of
     Nothing -> [unknownType h]
     Just node -> walk env names node h path args
@@ -442,11 +470,12 @@ resolve env node at path = case path of
         [ errorAt v (nodeLabel node <> " has no variants, so ." <> nameText v <> " is invalid")
         ]
 
--- | An element path, @L[x](...)@: @L@ is a named list type, and @x@ a
--- named value of a type that is a factor of the element type, its key.
--- The arguments are the element's, without the key, which @[x]@ gives.
--- The path is resolved like any other, but only a single name is
--- allowed for now; picking from a variant's list (@Ring.Partial[x]@)
+-- | An element path, @L[x](...)@: @L@ is a keyed list type
+-- (@Todos = [Todo by TodoId]@), and @x@ a named value of its key type.
+-- The arguments are the element's: its factors when it is a product, or
+-- else one argument headed by the element type, as for a variant
+-- payload. The path is resolved like any other, but only a single name
+-- is allowed for now; picking from a variant's list (@Ring.Points[x]@)
 -- may come later.
 checkElement
   :: Env -> Names -> Node -> Name -> [Name] -> Name -> [Pattern] -> [CheckError]
@@ -455,62 +484,60 @@ checkElement env names node h path key args = case resolve env node h path of
   Right (list, at)
     | not (null path) ->
         [ errorAt at $
-            "an element path picks from a named list type (Points = [Point]); "
+            "an element path picks from a named list type (Points = [Point by PointId]); "
               <> "picking from the list of "
               <> nodeLabel list
               <> " isn't supported yet"
         ]
-    | Just (TypeTerm (TermList (TermName element))) <- nodeBody list ->
-        checkKey (nodeLabel list) element
-          <> maybe [] (\n -> checkArgs env names n at args) (typeNode env (nameText element))
+    | Just (TypeTerm (TermList element (Just keyType))) <- nodeBody list ->
+        checkKey (nodeLabel list) keyType <> checkElementArgs (nodeLabel list) element at
+    | Just (TypeTerm (TermList element Nothing)) <- nodeBody list ->
+        [ errorAt at $
+            nodeLabel list
+              <> " has no key, so ["
+              <> nameText key
+              <> "] can't pick an element; declare one, such as "
+              <> nodeLabel list
+              <> " = ["
+              <> termKey element
+              <> " by "
+              <> fromMaybe "Id" (Map.lookup (nameText key) names)
+              <> "]"
+        ]
     | otherwise ->
         [ errorAt at $
             nodeLabel list
               <> " is not a list type; ["
               <> nameText key
-              <> "] picks an element of a list type, such as Todos = [Todo]"
+              <> "] picks an element of a keyed list type, such as Todos = [Todo by TodoId]"
         ]
   where
-    keyType = Map.lookup (nameText key) names
-    checkKey label element = case keyType of
+    checkKey label keyType = case Map.lookup (nameText key) names of
       Nothing -> [unknownName key]
-      Just k ->
-        case Map.lookup (nameText element) (envTypes env) of
-          Just (TypeProduct factors)
-            | k `elem` map termKey factors -> []
-            | otherwise ->
-                [ errorAt key $
-                    "the elements of "
-                      <> label
-                      <> " ("
-                      <> nameText element
-                      <> ") have no factor of type "
-                      <> k
-                      <> ", the type of "
-                      <> nameText key
-                ]
-          -- An unknown element type is reported where it is defined.
-          Nothing | not (isKnownType env (nameText element)) -> []
-          _ ->
+      Just k
+        | k == nameText keyType -> []
+        | otherwise ->
             [ errorAt key $
-                "the elements of "
+                nameText key
+                  <> " has type "
+                  <> k
+                  <> ", but the key of "
                   <> label
-                  <> " ("
-                  <> nameText element
-                  <> ") are not a product, so they have no key to pick one by"
+                  <> " is "
+                  <> nameText keyType
             ]
-          <> [ errorAt (patternHead a) $
-                 k
-                   <> " is the key of "
-                   <> label
-                   <> "["
-                   <> nameText key
-                   <> "], given by ["
-                   <> nameText key
-                   <> "]; don't write it in the arguments"
-             | a <- args
-             , argKey names a == Just k
-             ]
+    checkElementArgs label element at = case element of
+      TermName e
+        | Just (TypeProduct _) <- Map.lookup (nameText e) (envTypes env)
+        , Just n <- typeNode env (nameText e) ->
+            checkArgs env names n at args
+      _ ->
+        checkArgs
+          env
+          names
+          (Node ("an element of " <> label) (Just (TypeTerm element)))
+          at
+          args
 
 -- | Written arguments must match the node: one argument for a single
 -- payload or newtype, some or all of the factors of a product, none for a
@@ -590,8 +617,8 @@ checkArg env names term arg = case (term, arg) of
     | nameText h == nameText expected -> case typeNode env (nameText h) of
         Nothing -> []
         Just node -> checkElement env names node h path key args
-  (TermList _, PatternList element)
-    | termKey term == termKey (TermList element) -> []
+  (TermList _ _, PatternList element key)
+    | termKey term == termKey (TermList element key) -> []
   _ ->
     [ errorAt (patternHead arg) $
         "expected " <> termKey term <> " here, not " <> patternKey arg
@@ -604,10 +631,10 @@ checkArg env names term arg = case (term, arg) of
 -- list itself (@Todo@ in @[Todo]@).
 data Place = Place [Crossed] Bool
 
--- | A list crossed on the way to a type: its element type, and the name
--- of the list type when it has one (@Todos@ for @Todos = [Todo]@, but
--- 'Nothing' for an inline @[Todo]@).
-data Crossed = Crossed Text (Maybe Text)
+-- | A list crossed on the way to a type: its element type, the name of
+-- the list type when it has one (@Todos@ for @Todos = [Todo]@, but
+-- 'Nothing' for an inline @[Todo]@), and its key type when it is keyed.
+data Crossed = Crossed Text (Maybe Text) (Maybe Text)
   deriving stock (Eq, Ord)
 
 -- | Every place of every type reachable from @App@. A recursive type is
@@ -634,16 +661,17 @@ listPlaces env =
       TypeTerm term -> goTerm seen lists Nothing term
     goTerm seen lists listName = \case
       TermName n -> goType seen lists False (nameText n)
-      TermList element -> goElement seen (Crossed (termKey element) listName : lists) element
+      TermList element key -> goElement seen (crossed element listName key : lists) element
     goElement seen lists = \case
       TermName n -> goType seen lists True (nameText n)
-      TermList element -> goElement seen (Crossed (termKey element) Nothing : lists) element
+      TermList element key -> goElement seen (crossed element Nothing key : lists) element
+    crossed element listName key = Crossed (termKey element) listName (nameText <$> key)
 
 -- | A transition on a part inside a list element changes one element, but
 -- says which only when it picks the element by key: with an element path
--- (@Todos[id](...)@), or written from the element, comparing a key with a
--- named value (@Todo(id * ...)@). Warns about the others, once per
--- signature.
+-- on a keyed list (@Todos[id](...)@), or, in a list without a key,
+-- written from the element, comparing a key with a named value
+-- (@Todo(id * ...)@). Warns about the others, once per signature.
 warnListElements :: Env -> [Transition] -> [CheckError]
 warnListElements env transitions =
   [ warningAt h (nameText n <> " " <> message)
@@ -656,7 +684,7 @@ warnListElements env transitions =
     placesOf t = [p | p@(Place (_ : _) _) <- Map.findWithDefault [] t places]
     keyed args = any (not . null . nameUses) args
     problem t args (Place lists direct) = case lists of
-      Crossed element listName : outer
+      Crossed element listName listKey : outer
         | not direct ->
             Just $
               "changes a "
@@ -666,31 +694,44 @@ warnListElements env transitions =
                 <> " of a list, but doesn't say which "
                 <> element
                 <> "; to pick it, "
-                <> pickHint listName (fromElement element)
-        | not (keyed args) ->
+                <> pickHint element listName listKey (fromElement element)
+        -- An element of a keyed list doesn't hold its key, so it can't be
+        -- picked from the element.
+        | isJust listKey || not (keyed args) ->
             Just $
               "changes one "
                 <> t
                 <> " of a list, but doesn't say which; to pick it, "
-                <> pickHint listName (compareKey t)
-        | Crossed outerElement outerList : _ <- outer ->
+                <> pickHint element listName listKey (compareKey t)
+        | Crossed outerElement outerList outerKey : _ <- outer ->
             Just $
               "picks a "
                 <> t
                 <> " by key, but not the "
                 <> outerElement
-                <> " it is in; "
-                <> case (outerList, listName) of
-                  (Just o, Just l) ->
-                    "to pick both, use element paths, such as " <> o <> "[x](" <> l <> "[y](...))"
-                  _ -> "a pattern can't pick an element of an outer list that has no type name"
+                <> " it is in; to pick both, "
+                <> case (outerList, outerKey, listName, listKey) of
+                  (Just o, Just _, Just l, Just _) ->
+                    "use element paths, such as " <> o <> "[x](" <> l <> "[y](...))"
+                  _ -> "give both lists a type name and a key, and use element paths"
         | otherwise -> Nothing
       [] -> Nothing
     -- An element path when the list has a type name; otherwise the 1.1
     -- form, from the element.
-    pickHint listName fallback = case listName of
-      Just list -> "use an element path, such as " <> list <> "[id](...)"
-      Nothing -> fallback
+    pickHint element listName listKey fallback = case (listName, listKey) of
+      (Just list, Just _) -> "use an element path, such as " <> list <> "[id](...)"
+      (Just list, Nothing) ->
+        "give "
+          <> list
+          <> " a key ("
+          <> list
+          <> " = ["
+          <> element
+          <> " by Id]) and use an element path, such as "
+          <> list
+          <> "[id](...)"
+      (Nothing, Just _) -> "give the list a type name and use an element path"
+      (Nothing, Nothing) -> fallback
     fromElement element = "write the transition from " <> element <> " and " <> compareKey element
     compareKey element = "compare a key with a named value, such as " <> element <> "(id * ...)"
     firstJust = foldr (\m rest -> maybe rest Just m) Nothing
@@ -703,7 +744,7 @@ nameUses = \case
   PatternPath _ args -> concatMap nameUses args
   PatternElement _ k args -> k : concatMap nameUses args
   PatternPrimed _ p -> nameUses p
-  PatternList _ -> []
+  PatternList _ _ -> []
 
 -- ---------- Helpers ----------
 
@@ -748,20 +789,26 @@ lineOf = T.pack . show . unPos . sourceLine . namePos
 termName :: TypeTerm -> Name
 termName = \case
   TermName n -> n
-  TermList t -> termName t
+  TermList t _ -> termName t
+
+-- | The key types of the keyed lists in a type term, outermost first.
+termKeys :: TypeTerm -> [Name]
+termKeys = \case
+  TermName _ -> []
+  TermList t key -> maybe id (:) key (termKeys t)
 
 -- | How a factor is identified in a product: its type name, or the list
--- type written out (@[A]@).
+-- type written out (@[A]@, @[A by K]@).
 termKey :: TypeTerm -> Text
 termKey = \case
   TermName n -> nameText n
-  TermList t -> "[" <> termKey t <> "]"
+  TermList t key -> "[" <> termKey t <> maybe "" ((" by " <>) . nameText) key <> "]"
 
 patternHead :: Pattern -> Name
 patternHead = \case
   PatternPath (h :| _) _ -> h
   PatternElement (h :| _) _ _ -> h
-  PatternList t -> termName t
+  PatternList t _ -> termName t
   PatternPrimed _ p -> patternHead p
   PatternNamed p _ -> patternHead p
   PatternName n -> n
@@ -773,7 +820,7 @@ patternKey :: Pattern -> Text
 patternKey = \case
   PatternPath (h :| _) _ -> nameText h
   PatternElement (h :| _) _ _ -> nameText h
-  PatternList t -> termKey (TermList t)
+  PatternList t key -> termKey (TermList t key)
   PatternPrimed _ p -> patternKey p
   PatternNamed p _ -> patternKey p
   PatternName n -> nameText n

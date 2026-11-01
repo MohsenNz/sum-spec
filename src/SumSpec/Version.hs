@@ -8,6 +8,7 @@ module SumSpec.Version
   , inputsVersion
   , namesVersion
   , elementPathsVersion
+  , keyedListsVersion
   , isSupported
   , renderVersion
   ) where
@@ -38,6 +39,10 @@ namesVersion = LanguageVersion 1 1
 -- | The first version with element paths (@Todos[id]@ in patterns).
 elementPathsVersion :: LanguageVersion
 elementPathsVersion = LanguageVersion 1 2
+
+-- | The first version with keyed lists (@[T by K]@).
+keyedListsVersion :: LanguageVersion
+keyedListsVersion = LanguageVersion 1 2
 
 -- | A spec can be read if it has the same major version as
 -- 'latestVersion' and a minor version no newer than it.

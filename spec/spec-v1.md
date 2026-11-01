@@ -294,21 +294,23 @@ say which:
 toggleTodo :: Completion.Active -> Completion.Completed
 ```
 
-To pick the element, write the transition from the element and compare
-its key with a named input:
+In a list without a key, pick the element by writing the transition
+from the element and comparing a key factor with a named input:
 
 ```
-Todo = TodoId * Title * Completion * RowMode
+Todos = [Todo]
+Todo  = TodoId * Title * Completion * RowMode
 
 toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
 ```
 
 Here `toggleTodo` changes the todo whose `TodoId` equals the input.
 
-Written this way, a key picks only the innermost element. Inside
-nested lists (`Projects = [Project]`, `Project = ProjectId * Todos`), the
-project isn't picked; use an element path for that (see "Element
-paths").
+This form picks only the innermost element: inside nested lists
+(`Projects = [Project]`, `Project = ProjectId * Todos`), the project
+isn't picked. Nothing says that two todos can't have the same `TodoId`,
+either. A keyed list with element paths does both; see "Keyed lists"
+and "Element paths".
 
 The type checker warns about a transition inside a list element that
 doesn't pick the element, by key or with an element path.
@@ -317,41 +319,49 @@ doesn't pick the element, by key or with an element path.
 
 Added in 1.2.
 
-`L[x]` is the element of the list type `L` whose key equals the named
-value `x`. It's written where `L` is expected, and the arguments after
-it are the element's:
+`L[x]` is the element of the keyed list type `L` (see "Keyed lists")
+whose key equals the named value `x`. It's written where `L` is
+expected, and the arguments after it are the element's:
 
 ```
-Todos = [Todo]
-Todo  = TodoId * Title * Completion * RowMode
+Todos = [Todo by TodoId]
+Todo  = Title * Completion * RowMode
 
-toggleTodo TodoId#id
-  :: Screen.WithTodos(Todos[id](Completion.Active))
-  -> Screen.WithTodos(Todos[id](Completion.Completed))
+toggleTodo TodoId#id :: Todos[id](Completion.Active) -> Todos[id](Completion.Completed)
 ```
 
-- `L` is a type defined as a list (`Todos = [Todo]`). An inline list,
-  such as a variant's payload `[Point]`, can't be picked from; give it
-  a type name.
-- `x` is a name given in the input or on the source side. Its type is
-  the key: a factor of the element type (`TodoId` in `Todo`). Products
-  are keyed by type, so there's at most one such factor.
-- The key isn't written in the arguments: `[x]` gives it, and the
-  element keeps it. `Todos[id](TodoId * ...)` is invalid.
+- `L` is a type defined as a keyed list (`Todos = [Todo by TodoId]`).
+  An inline list, such as a variant's payload `[Point by PointId]`,
+  can't be picked from; give it a type name.
+- `x` is a name given in the input or on the source side, of the list's
+  key type (`TodoId`).
+- The arguments are the element's. When the element type is a product,
+  they're its factors: `Todos[id](Completion.Active)`. Otherwise, the
+  element takes one argument headed by its type, as a variant's payload
+  does: with `Files = [FileState by Path]`, write
+  `Files[p](FileState.Staged)`.
 - On the source side, `L[x]` is a precondition: the element exists and
   matches its arguments. Without arguments, it only has to exist.
 - On the target side, `L[x](...)` is that element's new state, read as
   any target. Without arguments, the element keeps its value.
+- The key isn't part of the element, so an element can't change it.
 - An element takes no prime (`Todos[id]'`): prime its parts instead,
   `Todos[id](Title')`. It can't be named (`Todos[id]#t`) either, and it
   doesn't go in the input.
+
+A path is written from where the list is, so the parts around it can be
+written too:
+
+```
+deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
+```
 
 A path picks an element of each list it goes through, so nested lists
 work:
 
 ```
-Projects = [Project]
-Project  = ProjectId * Todos
+Projects = [Project by ProjectId]
+Project  = Name * Todos
 Ref      = ProjectId * TodoId
 
 toggleTodo Ref(ProjectId#p * TodoId#t)
@@ -361,14 +371,39 @@ toggleTodo Ref(ProjectId#p * TodoId#t)
 
 `Projects[p]` is the project, and `Todos[t]` the todo inside it.
 
-The form in "Keys", `Todo(id * ...)` written from the element, stays
-valid.
-
 A spec that uses element paths declares `__version 1.2` or later.
 
 ## List
 
 We show a list of T like: `[T]`
+
+### Keyed lists
+
+Added in 1.2.
+
+A keyed list, `[T by K]`, is a list whose elements are identified by a
+key of type `K`:
+
+```
+Todos    = [Todo by TodoId]
+Files    = [FileState by Path]
+Branches = [Tip by BranchName]
+```
+
+- The list is ordered, and no two of its elements have the same key.
+- The key belongs to the list, not to the element: `Todo` has no
+  `TodoId`. So any type can be an element, including a sum
+  (`FileState`) or an atomic.
+- `K` is an atomic or a defined type.
+- `[T by K]` and `[T]` are different types, and so are two keyed lists
+  with different keys.
+- `by` is a word only inside the brackets; it can still be a name
+  elsewhere.
+
+An element of a keyed list is picked with an element path,
+`Todos[id]`; see "Element paths".
+
+A spec that uses keyed lists declares `__version 1.2` or later.
 
 ## Naming
 

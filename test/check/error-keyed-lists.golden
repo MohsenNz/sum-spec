@@ -1,0 +1,18 @@
+test/check/error-keyed-lists.sumspec:9:18:
+  |
+9 | Items = [Item by Key]
+  |                  ^
+unknown type Key; declare it in __atomics or define it
+
+test/check/error-keyed-lists.sumspec:11:32:
+   |
+11 | Mode = Plain | Listed [Item by Missing]
+   |                                ^
+unknown type Missing; declare it in __atomics or define it
+
+test/check/error-keyed-lists.sumspec:13:19:
+   |
+13 | f :: Mode.Listed([Item by Unknown]) -> Mode.Plain
+   |                   ^
+expected [Item by Missing] here, not [Item by Unknown]
+

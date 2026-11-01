@@ -55,7 +55,11 @@ renderVariant (Variant name p) = nameText name <> maybe "" ((" " <>) . renderPay
 renderTerm :: TypeTerm -> Text
 renderTerm = \case
   TermName name -> nameText name
-  TermList term -> "[" <> renderTerm term <> "]"
+  TermList term key -> renderList term key
+
+-- | @[T]@, or @[T by K]@ for a keyed list.
+renderList :: TypeTerm -> Maybe Name -> Text
+renderList term key = "[" <> renderTerm term <> maybe "" ((" by " <>) . nameText) key <> "]"
 
 renderPattern :: Pattern -> Text
 renderPattern = \case
@@ -63,7 +67,7 @@ renderPattern = \case
     renderPath names <> renderArgs args
   PatternElement names key args ->
     renderPath names <> "[" <> nameText key <> "]" <> renderArgs args
-  PatternList term -> "[" <> renderTerm term <> "]"
+  PatternList term key -> renderList term key
   PatternName name -> nameText name
   PatternNamed p name -> renderPattern p <> "#" <> nameText name
   PatternPrimed _ p -> renderPattern p <> "'"

@@ -1,0 +1,6 @@
+test/parse/error-keyed-list-no-key.sumspec:5:17:
+  |
+5 | Items = [Item by]
+  |                 ^
+unexpected ']'
+expecting type or variant name

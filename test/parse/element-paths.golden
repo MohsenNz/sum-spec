@@ -13,10 +13,11 @@ __txs {
 }
 
 App = Projects
-Projects = [Project]
-Project = ProjectId * Todos
-Todos = [Todo]
-Todo = TodoId * Title * Done
+Projects = [Project by ProjectId]
+Project = Name * Todos
+Name = Text
+Todos = [Todo by TodoId]
+Todo = Title * Done
 Title = Text
 Done = No | Yes
 Ref = ProjectId * TodoId

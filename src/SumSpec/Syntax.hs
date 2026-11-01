@@ -65,8 +65,10 @@ data Variant = Variant
 
 data TypeTerm
   = TermName Name
-  | -- | @[T]@
-    TermList TypeTerm
+  | -- | @[T]@, or @[T by K]@ with the key type @K@ (added in 1.2): a list
+    -- whose elements are identified by a unique key, which isn't part of
+    -- the element.
+    TermList TypeTerm (Maybe Name)
   deriving stock (Eq, Show)
 
 -- | @t :: from -> to@, or @t X :: from -> to@ with an input
@@ -84,12 +86,13 @@ data Pattern
   = -- | A path such as @Page.Plan@, with the arguments written in
     -- parentheses after it. No parentheses means no arguments.
     PatternPath (NonEmpty Name) [Pattern]
-  | -- | @L[x]@: the element of the list type @L@ whose key equals the
-    -- named value @x@, with the element's arguments after it (added in
-    -- 1.2). The path is the list type; the checker allows only one name.
+  | -- | @L[x]@: the element of the keyed list type @L@ whose key equals
+    -- the named value @x@, with the element's arguments after it (added
+    -- in 1.2). The path is the list type; the checker allows only one
+    -- name.
     PatternElement (NonEmpty Name) Name [Pattern]
-  | -- | @[T]@: any list of @T@.
-    PatternList TypeTerm
+  | -- | @[T]@ or @[T by K]@: any list of that type.
+    PatternList TypeTerm (Maybe Name)
   | -- | @x@: the value named @x@ in this signature (added in 1.1).
     PatternName Name
   | -- | @P#x@: matches @P@ and names its value @x@ (added in 1.1). The

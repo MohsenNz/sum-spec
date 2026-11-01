@@ -8,6 +8,7 @@ module SumSpec.Lexer
   ( Parser
   , spaceConsumer
   , symbol
+  , keyword
   , upperName
   , lowerName
   , valueName
@@ -40,6 +41,12 @@ lexeme = L.lexeme spaceConsumer
 symbol :: Text -> Parser Text
 symbol = L.symbol spaceConsumer
 
+-- | A word of the language, such as @by@ in @[T by K]@. It isn't reserved:
+-- it's read as a word only where the grammar expects it, and not when a
+-- letter or digit follows (@byX@).
+keyword :: Text -> Parser ()
+keyword word = lexeme (try (chunk word *> notFollowedBy (satisfy isIdentChar)))
+
 -- | A type or variant name: @UPPER@.
 upperName :: Parser Name
 upperName = identifier isAsciiUpper <?> "type or variant name"
@@ -66,8 +73,9 @@ rawIdentifier isFirst = do
   first <- satisfy isFirst
   rest <- takeWhileP Nothing isIdentChar
   pure (Name pos (T.cons first rest))
-  where
-    isIdentChar c = isAsciiUpper c || isAsciiLower c || isDigit c
+
+isIdentChar :: Char -> Bool
+isIdentChar c = isAsciiUpper c || isAsciiLower c || isDigit c
 
 -- | A language version, @major.minor@, written as one token (@1.1@).
 versionNumber :: Parser LanguageVersion

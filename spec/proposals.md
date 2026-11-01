@@ -126,13 +126,14 @@ Open:
 
 Version impact: additive.
 
-    Ring = Open | Points [Point]
+    Ring = Open | Points [Point by PointId]
 
-    move Id#i :: Ring.Points[i](...) -> Ring.Points[i](...)
+    move PointId#i :: Ring.Points[i](...) -> Ring.Points[i](...)
 
-An element path picks from a variant's inline list, written as the path
-to the variant. In 1.2 only a named list type can be picked from
-(`Points = [Point]`); see "Element paths" in `spec-v1.md`.
+An element path picks from a variant's inline keyed list, written as
+the path to the variant. In 1.2 only a named list type can be picked
+from (`Points = [Point by PointId]`); see "Element paths" in
+`spec-v1.md`.
 
 ## Naming an element
 

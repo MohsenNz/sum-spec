@@ -51,5 +51,6 @@ update before any code:
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
 - [ ] Several signatures under one name (input written once).
 - [x] Element paths (`Todos[id]`), in 1.2.
+- [x] Keyed lists (`[Todo by TodoId]`), in 1.2; element paths need them.
 - [ ] Element paths through a variant (`Ring.Points[i]`).
 - [ ] Naming an element (`Todos[id]#t`).

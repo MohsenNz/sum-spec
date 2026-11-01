@@ -24,8 +24,8 @@ __txs {
 App = Screen * NewTodo * Filter
 NewTodo = Blank | Typing Text
 Screen = NoTodos | WithTodos (Todos * ToggleAll * Footer)
-Todos = [Todo]
-Todo = TodoId * Title * Completion * RowMode
+Todos = [Todo by TodoId]
+Todo = Title * Completion * RowMode
 Title = Text
 Completion = Active | Completed
 RowMode = Viewing | Editing EditText
@@ -38,13 +38,13 @@ Filter = All | Active | Completed
 startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
 addTodo :: App(Screen.NoTodos * NewTodo.Typing) -> App(Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank)
 addTodo :: App(Screen.WithTodos * NewTodo.Typing) -> App(Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank)
-toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
-toggleTodo TodoId#id :: Todo(id * Completion.Completed) -> Todo(Completion.Active)
+toggleTodo TodoId#id :: Todos[id](Completion.Active) -> Todos[id](Completion.Completed)
+toggleTodo TodoId#id :: Todos[id](Completion.Completed) -> Todos[id](Completion.Active)
 toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
 toggleAll :: ToggleAll.AllDone -> ToggleAll.NotAllDone
-startEditing TodoId#id :: Todo(id * Title(Text#t) * RowMode.Viewing) -> Todo(RowMode.Editing(EditText(t)))
-finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e))) -> Todo(Title(e) * RowMode.Viewing)
-cancelEditing TodoId#id :: Todo(id * RowMode.Editing) -> Todo(RowMode.Viewing)
+startEditing TodoId#id :: Todos[id](Title(Text#t) * RowMode.Viewing) -> Todos[id](RowMode.Editing(EditText(t)))
+finishEditing TodoId#id :: Todos[id](RowMode.Editing(EditText(Text#e))) -> Todos[id](Title(e) * RowMode.Viewing)
+cancelEditing TodoId#id :: Todos[id](RowMode.Editing) -> Todos[id](RowMode.Viewing)
 deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
 deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
 clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown)) -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ClearCompleted.Hidden))

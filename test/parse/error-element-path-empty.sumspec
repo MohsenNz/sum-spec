@@ -2,8 +2,8 @@ __version 1.2
 __atomics { Id }
 __txs { f }
 App = Items
-Items = [Item]
-Item = Id * S
+Items = [Item by Id]
+Item = S
 S = A | B
 
 f Id#i :: Items[](S.A) -> Items[i](S.B)

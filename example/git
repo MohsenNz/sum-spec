@@ -10,8 +10,12 @@
 -- On the target side of a transition, a part that is left out, or
 -- written without a prime, keeps its value; a primed part (Files') gets
 -- a new value. See "Source and target" in spec/spec-v1.md.
+--
+-- Files and Branches are keyed lists: a file is identified by its Path,
+-- and a branch by its BranchName. A transition on one file takes a Path
+-- and picks the file with an element path (Files[p](...)).
 
-__version 1.1
+__version 1.2
 
 __atomics {
   Hash
@@ -48,19 +52,11 @@ Head
   | OnBranch BranchName
   | Detached Hash
 
-Branches = [Branch]
-
-Branch
-  = BranchName
-  * Tip
+Branches = [Tip by BranchName]
 
 Tip = Hash
 
-Files = [File]
-
-File
-  = Path
-  * FileState
+Files = [FileState by Path]
 
 FileState
   = Untracked
@@ -84,18 +80,18 @@ Remaining = [Hash]
 init :: Repository.Uninitialized
      -> Repository.Initialized(Head.Unborn * Operation.Idle)
 
-edit Path#p :: File(p * FileState.Unmodified) -> File(FileState.Modified)
-edit Path#p :: File(p * FileState.Staged) -> File(FileState.StagedAndModified)
+edit Path#p :: Files[p](FileState.Unmodified) -> Files[p](FileState.Modified)
+edit Path#p :: Files[p](FileState.Staged) -> Files[p](FileState.StagedAndModified)
 
-add Path#p :: File(p * FileState.Untracked) -> File(FileState.Staged)
-add Path#p :: File(p * FileState.Modified) -> File(FileState.Staged)
-add Path#p :: File(p * FileState.StagedAndModified) -> File(FileState.Staged)
+add Path#p :: Files[p](FileState.Untracked) -> Files[p](FileState.Staged)
+add Path#p :: Files[p](FileState.Modified) -> Files[p](FileState.Staged)
+add Path#p :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Staged)
 
-unstage Path#p :: File(p * FileState.Staged) -> File(FileState.Modified)
-unstage Path#p :: File(p * FileState.StagedAndModified) -> File(FileState.Modified)
+unstage Path#p :: Files[p](FileState.Staged) -> Files[p](FileState.Modified)
+unstage Path#p :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Modified)
 
-restore Path#p :: File(p * FileState.Modified) -> File(FileState.Unmodified)
-restore Path#p :: File(p * FileState.StagedAndModified) -> File(FileState.Staged)
+restore Path#p :: Files[p](FileState.Modified) -> Files[p](FileState.Unmodified)
+restore Path#p :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Staged)
 
 commit :: Repository.Initialized(Head.Unborn * Operation.Idle)
        -> Repository.Initialized(Head.OnBranch * Branches' * Files')
@@ -123,7 +119,7 @@ merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
 -- which yet, so the checker warns.
 merge :: FileState.Unmodified -> FileState.Conflicted
 
-resolve Path#p :: File(p * FileState.Conflicted) -> File(FileState.Staged)
+resolve Path#p :: Files[p](FileState.Conflicted) -> Files[p](FileState.Staged)
 
 mergeContinue :: Repository.Initialized(Operation.Merging)
               -> Repository.Initialized(Branches' * Operation.Idle)

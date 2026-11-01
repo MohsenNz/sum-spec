@@ -1,0 +1,6 @@
+test/parse/error-keyed-list-lowercase-key.sumspec:5:18:
+  |
+5 | Items = [Item by id]
+  |                  ^
+unexpected 'i'
+expecting type or variant name

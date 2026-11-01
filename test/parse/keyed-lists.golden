@@ -1,0 +1,18 @@
+__version 1.2
+
+__atomics {
+  Id
+  Row
+  Cell
+}
+
+__txs {
+  by
+}
+
+App = Items * Shape * Grid
+Items = [Item by Id]
+Item = Row * Cell
+Shape = Empty | Rows [Row by Id]
+Grid = [[Cell] by Id]
+by Id#by :: App(Items[by] * Shape.Rows([Row by Id])) -> App(Items[by] * Shape.Rows([Row by Id]))

@@ -84,7 +84,7 @@ typeExpr = do
   first <- typeTerm
   case first of
     TermName name -> afterName name
-    TermList _ -> productOrTerm first
+    TermList _ _ -> productOrTerm first
   where
     afterName name =
       choice
@@ -113,13 +113,18 @@ payload :: Parser TypeExpr
 payload =
   choice
     [ parens typeExpr
-    , TypeTerm . TermList <$> brackets typeTerm
+    , TypeTerm . uncurry TermList <$> listTerm
     , TypeTerm . TermName <$> try (upperName <* notFollowedBy (symbol "="))
     ]
 
--- type_term = UPPER | "[" , type_term , "]" ;
+-- type_term = UPPER | "[" , type_term , [ "by" , UPPER ] , "]" ;
 typeTerm :: Parser TypeTerm
-typeTerm = TermName <$> upperName <|> TermList <$> brackets typeTerm
+typeTerm = TermName <$> upperName <|> uncurry TermList <$> listTerm
+
+-- The bracketed alternative of type_term: the element type, and the key
+-- type of a keyed list.
+listTerm :: Parser (TypeTerm, Maybe Name)
+listTerm = brackets ((,) <$> typeTerm <*> optional (keyword "by" *> upperName))
 
 -- transition = LOWER , [ input ] , "::" , pattern , "->" , pattern ;
 transition :: Parser Transition
@@ -149,7 +154,7 @@ pattern = do
 typePattern :: Parser Pattern
 typePattern =
   choice
-    [ PatternList <$> brackets typeTerm
+    [ uncurry PatternList <$> listTerm
     , do
         names <- path
         key <- optional elementKey

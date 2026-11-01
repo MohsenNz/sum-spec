@@ -1,17 +1,20 @@
 -- A transition on a part inside a list element changes one element; it
 -- says which only when it's written from the element and compares a key
 -- with a named value. The checker warns about the others.
-__version 1.1
+__version 1.2
 
 __atomics { Id Text }
-__txs { inside noKey keyed above outside }
+__txs { inside noKey keyed above outside keyedInside keyedElement picked }
 
-App = Items * Mode
+App = Items * Mode * Keyed
 Items = [Item]
 Item = Id * Name * State
 Name = Text
 State = Off | On
 Mode = Light | Dark
+Keyed = [Entry by Id]
+Entry = Name * Level
+Level = Low | High
 
 -- Warns: a State inside one Item, without saying which.
 inside :: State.Off -> State.On
@@ -23,3 +26,9 @@ keyed Id#i :: Item(i * State.Off) -> Item(State.On)
 above :: App(Items) -> App(Items')
 -- No warning: Mode is in no list.
 outside :: Mode.Light -> Mode.Dark
+-- Warns: a Level inside one Entry of a keyed list; an element path picks it.
+keyedInside :: Level.Low -> Level.High
+-- Warns: an Entry doesn't hold its key, so it can't be picked from itself.
+keyedElement Name#n :: Entry(n * Level.Low) -> Entry(Level.High)
+-- No warning: an element path.
+picked Id#i :: Keyed[i](Level.Low) -> Keyed[i](Level.High)
