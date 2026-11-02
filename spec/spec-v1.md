@@ -187,11 +187,11 @@ The two sides of a transition are states of the same type: they're headed by the
 The two sides of a transition are read differently:
 
 - The **source** side is a precondition. A part that is left out may have any value.
-- The **target** side is the effect. A part that is left out, or written without a prime, keeps its value. A primed part, `A'`, gets a new value, set by the transition. A part whose variant differs from the source's is a **new state**. A named value (`Title(e)`) sets the part to that value; see "Named values".
+- The **target** side is the effect. A part that is left out, or written without a prime, keeps its value. A primed part, `A'`, gets a new value, set by the transition; a prime goes only on a part that keeps its place, not inside a new state. A part whose variant differs from the source's is a **new state**.
 
-A new state didn't exist before the transition, so nothing in it can keep its value: inside a new state, a part that is left out may have any value.
+A new state didn't exist before the transition, so nothing in it can keep its value: inside a new state, a part that is left out, or written without a prime, may have any value, and nothing takes a prime.
 
-A part keeps its value only where the source fixes the same variants along its path. In `Page -> Page.Plan(PMode')`, the source may have been `Page.Home`, so `Plan` is a new state.
+A part keeps its value only where the source fixes the same variants along its path. In `Page -> Page.Plan(PMode.JustMap)`, the source may have been `Page.Home`, so `Plan` is a new state.
 
 Examples, with the types of `example/drone`:
 
@@ -218,8 +218,8 @@ goToPlan :: Page.Home -> Page.Plan(PMode.JustMap)
 Where a prime may go:
 
 - Only on a bare type name (`A'`, `Missions'`), and only on the target side.
-- Not twice (`A''`), and not on a path, after arguments, or on a list (`PMode.Plot'`, `Footer(ItemsLeft)'`, `[Point]'`): a written variant or argument already says what the new value is.
-- A prime doesn't make a new factor: `A * A'` writes the factor `A` twice.
+- Not twice (`A''`), while no `A'` on the source.
+- Not inside a new state: `Page -> Page.Plan(PMode')` is an error.
 
 `Missions'` says that a list changed, not how (added, removed, edited).
 

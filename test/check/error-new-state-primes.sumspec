@@ -1,0 +1,40 @@
+-- A prime doesn't go inside a new state: a variant on the target side
+-- that the source doesn't fix.
+__atomics { Text Id Counter }
+__txs { noVariant otherVariant inFactor deepPath bareSource keeps anyValue sibling element }
+
+App = Page * Screen * Counter * Items
+
+Page = Home | Plan (PMode * Missions)
+
+PMode
+  = JustMap
+  | Plot Plot
+  | Show (List (Empty | Full Missions) | One Text)
+
+Plot = Draft Text | Drawn Text
+
+Missions = Text
+
+Screen = Home | Edit (Title * Text)
+
+Title = Text
+
+Items = [Mode by Id]
+
+Mode = A Text | B
+
+-- Errors: the source fixes no variant, another variant, a variant inside
+-- a factor, a variant of a deep path, and a variant only as a bare type.
+noVariant :: Page -> Page.Plan(PMode')
+otherVariant :: Page.Home -> Page.Plan(PMode')
+inFactor :: App(Screen.Home) -> App(Screen.Edit(Title'))
+deepPath :: PMode.Show.List -> PMode.Show.List.Full(Missions')
+bareSource :: Page.Plan(PMode) -> Page.Plan(PMode.Plot(Plot'))
+
+-- Fine: the source fixes the variant, a new state without a prime, a
+-- primed part outside the new state, and an element on both sides.
+keeps :: Page.Plan -> Page.Plan(PMode')
+anyValue :: Page -> Page.Plan(PMode)
+sibling :: App(Screen.Home) -> App(Screen.Edit * Counter')
+element Id#i :: Items[i](Mode.A) -> Items[i](Mode.A(Text'))

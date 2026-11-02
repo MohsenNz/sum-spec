@@ -214,6 +214,7 @@ checkTransitions env spec transitions =
         <> checkPattern env names from
         <> checkPattern env names to
         <> checkSides env names from to
+        <> checkNewStatePrimes from to
       where
         names = Map.fromList [(nameText n, k) | (n, k) <- signatureNames input from]
 
@@ -237,6 +238,85 @@ checkSides env names from to =
   , isKnownType env toKey
   , fromKey /= toKey
   ]
+
+-- | Where a part is in a state: the head type, then each variant, argument
+-- head and element (@Todos[id]@) on the way down. Products are keyed by
+-- type, so a part has the same position on both sides of a transition.
+type Position = [Text]
+
+-- | A prime marks a new value of a part that keeps its place, so it
+-- doesn't go inside a new state: a variant on the target side that the
+-- source doesn't fix. Nothing there has an old value to change. Other
+-- misplaced primes are reported by 'checkPrimes', and sides of different
+-- types by 'checkSides'. See "Source and target" in spec-v1.md.
+checkNewStatePrimes :: Pattern -> Pattern -> [CheckError]
+checkNewStatePrimes from to
+  | patternKey from /= patternKey to = []
+  | otherwise = go [] Nothing to
+  where
+    fixed = fixedVariants from
+    -- @new@ is the enclosing new state, as written (@Page.Plan@).
+    go at new = \case
+      PatternPrimed pos (PatternPath (n :| []) []) ->
+        [ errorAtPos pos $
+            label
+              <> " is a new state here (the source doesn't fix it), so "
+              <> nameText n
+              <> " has no old value to change; write "
+              <> nameText n
+              <> " without a prime ('), or leave it out"
+        | Just label <- [new]
+        ]
+      PatternPrimed _ p -> go at new p
+      PatternNamed p _ -> go at new p
+      PatternPath (h :| path) args ->
+        let
+          steps = variantSteps at h path
+          new' = case new of
+            Just _ -> new
+            Nothing -> snd <$> find ((`Set.notMember` fixed) . fst) steps
+        in
+          concatMap (go (lastPosition at h steps) new') args
+      PatternElement (h :| _) key args ->
+        concatMap (go (at <> [elementSegment h key]) new) args
+      PatternList _ _ -> []
+      PatternName _ -> []
+
+-- | The variant positions a pattern writes: each variant of a dotted path,
+-- at every depth.
+fixedVariants :: Pattern -> Set Position
+fixedVariants = go []
+  where
+    go at = \case
+      PatternPath (h :| path) args ->
+        let steps = variantSteps at h path
+        in  Set.fromList (map fst steps)
+              <> foldMap (go (lastPosition at h steps)) args
+      PatternElement (h :| _) key args -> foldMap (go (at <> [elementSegment h key])) args
+      PatternPrimed _ p -> go at p
+      PatternNamed p _ -> go at p
+      PatternList _ _ -> Set.empty
+      PatternName _ -> Set.empty
+
+-- | Each variant of the path @h.V1.V2@ at @at@: its position, and the path
+-- up to it as written (@h.V1@).
+variantSteps :: Position -> Name -> [Name] -> [(Position, Text)]
+variantSteps at h path =
+  [ ( at <> map nameText (h : vs)
+    , T.intercalate "." (map nameText (h : vs))
+    )
+  | k <- [1 .. length path]
+  , let vs = take k path
+  ]
+
+-- | The position a path ends at: its last variant, or its head type.
+lastPosition :: Position -> Name -> [(Position, Text)] -> Position
+lastPosition at h steps = case steps of
+  [] -> at <> [nameText h]
+  _ -> fst (last steps)
+
+elementSegment :: Name -> Name -> Text
+elementSegment h key = nameText h <> "[" <> nameText key <> "]"
 
 -- | A list goes only as the whole body of a type definition, so every
 -- list has a type name (@Points = [Point]@) and is written by it, in

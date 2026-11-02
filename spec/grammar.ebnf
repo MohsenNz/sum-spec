@@ -181,7 +181,9 @@ character     = ? any Unicode character ? ;
      (an element path L[x] by its list type L). See "Arguments in state
      patterns" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
-     the target side. See "Source and target" in spec-v1.md;
+     the target side, outside a new state (a variant the source doesn't
+     fix, as Plan in Page -> Page.Plan(PMode')). See "Source and target"
+     in spec-v1.md;
    - a list ([T], [T by K]) is only the whole body of a type definition
      (Points = [Point]); its element is a type name; it isn't a factor,
      a payload or a pattern (in an input or on a side). A list type
