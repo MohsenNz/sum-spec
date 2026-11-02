@@ -1,22 +1,32 @@
 # SumSpec
 
-This document defines SumSpec **1.0**. It's in development until the first release: until then it changes in place, without version notes; see `VERSIONING.md`.
+This document defines SumSpec **1.0**.
 
-## State transitions
+## Comments
+
+A comment starts with `--` and runs to the end of the line. It can go anywhere whitespace can, on its own line or after code:
 
 ```
-t :: A -> B
+-- Where the user is in the app
+Page
+  = Home
+  | Plan    (PMode * Missions)  -- planning a mission
+  | Devices
 ```
 
-Transition t transfer app from state A (Type A) to state B (Type B).
+## Types
 
-## Type definition
+In SumSpec we express state with type, so a type here is equivalent to a state in state-machine.
+
+### Product Type
 
 ```
 T = A * B
 ```
 
 This is a type named T that is a product of A and B.
+
+### Sum Type
 
 ```
 Y = V1 | V2
@@ -32,15 +42,19 @@ Y = V1
 
 Now Y is a sum of V1, V2 and `V3 A`.
 
-We show the state (e.g in a transition) like:
+## State Transitions
+
+```
+t :: A -> B
+```
+
+Transition t transfer app from state A (Type A) to state B (Type B).
+
+We show a state (in a transition) like this:
 
 ```
 trans1 :: Y.V1 -> Y.V3(A)
-```
 
-or:
-
-```
 Z = Y * C
 
 trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
@@ -48,16 +62,7 @@ trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
 
 The trans1 transition, change state Y.V1 to Y.V3(A). We show the state of product types with parenthesis: `Z(...)`, and refer to sum types with dot `Y.V1`. The State of a variant with a value is shown like a product type, `Y.V3(A)`.
 
-**Summary**
-
-`=`  used for type definition
-`|`  sum type
-`*`  product type
-`.`  selects a variant of a sum type
-`::` used for transition definition
-`->` state transition
-
-**More Examples**
+**More Examples:**
 
 ```
 T2 = A
@@ -67,13 +72,37 @@ T2 = A
 trans3 :: T2.A -> T2.B(X * Y * Z)
 ```
 
-**Invalid Examples**
-
-```
-T = A * A
-```
-
 **Note**: types are uppercase and transitions are lowercase
+
+In transition `trans3 :: T2.A -> T2.B(X * Y * Z)` we call each part like this:
+
+```haskell
+trans3
+-- ↑ transition name
+  :: T2.A
+  -- ↑ source; state pattern
+  -> T2.B(X * Y * Z)
+  -- ↑ target     ↑ argument
+```
+
+**Source:** the left side of ->, the state the app must be in for the transition to apply (a precondition).
+
+**Target:** the right side of ->, the state the app is in after the transition (the effect).
+
+**State pattern:** a description of a set of states, such as Page.Plan(PMode.JustMap), written on either side of a transition (and in its input).
+
+**Argument:** a pattern inside the parentheses after a type or variant, saying which state an inner part of that state must be in.
+
+### Summary:
+
+`=`  used for type definition
+`|`  sum type
+`*`  product type
+`.`  selects a variant of a sum type
+`::` transition definition
+`->` state transition
+
+## Types, more
 
 ### Products are keyed by type
 
@@ -86,6 +115,8 @@ Z(Y.V1 * C)
 Z(C * Y.V1)
 ```
 
+### NewType
+
 `T = A` defines a newtype: `T` has the same structure as `A` but is a different type, never equal to `A`. So the following is valid:
 
 ```
@@ -93,11 +124,7 @@ At = Timestamp
 T  = At * Timestamp
 ```
 
-Newtypes are how two values of the same underlying type go into one product.
-
-A chain of newtypes must not lead back to where it started (`A = B`, `B = A` is invalid).
-
-In a state pattern, a product's arguments may leave out factors; see "Source and target".
+Loop is not allowed (`A = B`, `B = A` is invalid).
 
 ### Inline payloads and paths
 
@@ -118,10 +145,11 @@ PMode
 
 A path selects nested variants with dots: `PMode.ShowMission.List.Empty`.
 
-A list isn't inline: it has a type name (`MissionSummaries =
-[MissionSummary]`); see "List".
+A list isn't inline: it has a type name (`MissionSummaries = [MissionSummary]`); see "List".
 
-## Sum without a variant
+## Transitions more
+
+### Sum without a variant
 
 In a state pattern, a sum written without choosing a variant stands for any of its variants:
 
@@ -132,7 +160,10 @@ showMission :: Page.Plan(PMode.JustMap * Missions)
 
 Here the target is `List.Empty` or `List.NonEmpty(...)`: `List` is a new state (see "Source and target"), so either variant is possible.
 
-## Arguments in state patterns
+### Arguments in state patterns
+
+In a state pattern, the arguments are what goes inside the parentheses after a type or variant.
+They narrow down what the inner parts of the state must be.
 
 Arguments may be left out: a bare type (`Missions`), a bare sum (`PMode.ShowMission.List`) and a variant with a payload (`Page.Plan`) can each be written without them. What a left-out part means depends on the side of the transition; see "Source and target".
 
@@ -151,7 +182,7 @@ A path continues with `.` only into a sum: a named sum or an inline sum payload.
 
 The two sides of a transition don't have to be states of the same type.
 
-## Source and target
+### Source and target
 
 The two sides of a transition are read differently:
 
@@ -419,20 +450,6 @@ An element of a keyed list is picked with an element path,
 Types and variants are uppercase; transitions are lowercase.
 
 Each sum has its own variant namespace. `Ring.Partial` and `Path.Partial` are different variants, and a variant may share a type's name (`PMode.Plot` is a variant, `Plot` is a type). Variant names are unique within one sum. Names inside a payload always refer to types: in `| Plot (PlotOrigin * Plot)`, the second `Plot` is the type `Plot`.
-
-## Comments
-
-A comment starts with `--` and runs to the end of the line. It can go anywhere whitespace can, on its own line or after code:
-
-```
--- Where the user is in the app
-Page
-  = Home
-  | Plan    (PMode * Missions)  -- planning a mission
-  | Devices
-```
-
-Comments are for human readers and don't change the spec.
 
 ## Language version
 

@@ -37,11 +37,6 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
       header means 1.0). The parser rejects versions it doesn't
       implement.
 
-### Housekeeping
-- [ ] Commit the type checker work.
-- [ ] Run `cabal update` (the Hackage package list is a year old).
-- [x] README: how to build and use the `sumspec` CLI.
-
 ### Later (`spec/proposals.md`)
 Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
