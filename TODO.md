@@ -2,6 +2,8 @@
 
 ## Remaining
 
+
+- [ ] Does transition is the right name?
 - [x] Require the two sides of a transition to be states of the same
       type (the same head type: `Page.Home -> Page.Plan`, not
       `Page.Home -> Missions`). Today `spec/spec-v1.md` ("Arguments in

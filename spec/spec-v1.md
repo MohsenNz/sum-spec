@@ -147,13 +147,20 @@ A path selects nested variants with dots: `PMode.ShowMission.List.Empty`.
 
 A list isn't inline: it has a type name (`MissionSummaries = [MissionSummary]`); see "List".
 
-## Transitions more
+## Naming
+
+Types and variants are uppercase; transitions are lowercase.
+
+Each sum has its own variant namespace. `Ring.Partial` and `Path.Partial` are different variants, and a variant may share a type's name (`PMode.Plot` is a variant, `Plot` is a type). Variant names are unique within one sum. Names inside a payload always refer to types:
+in `| Plot (PlotOrigin * Plot)`, the second `Plot` is the type `Plot`.
+
+## Transitions, more
 
 ### Sum without a variant
 
 In a state pattern, a sum written without choosing a variant stands for any of its variants:
 
-```
+```haskell
 showMission :: Page.Plan(PMode.JustMap * Missions)
             -> Page.Plan(PMode.ShowMission.List * Missions)
 ```
@@ -223,7 +230,7 @@ Where a prime may go:
 
 `Missions'` says that a list changed, not how (added, removed, edited).
 
-## Several signatures for one transition
+### Several signatures for one transition
 
 A transition may apply from more than one state, reaching a different
 target or having a different effect from each. Repeat the name, one
@@ -234,10 +241,7 @@ f :: A -> B
 f :: C -> D
 ```
 
-Every signature of a transition takes the same input, or none; see
-"Transition inputs".
-
-## Transition inputs
+### Transition inputs
 
 A transition may take an input, a value the event brings with it. The
 input's type goes after the transition's name:
@@ -267,9 +271,9 @@ select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On)
 A variant or argument written in the input is a precondition on it, as
 on the source side.
 
-The input belongs to the transition, not to one signature: like an
-event of a state machine, a transition has one input, whatever state it
-applies from. So every signature writes an input of the same type, or
+The input belongs to the transition, not to one signature:
+a transition has one input, whatever state it applies from.
+So every signature writes an input of the same type, or
 none (the names in it may differ):
 
 ```
@@ -286,9 +290,6 @@ alone in a pattern stands for that value:
 
 ```
 startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
-
-finishEditing TodoId#id :: Todo(id * RowMode.Editing(EditText(Text#e)))
-                        -> Todo(Title(e) * RowMode.Viewing)
 ```
 
 - `P#x` matches `P` and names its value `x`. `P` is any pattern headed by
@@ -402,8 +403,7 @@ toggleTodo Ref(ProjectId#p * TodoId#t)
 
 We show a list of T like: `[T]`
 
-A list goes only as the whole body of a type definition, so every list
-has a type name, and is written by it everywhere else:
+A list only define as a newtype and is written by a type name everywhere else:
 
 ```
 Points = [Point]
@@ -413,6 +413,7 @@ Ring = Partial Points | Enclosed Points
 pick Points#ps :: Ring.Partial -> Ring.Enclosed(ps)
 ```
 
+**Notes:**
 - A list's element is a type name too. A list of lists names the inner
   list: `Row = [Cell]`, `Grid = [Row]`.
 - A list isn't a product's factor (`[A] * B`), a variant's payload
@@ -444,12 +445,6 @@ Branches = [Tip by BranchName]
 
 An element of a keyed list is picked with an element path,
 `Todos[id]`; see "Element paths".
-
-## Naming
-
-Types and variants are uppercase; transitions are lowercase.
-
-Each sum has its own variant namespace. `Ring.Partial` and `Path.Partial` are different variants, and a variant may share a type's name (`PMode.Plot` is a variant, `Plot` is a type). Variant names are unique within one sum. Names inside a payload always refer to types: in `| Plot (PlotOrigin * Plot)`, the second `Plot` is the type `Plot`.
 
 ## Language version
 
