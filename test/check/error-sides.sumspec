@@ -1,0 +1,19 @@
+-- The two sides of a transition are states of the same type.
+__atomics { Text TodoId }
+__txs { sameType otherSum productToSum elementToElementType }
+
+App = Screen * Mode * Todos
+
+Screen = Home | Edit
+Mode = Viewing | Editing Text
+
+Todos = [Todo by TodoId]
+Todo = Text * Mode
+
+-- Fine: both sides are states of Screen.
+sameType :: Screen.Home -> Screen.Edit
+-- Errors: a different sum, a product to a sum, and an element path to
+-- its element type.
+otherSum :: Screen.Home -> Mode.Viewing
+productToSum :: App(Screen.Home) -> Screen.Edit
+elementToElementType TodoId#id :: Todos[id](Mode.Viewing) -> Todo(Mode.Editing)

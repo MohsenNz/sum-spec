@@ -1,0 +1,18 @@
+test/check/error-sides.sumspec:17:28:
+   |
+17 | otherSum :: Screen.Home -> Mode.Viewing
+   |                            ^
+the target is a state of Mode, but the source (line 17) is a state of Screen; both sides of a transition are states of the same type
+
+test/check/error-sides.sumspec:18:37:
+   |
+18 | productToSum :: App(Screen.Home) -> Screen.Edit
+   |                                     ^
+the target is a state of Screen, but the source (line 18) is a state of App; both sides of a transition are states of the same type
+
+test/check/error-sides.sumspec:19:62:
+   |
+19 | elementToElementType TodoId#id :: Todos[id](Mode.Viewing) -> Todo(Mode.Editing)
+   |                                                              ^
+the target is a state of Todo, but the source (line 19) is a state of Todos; both sides of a transition are states of the same type
+

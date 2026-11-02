@@ -10,6 +10,9 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- The two sides of a transition are states of the same type: they're
+  headed by the same type name (`Page.Home -> Page.Plan`, not
+  `Page.Home -> Missions`).
 - Transition inputs: a transition may take an input, written after its
   name (`toggleTodo TodoId :: ...`). Every signature of a transition
   takes the same input, or none. The input is a type pattern, so it can

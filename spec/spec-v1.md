@@ -180,7 +180,7 @@ An argument may also be a named value (`t`), which fits where its type is expect
 
 A path continues with `.` only into a sum: a named sum or an inline sum payload. To pick a variant of a payload that is a named type, use an argument: `Page.Plan(PMode.JustMap * Missions)`.
 
-The two sides of a transition don't have to be states of the same type.
+The two sides of a transition are states of the same type: they're headed by the same type name. `Page.Home -> Page.Plan` is valid, `Page.Home -> Missions` isn't. An element path is headed by its list type, so `Todos[id](...)` is a state of `Todos`.
 
 ### Source and target
 

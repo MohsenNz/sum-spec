@@ -177,6 +177,9 @@ character     = ? any Unicode character ? ;
      one argument headed by the type of a single payload or the base of
      a newtype; none for a sum, an atomic, or a variant without a
      payload. See "Arguments in state patterns" in spec-v1.md;
+   - the source and target of a signature are headed by the same type
+     (an element path L[x] by its list type L). See "Arguments in state
+     patterns" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
      the target side. See "Source and target" in spec-v1.md;
    - a list ([T], [T by K]) is only the whole body of a type definition

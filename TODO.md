@@ -2,6 +2,15 @@
 
 ## Remaining
 
+- [x] Require the two sides of a transition to be states of the same
+      type (the same head type: `Page.Home -> Page.Plan`, not
+      `Page.Home -> Missions`). Today `spec/spec-v1.md` ("Arguments in
+      state patterns") says they don't have to be. Update the spec
+      sentence, add the rule to the checker notes in `grammar.ebnf`, add
+      the check in `src/SumSpec/Check.hs` with an `error-*` case in
+      `test/check/`, and record it in `CHANGES.md` (language). The
+      examples already follow the rule.
+
 ### Open questions
 - [ ] More warnings: states no transition reaches, and transitions
       whose signatures overlap.

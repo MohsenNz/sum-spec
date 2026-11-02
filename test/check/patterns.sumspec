@@ -1,6 +1,6 @@
 -- Every kind of valid pattern.
 __atomics { Point Text }
-__txs { anyApp bareSum bareVariant deepPath factorsAnyOrder newtypeArg listArg singlePayload otherType }
+__txs { anyApp bareSum bareVariant deepPath factorsAnyOrder newtypeArg listArg singlePayload }
 
 App = Screen * Shape * Label
 
@@ -42,5 +42,3 @@ newtypeArg :: Shape.Dot(Point) -> Shape.Dot(Point)
 listArg :: Shape.Line(Points) -> Shape.Line
 -- A single payload takes one argument headed by its type.
 singlePayload :: Screen.Browse.One(Shape.Dot) -> Screen.Browse.One(Shape.Line)
--- The two sides may be different types.
-otherType :: Screen.Home -> Shape.Dot

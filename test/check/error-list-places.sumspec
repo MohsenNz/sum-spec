@@ -21,4 +21,4 @@ source :: Holder.Full([Id]) -> Holder.Empty
 target :: Holder.Empty -> Holder.Full([Id])
 input [Id] :: Holder.Empty -> Holder.Empty
 -- Fine: the list type, named.
-named :: Holder.Full(Ids#ids) -> Choice.None
+named :: Holder.Full(Ids#ids) -> Holder.Empty

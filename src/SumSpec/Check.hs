@@ -213,8 +213,30 @@ checkTransitions env spec transitions =
         <> concat [checkPattern env names i | i <- maybe [] pure input, null (elementKeys i)]
         <> checkPattern env names from
         <> checkPattern env names to
+        <> checkSides env names from to
       where
         names = Map.fromList [(nameText n, k) | (n, k) <- signatureNames input from]
+
+-- | The two sides of a transition are states of the same type: they're
+-- headed by the same type name (an element path by its list type). An
+-- unknown type or name is reported elsewhere, so it isn't compared. See
+-- "Arguments in state patterns" in spec-v1.md.
+checkSides :: Env -> Names -> Pattern -> Pattern -> [CheckError]
+checkSides env names from to =
+  [ errorAt (patternHead to) $
+      "the target is a state of "
+        <> toKey
+        <> ", but the source (line "
+        <> lineOf (patternHead from)
+        <> ") is a state of "
+        <> fromKey
+        <> "; both sides of a transition are states of the same type"
+  | Just fromKey <- [argKey names from]
+  , Just toKey <- [argKey names to]
+  , isKnownType env fromKey
+  , isKnownType env toKey
+  , fromKey /= toKey
+  ]
 
 -- | A list goes only as the whole body of a type definition, so every
 -- list has a type name (@Points = [Point]@) and is written by it, in
