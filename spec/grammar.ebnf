@@ -206,6 +206,9 @@ character     = ? any Unicode character ? ;
      compare a key with a named value (Todo(id * ...)), or the element
      is inside another list. The warning suggests an element path, and
      a key for a named list without one. See "Keys" and "Element paths"
-     in spec-v1.md.
+     in spec-v1.md;
+   - a space before a prime or a naming (A ', Text #t); it's read the
+     same, and the canonical form writes A' and Text#t. See "Source and
+     target" and "Named values" in spec-v1.md.
 
    Not in v1 (see proposals.md): "=>", "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

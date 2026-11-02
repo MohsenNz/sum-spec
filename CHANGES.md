@@ -48,6 +48,8 @@ release" in `VERSIONING.md`).
 
 - The parser, printer and checker read transition inputs, named values,
   keyed lists and element paths.
+- `sumspec check` warns about a space before a prime or a naming
+  (`A '`, `Text #t`).
 - The checker reports:
   - an input whose type is unknown, and signatures of one transition
     with different inputs;

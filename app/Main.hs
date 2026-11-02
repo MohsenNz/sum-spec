@@ -27,7 +27,7 @@ main =
       case parseSpec file source of
         Left err -> hPutStr stderr (renderParseError err) >> exitFailure
         Right spec -> do
-          let problems = checkSpec file spec
+          let problems = checkSpec file source spec
           hPutStr stderr (renderCheckErrors source problems)
           when (hasErrors problems) exitFailure
     _ -> do

@@ -1,0 +1,21 @@
+-- A prime or a naming goes right after the pattern before it; a space
+-- there is read the same, so the checker only warns.
+__atomics { A Id Name Text }
+__txs { primed named inArgs afterParens tabbed lineStart fine }
+
+App = A * Holder
+Holder = Empty | Full Text
+Ref = Id * Name
+
+-- Warns: a space before a prime, before a naming in the input, inside
+-- arguments and after parentheses, a tab, and a prime on its own line.
+primed :: App -> App(A ')
+named Text #t :: Holder.Empty -> Holder.Full(t)
+inArgs Ref(Id #i * Name#n) :: App -> App
+afterParens Ref(Id#i * Name#n) #r :: App -> App
+tabbed Text	#t :: Holder.Empty -> Holder.Full(t)
+lineStart :: App -> App(A
+')
+
+-- Fine: no space.
+fine Ref(Id#i * Name#n)#r :: App -> App(A')

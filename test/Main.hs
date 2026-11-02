@@ -71,6 +71,6 @@ parseTwice file source = case parseSpec file source of
 check :: FilePath -> Text -> Text
 check file source = case parseSpec file source of
   Left err -> T.pack (renderParseError err)
-  Right spec -> case checkSpec file spec of
+  Right spec -> case checkSpec file source spec of
     [] -> T.pack "OK\n"
     errors -> T.pack (renderCheckErrors source errors)

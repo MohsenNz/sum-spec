@@ -11,6 +11,7 @@ module SumSpec.Check
   , renderCheckErrors
   ) where
 
+import Data.Char (isSpace)
 import Data.List (find, sortOn)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
@@ -22,7 +23,7 @@ import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
 import SumSpec.Syntax
-import Text.Megaparsec (SourcePos (..), initialPos, sourcePosPretty, unPos)
+import Text.Megaparsec (SourcePos (..), initialPos, mkPos, sourcePosPretty, unPos)
 
 data CheckError = CheckError
   { errorSeverity :: Severity
@@ -42,9 +43,10 @@ hasErrors = any ((== Error) . errorSeverity)
 
 -- | Checks a spec and returns its errors and warnings sorted by position;
 -- no errors means the spec is valid. The file path is used for errors
--- that have no place in the source, such as a missing @App@.
-checkSpec :: FilePath -> Spec -> [CheckError]
-checkSpec file spec =
+-- that have no place in the source, such as a missing @App@. The source is
+-- the text the spec was parsed from, for the warnings about spacing.
+checkSpec :: FilePath -> Text -> Spec -> [CheckError]
+checkSpec file source spec =
   sortOn (position . errorPos) $
     concat
       [ checkHeaders spec
@@ -53,6 +55,7 @@ checkSpec file spec =
       , checkTransitions env spec transitions
       , checkListPlaces typeDefs transitions
       , warnListElements env transitions
+      , warnSuffixSpaces source transitions
       ]
   where
     position pos = (unPos (sourceLine pos), unPos (sourceColumn pos))
@@ -238,6 +241,62 @@ checkSides env names from to =
   , isKnownType env toKey
   , fromKey /= toKey
   ]
+
+-- | A prime or a naming goes right after the pattern before it (@A'@,
+-- @Text#t@). A space there is read the same, so it's only a warning. The
+-- AST doesn't keep where the pattern before ends (it may end in @)@), so
+-- this looks at the source character before the @'@ or @#@.
+warnSuffixSpaces :: Text -> [Transition] -> [CheckError]
+warnSuffixSpaces source transitions =
+  [ CheckError Warning pos message
+  | Transition _ input from to <- transitions
+  , p <- maybe [] pure input <> [from, to]
+  , (pos, message) <- suffixes p
+  , maybe True isSpace (charBefore sourceLines pos)
+  ]
+  where
+    sourceLines = T.lines source
+    suffixes = \case
+      PatternPrimed pos inner -> (pos, primeMessage inner) : suffixes inner
+      PatternNamed inner n -> (hashPos n, namingMessage inner n) : suffixes inner
+      PatternPath _ args -> concatMap suffixes args
+      PatternElement _ _ args -> concatMap suffixes args
+      PatternList _ _ -> []
+      PatternName _ -> []
+    -- The @#@ is right before the name: no space can go between them.
+    hashPos n =
+      let pos = namePos n
+      in  pos {sourceColumn = mkPos (unPos (sourceColumn pos) - 1)}
+    primeMessage = \case
+      PatternPath (n :| []) [] ->
+        "a prime (') goes right after its name, with no space: write "
+          <> nameText n
+          <> "'"
+      _ -> "a prime (') goes right after the pattern it marks, with no space"
+    namingMessage inner n =
+      "#"
+        <> nameText n
+        <> " goes right after the pattern it names, with no space"
+        <> case inner of
+          PatternPath (h :| []) [] -> ": write " <> nameText h <> "#" <> nameText n
+          _ -> ""
+
+-- | The character before a position on its line, or 'Nothing' at the start
+-- of the line. Columns are counted as megaparsec counts them, with a tab
+-- reaching the next multiple of 8, plus one.
+charBefore :: [Text] -> SourcePos -> Maybe Char
+charBefore sourceLines pos = case drop (unPos (sourceLine pos) - 1) sourceLines of
+  line : _ -> go 1 Nothing (T.unpack line)
+  [] -> Nothing
+  where
+    column = unPos (sourceColumn pos)
+    go c previous rest
+      | c >= column = previous
+      | otherwise = case rest of
+          [] -> Nothing
+          x : xs -> go (next c x) (Just x) xs
+    next c '\t' = ((c - 1) `div` 8 + 1) * 8 + 1
+    next c _ = c + 1
 
 -- | Where a part is in a state: the head type, then each variant, argument
 -- head and element (@Todos[id]@) on the way down. Products are keyed by

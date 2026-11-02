@@ -227,6 +227,7 @@ Where a prime may go:
 - Only on a bare type name (`A'`, `Missions'`), and only on the target side.
 - Not twice (`A''`), while no `A'` on the source.
 - Not inside a new state: `Page -> Page.Plan(PMode')` is an error.
+- Right after its name: `A '` is read as `A'`, but the type checker warns about the space.
 
 `Missions'` says that a list changed, not how (added, removed, edited).
 
@@ -295,7 +296,8 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
 - `P#x` matches `P` and names its value `x`. `P` is any pattern headed by
   a type: `Text#t`, `Completion.Active#c`, `Ids#ids`. `#x` is one
   token: no space between `#` and the name. The canonical form writes no
-  space before `#` either.
+  space before `#` either, and the type checker warns about one
+  (`Text #t`).
 - A name is given in the input or on the source side, once per
   signature. Its type is the type `P` is headed by (`Completion` for
   `Completion.Active#c`).
