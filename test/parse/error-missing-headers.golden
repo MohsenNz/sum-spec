@@ -3,4 +3,4 @@ test/parse/error-missing-headers.sumspec:1:1:
 1 | T = A
   | ^^^^^
 unexpected "T = A<newline>"
-expecting "__atomics", "__txs", or "__version"
+expecting "__atomics", "__events", or "__version"

@@ -1,5 +1,5 @@
--- __txs may come before __atomics.
-__txs { trans3 }
+-- __events may come before __atomics.
+__events { trans3 }
 __atomics { X Y Z }
 
 App = T2

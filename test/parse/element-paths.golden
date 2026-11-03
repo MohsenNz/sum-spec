@@ -6,7 +6,7 @@ __atomics {
   Text
 }
 
-__txs {
+__events {
   toggle
   rename
   remove

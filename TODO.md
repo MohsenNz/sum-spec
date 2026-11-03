@@ -3,7 +3,8 @@
 ## Remaining
 
 - [ ] An element can't be named (`Todos[id]#t`), should we allow it?
-- [ ] Does transition is the right name?
+- [x] Does transition is the right name? No: the name is an event, listed
+      in `__events`; each `event :: source -> target` is a transition.
 - [x] Require the two sides of a transition to be states of the same
       type (the same head type: `Page.Home -> Page.Plan`, not
       `Page.Home -> Missions`). Today `spec/spec-v1.md` ("Arguments in
@@ -14,8 +15,8 @@
       examples already follow the rule.
 
 ### Open questions
-- [ ] More warnings: states no transition reaches, and transitions
-      whose signatures overlap.
+- [ ] More warnings: states no transition reaches, and events whose
+      transitions overlap.
 - [ ] Should the checker build a resolved model of the spec (e.g.
       `SumSpec.Model`) for code generators to consume?
 
@@ -34,7 +35,7 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
 - [ ] How updates change values, Part B: derived values.
 - [ ] How updates change values, Part C: list updates (form chosen:
       an action clause, `// __remove ts[id]`).
-- [ ] Nondeterminism between signatures.
+- [ ] Nondeterminism between transitions.
 - [ ] Initial state.
 - [ ] Values inside a new state.
 
@@ -51,13 +52,13 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
 ### Later (`spec/proposals.md`)
 Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
-- [ ] Several transitions with one signature (`g, h :: Y -> Z`).
-- [x] Transition inputs (`f X :: A -> B`).
+- [ ] Several events with one transition (`g, h :: Y -> Z`).
+- [x] Event inputs (`f X :: A -> B`).
 - [ ] `=>` (shared construction path) and `<-` shorthand.
 - [ ] Annotations (`__annotations`).
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
-- [ ] Several signatures under one name (input written once).
+- [ ] Several transitions under one event name (input written once).
 - [x] Element paths (`Todos[id]`).
 - [x] Keyed lists (`[Todo by TodoId]`); element paths need them.
 - [x] Lists only as whole type definitions (`Points = [Point]`).

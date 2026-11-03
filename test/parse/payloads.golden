@@ -3,7 +3,7 @@ __atomics {
   B
 }
 
-__txs {
+__events {
 }
 
 S = Bare A | List [A] | Nested [[A]] | Prod (A * B) | Inner (Left (Deep | Deeper [B]) | Right A) | Paren A

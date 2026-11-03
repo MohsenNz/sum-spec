@@ -3,7 +3,7 @@
 __version 1.0
 
 __atomics { Text Count }
-__txs { rename renameShort count enter leave noop }
+__events { rename renameShort count enter leave noop }
 
 App = Page * Counter
 

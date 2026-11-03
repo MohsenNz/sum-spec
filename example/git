@@ -3,7 +3,7 @@
 -- staged, committed), and the operations that can be left in progress:
 -- a merge with conflicts, and a rebase.
 --
--- A transition with several signatures describes its effect on each part
+-- An event with several transitions describes its effect on each part
 -- of the state, e.g. "commit" moves the branch's tip and also turns
 -- staged files into unmodified ones.
 --
@@ -12,7 +12,7 @@
 -- a new value. See "Source and target" in spec/spec-v1.md.
 --
 -- Files and Branches are keyed lists: a file is identified by its Path,
--- and a branch by its BranchName. A transition on one file takes a Path
+-- and a branch by its BranchName. An event on one file takes a Path
 -- and picks the file with an element path (Files[p](...)).
 
 __version 1.0
@@ -23,7 +23,7 @@ __atomics {
   Path
 }
 
-__txs {
+__events {
   init
   edit
   add

@@ -1,8 +1,8 @@
--- A transition may take an input, written after its name.
+-- An event may take an input, written after its name.
 __version 1.0
 
 __atomics { Id Text }
-__txs { rename pick select }
+__events { rename pick select }
 
 App = Items * Selection
 Items = [Item]
@@ -14,6 +14,6 @@ Ref = Id * Name
 
 rename Name :: Item(Name) -> Item(Name')
 pick [Id] :: Selection.None -> Selection.Some(Id)
--- Every signature writes the input.
+-- Every transition writes the input.
 select Ref :: State.Off -> State.On
 select Ref :: State.On -> State.Off

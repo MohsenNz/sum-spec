@@ -1,6 +1,0 @@
-test/parse/error-uppercase-transition.sumspec:2:9:
-  |
-2 | __txs { T }
-  |         ^
-unexpected 'T'
-expecting '}' or transition name

@@ -6,7 +6,7 @@ __atomics {
   Path
 }
 
-__txs {
+__events {
   init
   edit
   add

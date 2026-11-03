@@ -1,6 +1,6 @@
 -- The two sides of a transition are states of the same type.
 __atomics { Text TodoId }
-__txs { sameType otherSum productToSum elementToElementType }
+__events { sameType otherSum productToSum elementToElementType }
 
 App = Screen * Mode * Todos
 

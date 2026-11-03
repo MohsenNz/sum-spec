@@ -1,6 +1,6 @@
 -- Paths through things that are not sums.
 __atomics { A }
-__txs { notVariant onAtomic onProduct throughPayload throughNewtype }
+__events { notVariant onAtomic onProduct throughPayload throughNewtype }
 
 App = Page * A
 Page = Home | Plan Mode

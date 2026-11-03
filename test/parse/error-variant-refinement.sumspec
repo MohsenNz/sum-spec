@@ -1,4 +1,4 @@
 __atomics { A B C }
-__txs { t }
+__events { t }
 T = X | Y
 T.X = A * B

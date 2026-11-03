@@ -5,7 +5,7 @@ __atomics {
   Text
 }
 
-__txs {
+__events {
   rename
   select
   keep

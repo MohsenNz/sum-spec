@@ -51,9 +51,9 @@ keyword word = lexeme (try (chunk word *> notFollowedBy (satisfy isIdentChar)))
 upperName :: Parser Name
 upperName = identifier isAsciiUpper <?> "type or variant name"
 
--- | A transition name: @LOWER@.
+-- | An event name: @LOWER@.
 lowerName :: Parser Name
-lowerName = identifier isAsciiLower <?> "transition name"
+lowerName = identifier isAsciiLower <?> "event name"
 
 -- | A name for a value in a pattern: @LOWER@.
 valueName :: Parser Name

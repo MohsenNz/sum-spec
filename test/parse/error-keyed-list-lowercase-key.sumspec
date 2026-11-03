@@ -1,6 +1,6 @@
 __version 1.0
 __atomics { Id }
-__txs {}
+__events {}
 App = Items
 Items = [Item by id]
 Item = Id | None

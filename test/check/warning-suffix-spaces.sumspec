@@ -1,7 +1,7 @@
 -- A prime or a naming goes right after the pattern before it; a space
 -- there is read the same, so the checker only warns.
 __atomics { A Id Name Text }
-__txs { primed named inArgs afterParens tabbed lineStart fine }
+__events { primed named inArgs afterParens tabbed lineStart fine }
 
 App = A * Holder
 Holder = Empty | Full Text

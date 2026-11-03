@@ -1,7 +1,7 @@
 -- A newtype is a type of its own: it may share a product with its base,
 -- and it takes one argument headed by its base type.
 __atomics { Timestamp Point }
-__txs { t }
+__events { t }
 
 App = Event * Boundary
 Event = At * Timestamp

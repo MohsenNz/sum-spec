@@ -1,5 +1,5 @@
 __atomics { A }
-__txs { f }
+__events { f }
 
 App = A
 

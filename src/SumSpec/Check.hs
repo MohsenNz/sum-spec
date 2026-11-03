@@ -117,8 +117,8 @@ checkHeaders spec =
   [ errorAt n (nameText n <> " is listed twice in __atomics")
   | (n, _) <- repeats nameText (specAtomics spec)
   ]
-    <> [ errorAt n (nameText n <> " is listed twice in __txs")
-       | (n, _) <- repeats nameText (specTxs spec)
+    <> [ errorAt n (nameText n <> " is listed twice in __events")
+       | (n, _) <- repeats nameText (specEvents spec)
        ]
 
 checkApp :: FilePath -> Env -> [CheckError]
@@ -188,22 +188,22 @@ newtypeCycle env (TypeDef start _) = go [nameText start] (nameText start)
 
 checkTransitions :: Env -> Spec -> [Transition] -> [CheckError]
 checkTransitions env spec transitions =
-  [ errorAt n ("transition " <> nameText n <> " is not listed in __txs")
-  | Transition n _ _ _ <- firsts (nameText . transitionName) transitions
+  [ errorAt n ("event " <> nameText n <> " is not listed in __events")
+  | Transition n _ _ _ <- firsts (nameText . transitionEvent) transitions
   , nameText n `Set.notMember` listed
   ]
     <> checkInputs transitions
-    <> [ errorAt n ("transition " <> nameText n <> " is listed in __txs but has no signature")
-       | n <- firsts nameText (specTxs spec)
+    <> [ errorAt n ("event " <> nameText n <> " is listed in __events but has no transition")
+       | n <- firsts nameText (specEvents spec)
        , nameText n `Set.notMember` signed
        ]
-    <> concatMap checkSignature transitions
+    <> concatMap checkTransition transitions
   where
-    listed = Set.fromList (map nameText (specTxs spec))
-    signed = Set.fromList (map (nameText . transitionName) transitions)
+    listed = Set.fromList (map nameText (specEvents spec))
+    signed = Set.fromList (map (nameText . transitionEvent) transitions)
     -- The input is checked like the source: it's what the transition
     -- receives, so it can name values but not give new ones.
-    checkSignature (Transition _ input from to) =
+    checkTransition (Transition _ input from to) =
       concatMap (checkPrimes Source) input
         <> checkPrimes Source from
         <> checkPrimes Target to
@@ -219,7 +219,7 @@ checkTransitions env spec transitions =
         <> checkSides env names from to
         <> checkNewStatePrimes from to
       where
-        names = Map.fromList [(nameText n, k) | (n, k) <- signatureNames input from]
+        names = Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from]
 
 -- | The two sides of a transition are states of the same type: they're
 -- headed by the same type name (an element path by its list type). An
@@ -424,19 +424,19 @@ checkListPlaces defs transitions =
       PatternPrimed _ p -> patternLists p
       PatternName _ -> []
 
--- | An input belongs to the transition, not to one signature (as an EFSM
--- event has one parameter list), so every signature takes the input of
--- the first one, or none like it.
+-- | An input belongs to the event, not to one of its transitions (as an
+-- EFSM event has one parameter list), so every transition of an event
+-- takes the input of the first one, or none like it.
 checkInputs :: [Transition] -> [CheckError]
 checkInputs transitions =
   [ errorAt (maybe n patternHead input) $
-      "transition "
+      "event "
         <> nameText n
         <> " takes "
         <> describe firstInput
         <> " (line "
         <> lineOf firstName
-        <> "), but this signature takes "
+        <> "), but this transition takes "
         <> describe input
   | Transition n input _ _ <- transitions
   , Just (Transition firstName firstInput _ _) <- [Map.lookup (nameText n) firstByName]
@@ -445,15 +445,15 @@ checkInputs transitions =
   where
     firstByName =
       Map.fromList
-        [ (nameText (transitionName t), t)
-        | t <- firsts (nameText . transitionName) transitions
+        [ (nameText (transitionEvent t), t)
+        | t <- firsts (nameText . transitionEvent) transitions
         ]
     describe = maybe "no input" patternKey
 
--- | The names a signature gives, with their types: in its input and on
+-- | The names a transition gives, with their types: in its input and on
 -- its source side.
-signatureNames :: Maybe Pattern -> Pattern -> [(Name, Text)]
-signatureNames input from = concatMap namings input <> namings from
+transitionNames :: Maybe Pattern -> Pattern -> [(Name, Text)]
+transitionNames input from = concatMap namings input <> namings from
 
 -- | The values a pattern names (@P#x@), with the type of each: the head
 -- type of @P@, or its list type. A name given to a name (@x#y@) is an
@@ -485,8 +485,8 @@ elementKeys = \case
 -- used, to set a value.
 checkNamings :: Maybe Pattern -> Pattern -> Pattern -> [CheckError]
 checkNamings input from to =
-  [ errorAt n (nameText n <> " is named twice in this signature")
-  | ((n, _), _) <- repeats (nameText . fst) (signatureNames input from)
+  [ errorAt n (nameText n <> " is named twice in this transition")
+  | ((n, _), _) <- repeats (nameText . fst) (transitionNames input from)
   ]
     <> [ errorAt n $
            "a value is named only in the input or on the source side; "
@@ -561,7 +561,7 @@ typeNode env name = case Map.lookup name (envTypes env) of
     | Set.member name (envAtomics env) -> Just (Node name Nothing)
     | otherwise -> Nothing
 
--- | The names a signature gives, with the type of each.
+-- | The names a transition gives, with the type of each.
 type Names = Map Text Text
 
 -- | A whole side of a transition, or an input. Its first name must be a
@@ -844,7 +844,7 @@ listPlaces env =
 -- says which only when it picks the element by key: with an element path
 -- on a keyed list (@Todos[id](...)@), or, in a list without a key,
 -- written from the element, comparing a key with a named value
--- (@Todo(id * ...)@). Warns about the others, once per signature.
+-- (@Todo(id * ...)@). Warns about the others, once per transition.
 warnListElements :: Env -> [Transition] -> [CheckError]
 warnListElements env transitions =
   [ warningAt h (nameText n <> " " <> message)

@@ -1,2 +1,2 @@
 __atomics { A }
-__txs { T }
+__events { T }

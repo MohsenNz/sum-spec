@@ -1,6 +1,6 @@
 -- Unknown types in a newtype, a product, a payload, a list and a pattern.
 __atomics { A }
-__txs { t }
+__events { t }
 
 App = Missing
 P = A * Gone

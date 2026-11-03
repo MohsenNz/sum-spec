@@ -3,7 +3,7 @@
 __version 1.0
 
 __atomics { Id Cell }
-__txs { source target input named }
+__events { source target input named }
 
 App = Ids * Grid * Holder * Pair * Choice
 Ids = [Id]

@@ -31,8 +31,8 @@ renderParseError = errorBundlePretty
 spec :: Parser Spec
 spec = do
   version <- optional versionHeader
-  (atomics, txs) <- headers
-  Spec version atomics txs <$> many definition
+  (atomics, events) <- headers
+  Spec version atomics events <$> many definition
 
 -- version_header = "__version" , VERSION ;
 --
@@ -56,18 +56,18 @@ versionHeader = do
       | defaultVersion == latestVersion = renderVersion latestVersion
       | otherwise = renderVersion defaultVersion <> " to " <> renderVersion latestVersion
 
--- headers = atomics_block , txs_block | txs_block , atomics_block ;
+-- headers = atomics_block , events_block | events_block , atomics_block ;
 headers :: Parser ([Name], [Name])
-headers = atomicsFirst <|> txsFirst
+headers = atomicsFirst <|> eventsFirst
   where
-    atomicsFirst = (,) <$> atomicsBlock <*> txsBlock
-    txsFirst = flip (,) <$> txsBlock <*> atomicsBlock
+    atomicsFirst = (,) <$> atomicsBlock <*> eventsBlock
+    eventsFirst = flip (,) <$> eventsBlock <*> atomicsBlock
 
 atomicsBlock :: Parser [Name]
 atomicsBlock = symbol "__atomics" *> braces (many upperName)
 
-txsBlock :: Parser [Name]
-txsBlock = symbol "__txs" *> braces (many lowerName)
+eventsBlock :: Parser [Name]
+eventsBlock = symbol "__events" *> braces (many lowerName)
 
 definition :: Parser Definition
 definition = DefTransition <$> transition <|> DefType <$> typeDef

@@ -6,7 +6,7 @@ __atomics {
   Cell
 }
 
-__txs {
+__events {
   by
 }
 

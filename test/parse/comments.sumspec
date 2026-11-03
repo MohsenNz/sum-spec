@@ -1,6 +1,6 @@
 -- A comment at the start of the file.
 __atomics { A B C } -- after a block
-__txs {
+__events {
   trans1 -- inside a block
   trans2
 }

@@ -5,7 +5,7 @@
 
 (* ---------- Spec ---------- *)
 
-(* The optional version header comes first. Then __atomics and __txs
+(* The optional version header comes first. Then __atomics and __events
    both appear once, in either order, before any definition. *)
 spec          = [ version_header ] , headers , { definition } ;
 
@@ -13,11 +13,11 @@ spec          = [ version_header ] , headers , { definition } ;
    means 1.0. *)
 version_header = "__version" , VERSION ;
 
-headers       = atomics_block , txs_block
-              | txs_block , atomics_block ;
+headers       = atomics_block , events_block
+              | events_block , atomics_block ;
 
 atomics_block = "__atomics" , "{" , { UPPER } , "}" ;
-txs_block     = "__txs" , "{" , { LOWER } , "}" ;
+events_block  = "__events" , "{" , { LOWER } , "}" ;
 
 definition    = type_def
               | transition ;
@@ -64,7 +64,9 @@ type_term     = UPPER
 
 (* ---------- Transitions ---------- *)
 
-(* The optional input after the name is the value the transition takes,
+(* A transition of the event named by LOWER. An event may have several
+   transitions, one per definition. The optional input after the name is
+   the value the event brings,
    a type pattern that may name values:
      toggleTodo TodoId :: Completion.Active -> Completion.Completed
      select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On) *)
@@ -155,15 +157,15 @@ character     = ? any Unicode character ? ;
    - every type name used in a definition or pattern is an atomic or a
      defined type;
    - no type is both atomic and defined, and no type is defined twice;
-   - no name is listed twice in __atomics or in __txs;
-   - every transition name is listed in __txs, and every name in __txs
-     has at least one signature;
-   - a transition's input is headed by an atomic or a defined type,
-     every signature of a transition takes an input of the same type or
-     none. See "Transition inputs" in spec-v1.md;
+   - no name is listed twice in __atomics or in __events;
+   - every event is listed in __events, and every name in __events has
+     at least one transition;
+   - an event's input is headed by an atomic or a defined type, and
+     every transition of an event takes an input of the same type or
+     none. See "Event inputs" in spec-v1.md;
    - a value is named (P#x) only in the input or on the source side,
-     once per signature, and only after a type pattern; a name used (x)
-     is named in the same signature and has the type expected where it
+     once per transition, and only after a type pattern; a name used (x)
+     is named in the same transition and has the type expected where it
      is used (as a factor, it stands for the factor of its type). See
      "Named values" in spec-v1.md;
    - variant names are unique within one sum, and type names are unique
@@ -177,7 +179,7 @@ character     = ? any Unicode character ? ;
      one argument headed by the type of a single payload or the base of
      a newtype; none for a sum, an atomic, or a variant without a
      payload. See "Arguments in state patterns" in spec-v1.md;
-   - the source and target of a signature are headed by the same type
+   - the source and target of a transition are headed by the same type
      (an element path L[x] by its list type L). See "Arguments in state
      patterns" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
@@ -193,7 +195,7 @@ character     = ? any Unicode character ? ;
      spec-v1.md;
    - an element path L[x] is written where L is expected, on the source
      or target side, never in the input: L is one name, of a type
-     defined as a keyed list; x is a name of the signature, of the
+     defined as a keyed list; x is a name of the transition, of the
      list's key type; the arguments are the element's factors when it
      is a product, or else one argument headed by the element type; the
      element takes no prime and no naming. See "Element paths" in

@@ -1,5 +1,5 @@
 -- No App type.
 __atomics { A }
-__txs {}
+__events {}
 
 T = A

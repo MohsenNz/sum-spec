@@ -1,6 +1,6 @@
 -- Primes in places where they are not allowed.
 __atomics { A B }
-__txs { onSource twice onPath onArgs }
+__events { onSource twice onPath onArgs }
 
 App = Page * A
 Page = Home | Plan (A * B)

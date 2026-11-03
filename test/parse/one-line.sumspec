@@ -1,1 +1,1 @@
-__atomics { A } __txs { t } App = S S = X | Y A t :: S.X -> S.Y(A)
+__atomics { A } __events { t } App = S S = X | Y A t :: S.X -> S.Y(A)

@@ -1,7 +1,7 @@
 -- A prime doesn't go inside a new state: a variant on the target side
 -- that the source doesn't fix.
 __atomics { Text Id Counter }
-__txs { noVariant otherVariant inFactor deepPath bareSource keeps anyValue sibling element }
+__events { noVariant otherVariant inFactor deepPath bareSource keeps anyValue sibling element }
 
 App = Page * Screen * Counter * Items
 

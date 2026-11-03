@@ -4,7 +4,7 @@ __atomics {
   C
 }
 
-__txs {
+__events {
   trans1
   trans2
 }

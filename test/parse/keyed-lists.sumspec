@@ -6,7 +6,7 @@
 __version 1.0
 
 __atomics { Id Row Cell }
-__txs { by }
+__events { by }
 
 App = Items * Shape * Grid
 Items = [Item by Id]

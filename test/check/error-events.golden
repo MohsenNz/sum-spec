@@ -1,0 +1,12 @@
+test/check/error-events.sumspec:4:12:
+  |
+4 | __events { u }
+  |            ^
+event u is listed in __events but has no transition
+
+test/check/error-events.sumspec:7:1:
+  |
+7 | t :: App.X -> App.Y
+  | ^
+event t is not listed in __events
+

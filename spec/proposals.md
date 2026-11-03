@@ -9,11 +9,11 @@ impact (see `VERSIONING.md`):
 Until the first release, any proposal can go straight into 1.0 (see
 "Before the first release" in `VERSIONING.md`).
 
-## Two state transitions with the same signature (Postponed)
+## Two events with the same transition (Postponed)
 
 Version impact: additive.
 
-    g, h :: Y -> Z  -- two state transitions "g" and "h" with the same signature
+    g, h :: Y -> Z  -- two events "g" and "h" with the same transition
 
 ## `=>` enters one construction level shared by both sides of a transition
 
@@ -90,7 +90,7 @@ definition, addressed by its path. Today the payload is written inline:
       = ...
       | ShowMission (List (...) | Selected Mission)
 
-## Several signatures under one name
+## Several transitions under one event name
 
 Version impact: additive.
 
@@ -98,32 +98,32 @@ Version impact: additive.
       :: Todo(id * Completion.Active)    -> Todo(Completion.Completed)
       :: Todo(id * Completion.Completed) -> Todo(Completion.Active)
 
-A transition writes its name and input once, then one `:: source ->
-target` arm per signature. Today the name and input are repeated for
-each signature (see "Several signatures for one transition" in
+An event writes its name and input once, then one `:: source ->
+target` arm per transition. Today the name and input are repeated for
+each transition (see "Several transitions for one event" in
 `spec-v1.md`); that form stays valid.
 
-    transition = LOWER , [ input ] , signature , { signature } ;
-    signature  = "::" , pattern , "->" , pattern ;
+    transition = LOWER , [ input ] , arm , { arm } ;
+    arm        = "::" , pattern , "->" , pattern ;
 
 An arm starts with `::`, which can't begin a definition, so the parser
 knows where the next arm starts.
 
 - Names bound in the input are visible in every arm. Names bound in a
   source belong to that arm.
-- The input belongs to the transition (see "Transition inputs" in
+- The input belongs to the event (see "Event inputs" in
   `spec-v1.md`), so it's written in one place.
 
 Writing the source first and grouping events below it (a state table)
-was considered and rejected: an event's signatures end up in several
+was considered and rejected: an event's transitions end up in several
 groups, and once patterns pick list elements by key, few sources are
 shared. A tool can print the by-state view instead (e.g. `sumspec
 states FILE`).
 
 Open:
 
-- Does the canonical form print every signature of a name as one group?
-- Must the signatures of a name then be adjacent?
+- Does the canonical form print every transition of an event as one group?
+- Must the transitions of an event then be adjacent?
 
 ## Naming an element
 

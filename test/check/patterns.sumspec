@@ -1,6 +1,6 @@
 -- Every kind of valid pattern.
 __atomics { Point Text }
-__txs { anyApp bareSum bareVariant deepPath factorsAnyOrder newtypeArg listArg singlePayload }
+__events { anyApp bareSum bareVariant deepPath factorsAnyOrder newtypeArg listArg singlePayload }
 
 App = Screen * Shape * Label
 

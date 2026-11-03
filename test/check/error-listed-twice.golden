@@ -4,9 +4,9 @@ test/check/error-listed-twice.sumspec:1:17:
   |                 ^
 A is listed twice in __atomics
 
-test/check/error-listed-twice.sumspec:2:11:
+test/check/error-listed-twice.sumspec:2:14:
   |
-2 | __txs { t t }
-  |           ^
-t is listed twice in __txs
+2 | __events { t t }
+  |              ^
+t is listed twice in __events
 

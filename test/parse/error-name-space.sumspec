@@ -1,6 +1,6 @@
 __version 1.0
 __atomics { A }
-__txs { f }
+__events { f }
 
 App = A
 

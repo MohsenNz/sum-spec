@@ -2,7 +2,7 @@ __atomics {
   Point
 }
 
-__txs {
+__events {
   t
   u
   v

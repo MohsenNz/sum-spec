@@ -8,7 +8,7 @@ test/check/error-names.sumspec:14:26:
    |
 14 | twice Id#x :: Todo(Title#x) -> Todo
    |                          ^
-x is named twice in this signature
+x is named twice in this transition
 
 test/check/error-names.sumspec:15:32:
    |

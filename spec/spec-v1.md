@@ -48,7 +48,7 @@ Now Y is a sum of V1, V2 and `V3 A`.
 t :: A -> B
 ```
 
-Transition t transfer app from state A (Type A) to state B (Type B).
+This is a transition of the event `t`: when `t` happens, the app moves from state A (Type A) to state B (Type B).
 
 We show a state (in a transition) like this:
 
@@ -60,7 +60,7 @@ Z = Y * C
 trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
 ```
 
-The trans1 transition, change state Y.V1 to Y.V3(A). We show the state of product types with parenthesis: `Z(...)`, and refer to sum types with dot `Y.V1`. The State of a variant with a value is shown like a product type, `Y.V3(A)`.
+The transition of trans1 changes state Y.V1 to Y.V3(A). We show the state of product types with parenthesis: `Z(...)`, and refer to sum types with dot `Y.V1`. The State of a variant with a value is shown like a product type, `Y.V3(A)`.
 
 **More Examples:**
 
@@ -72,7 +72,7 @@ T2 = A
 trans3 :: T2.A -> T2.B(X * Y * Z)
 ```
 
-**Note**: types are uppercase and transitions are lowercase
+**Note**: types are uppercase and events are lowercase
 
 ### Transition parts:
 
@@ -80,12 +80,14 @@ In transition `trans3 :: T2.A -> T2.B(X * Y * Z)` we call each part like this:
 
 ```haskell
 trans3
--- ↑ transition name
+-- ↑ event name
   :: T2.A
   -- ↑ source; state pattern
   -> T2.B(X * Y * Z)
   -- ↑ target     ↑ argument
 ```
+
+**Event:** the name before `::`, something that happens to the app: a user's action or an occurrence in the outside world. An event may have several transitions; see "Several transitions for one event".
 
 **Source:** the left side of ->, the state the app must be in for the transition to apply (a precondition).
 
@@ -151,7 +153,16 @@ A list isn't inline: it has a type name (`MissionSummaries = [MissionSummary]`);
 
 ## Naming
 
-Types and variants are uppercase; transitions are lowercase.
+Types and variants are uppercase; events are lowercase.
+
+Name an event for what happens:
+
+- A command, something the user or another system asks for, is an imperative verb: `toggleTodo`, `startTyping`, `commit`.
+- An occurrence, something that happened to the app, is in the past tense: `linkLost`, `uploadFinished`.
+
+`Event` suffix is optional for occurrences, it's up to you to use it: `linkLossEvent`
+
+This is a convention; the type checker doesn't check it.
 
 Each sum has its own variant namespace. `Ring.Partial` and `Path.Partial` are different variants, and a variant may share a type's name (`PMode.Plot` is a variant, `Plot` is a type). Variant names are unique within one sum. Names inside a payload always refer to types:
 in `| Plot (PlotOrigin * Plot)`, the second `Plot` is the type `Plot`.
@@ -233,21 +244,21 @@ Where a prime may go:
 
 `Missions'` says that a list changed, not how (added, removed, edited).
 
-### Several signatures for one transition
+### Several transitions for one event
 
-A transition may apply from more than one state, reaching a different
+An event may apply from more than one state, reaching a different
 target or having a different effect from each. Repeat the name, one
-block per signature:
+transition per state:
 
 ```
 f :: A -> B
 f :: C -> D
 ```
 
-### Transition inputs
+### Event inputs
 
-A transition may take an input, a value the event brings with it. The
-input's type goes after the transition's name:
+An event may take an input, a value it brings with it. The input's type
+goes after the event's name:
 
 ```
 startTyping Text :: NewTodo.Blank -> NewTodo.Typing(Text)
@@ -255,7 +266,7 @@ startTyping Text :: NewTodo.Blank -> NewTodo.Typing(Text)
 
 The input is one type: an atomic or a defined type, such as a list type
 (`Ids = [Id]`).
-A transition that needs several values takes a product defined for them:
+An event that brings several values takes a product defined for them:
 
 ```
 Ref = Id * Name
@@ -274,17 +285,17 @@ select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On)
 A variant or argument written in the input is a precondition on it, as
 on the source side.
 
-The input belongs to the transition, not to one signature:
-a transition has one input, whatever state it applies from.
-So every signature writes an input of the same type, or
-none (the names in it may differ):
+The input belongs to the event, not to one of its transitions: an
+event has one input, whatever state it applies from. So every
+transition of an event writes an input of the same type, or none (the
+names in it may differ):
 
 ```
 toggleTodo TodoId :: Completion.Active -> Completion.Completed
 toggleTodo TodoId :: Completion.Completed -> Completion.Active
 ```
 
-A signature doesn't have to use the input.
+A transition doesn't have to use the input.
 
 ## Named values (#name)
 
@@ -300,7 +311,7 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
   token: no space between `#` and the name. The canonical form writes no
   space before `#` either, and the type checker warns about one
   (`Text #t`).
-- A name is given once per signature, in the input or on the source
+- A name is given once per transition, in the input or on the source
   side. Its type is like: `Completion` for `Completion.Active#c`, `Ids` for `Ids#ids`.
 - **On the source side**, a name that is used is a guard: the value there
   must equal the named one. `unlock` applies only when the entered code
@@ -321,7 +332,7 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
   startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
   ```
 
-- Names belong to one signature. Two signatures of a transition may name
+- Names belong to one transition. Two transitions of an event may name
   their input differently.
 
 A name says which value; a prime says only that the value is new.
@@ -429,7 +440,7 @@ how versions are numbered.
 
 ## Entry point
 
-The entry point is type `App`. Every spec should carry it. Also all then transition names should declare inside `__txs {}` block and all leaf types (atomic types) declare inside `__atomics {}` block as the start point.
+The entry point is type `App`. Every spec should carry it. Also all the event names should declare inside `__events {}` block and all leaf types (atomic types) declare inside `__atomics {}` block as the start point.
 
 ### Example
 
@@ -440,7 +451,7 @@ __atomics {
   C
 }
 
-__txs {
+__events {
   trans1
   trans2
 }
@@ -458,4 +469,4 @@ trans1 :: Y.V1 -> Y.V3(A)
 trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
 ```
 
-`__atomics` and `__txs` should define before each type or transition, but they don't have any priority to each others.
+`__atomics` and `__events` should define before each type or transition, but they don't have any priority to each others.

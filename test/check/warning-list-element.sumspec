@@ -4,7 +4,7 @@
 __version 1.0
 
 __atomics { Id Text }
-__txs { inside noKey keyed above outside keyedInside keyedElement picked }
+__events { inside noKey keyed above outside keyedInside keyedElement picked }
 
 App = Items * Mode * Keyed
 Items = [Item]

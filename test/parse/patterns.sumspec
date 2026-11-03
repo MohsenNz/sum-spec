@@ -1,6 +1,6 @@
 -- Patterns: a bare type, a nested path, nested arguments, a list.
 __atomics { Point }
-__txs { t u v }
+__events { t u v }
 
 App = Ring * Point
 Ring = Partial [Point] | Closed [Point]

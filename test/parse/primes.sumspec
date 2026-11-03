@@ -1,7 +1,7 @@
 -- Primes after names, arguments, paths and lists all parse; the checker
 -- decides which are allowed. Space before a prime is allowed.
 __atomics { A B }
-__txs { t }
+__events { t }
 
 App = A * B
 

@@ -2,7 +2,7 @@
 __version 1.0
 
 __atomics { Id Text }
-__txs { unknown twice onTarget nameName mismatch primed notFactor }
+__events { unknown twice onTarget nameName mismatch primed notFactor }
 
 App = Todo
 Todo = Id * Title * Mode

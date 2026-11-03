@@ -8,17 +8,17 @@ test/check/error-inputs.sumspec:15:1:
    |
 15 | g :: S.Y -> S.X
    | ^
-transition g takes A (line 14), but this signature takes no input
+event g takes A (line 14), but this transition takes no input
 
 test/check/error-inputs.sumspec:18:3:
    |
 18 | h B :: S.Y -> S.X
    |   ^
-transition h takes A (line 17), but this signature takes B
+event h takes A (line 17), but this transition takes B
 
 test/check/error-inputs.sumspec:19:3:
    |
 19 | h As :: S.Y -> S.X
    |   ^
-transition h takes A (line 17), but this signature takes As
+event h takes A (line 17), but this transition takes As
 

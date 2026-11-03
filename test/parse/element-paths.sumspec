@@ -3,7 +3,7 @@
 __version 1.0
 
 __atomics { ProjectId TodoId Text }
-__txs { toggle rename remove }
+__events { toggle rename remove }
 
 App = Projects
 Projects = [Project by ProjectId]

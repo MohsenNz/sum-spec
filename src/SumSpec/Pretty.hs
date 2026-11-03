@@ -16,12 +16,12 @@ import SumSpec.Syntax
 import SumSpec.Version (renderVersion)
 
 renderSpec :: Spec -> Text
-renderSpec (Spec version atomics txs defs) =
+renderSpec (Spec version atomics events defs) =
   T.unlines $
     maybe [] (\v -> ["__version " <> T.pack (renderVersion v), ""]) version
       <> block "__atomics" atomics
       <> [""]
-      <> block "__txs" txs
+      <> block "__events" events
       <> [""]
       <> map renderDefinition defs
   where

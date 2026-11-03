@@ -10,15 +10,20 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- Events: the lowercase name before `::` is an event, listed in
+  `__events` (was `__txs`); each `event :: source -> target` is one of
+  its transitions. An event may have several transitions, and they share
+  its input. Naming convention: imperative for commands (`toggleTodo`),
+  past tense for occurrences (`linkLost`).
 - The two sides of a transition are states of the same type: they're
   headed by the same type name (`Page.Home -> Page.Plan`, not
   `Page.Home -> Missions`).
 - A prime doesn't go inside a new state (`Page -> Page.Plan(PMode')`):
   nothing there has an old value to change. Write `PMode`, which may
   have any value there, or leave it out.
-- Transition inputs: a transition may take an input, written after its
-  name (`toggleTodo TodoId :: ...`). Every signature of a transition
-  takes the same input, or none. The input is a type pattern, so it can
+- Event inputs: an event may take an input, written after its name
+  (`toggleTodo TodoId :: ...`). Every transition of an event takes the
+  same input, or none. The input is a type pattern, so it can
   name its parts: `select Ref(Id#i * Name#n) :: ...`.
 - Named values: `P#x` names the value a pattern matches, in the input or
   on the source side, and `x` uses it. On the source side a name is an
@@ -46,13 +51,13 @@ release" in `VERSIONING.md`).
 
 ### Tool
 
-- The parser, printer and checker read transition inputs, named values,
+- The parser, printer and checker read event inputs, named values,
   keyed lists and element paths.
 - `sumspec check` warns about a space before a prime or a naming
   (`A '`, `Text #t`).
 - The checker reports:
-  - an input whose type is unknown, and signatures of one transition
-    with different inputs;
+  - an input whose type is unknown, and transitions of one event with
+    different inputs;
   - unknown names, names given twice or on the target side, and names
     of the wrong type;
   - an unknown key type;

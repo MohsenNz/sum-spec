@@ -10,7 +10,7 @@ __atomics {
   Settings
 }
 
-__txs {
+__events {
   goToPlan
   goToDevices
   planBackToHome

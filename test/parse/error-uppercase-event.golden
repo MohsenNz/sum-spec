@@ -1,0 +1,6 @@
+test/parse/error-uppercase-event.sumspec:2:12:
+  |
+2 | __events { T }
+  |            ^
+unexpected 'T'
+expecting '}' or event name

@@ -1,7 +1,7 @@
 -- A product's arguments: a factor that doesn't belong, and a factor
 -- written twice (also with a prime). Leaving factors out is valid.
 __atomics { A B C }
-__txs { notFactor twice primedTwice }
+__events { notFactor twice primedTwice }
 
 App = A * B
 

@@ -4,7 +4,7 @@
 __version 1.0
 
 __atomics { ProjectId TodoId Path Text }
-__txs { toggle rename remove keep stage }
+__events { toggle rename remove keep stage }
 
 App = Projects * Selected * Files
 Projects = [Project by ProjectId]

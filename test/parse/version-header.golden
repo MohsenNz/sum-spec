@@ -4,7 +4,7 @@ __atomics {
   A
 }
 
-__txs {
+__events {
 }
 
 App = A

@@ -7,7 +7,7 @@
 -- no todos.
 --
 -- Todos is a keyed list: each todo is identified by its TodoId, which the
--- list holds. A transition on one todo takes a TodoId, and picks the todo
+-- list holds. An event on one todo takes a TodoId, and picks the todo
 -- with an element path (Todos[id](...)).
 
 __version 1.0
@@ -18,7 +18,7 @@ __atomics {
   TodoId
 }
 
-__txs {
+__events {
   startTyping
   addTodo
   toggleTodo

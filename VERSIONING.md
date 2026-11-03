@@ -62,7 +62,7 @@ note. Every feature added in a later minor version gets a line under
 its section heading in `spec-v<major>.md`:
 
 ```
-## Transition inputs
+## Event inputs
 
 Added in 1.1.
 ```

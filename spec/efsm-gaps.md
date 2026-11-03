@@ -134,7 +134,7 @@ the source and the target, says how a value changes, like an EFSM's
 - A part changed by an action isn't primed or set in the target: the
   action is the only place that says how it changes (`Todos'` is gone
   above).
-- Actions are builtins, named with the `__` prefix like `__txs`:
+- Actions are builtins, named with the `__` prefix like `__events`:
 
 | Action | Meaning |
 |---|---|
@@ -143,7 +143,7 @@ the source and the target, says how a value changes, like an EFSM's
 | `__remove ts where P` | remove every element that matches `P` |
 | `__each ts P` | apply `P` to every element (`toggleAll`) |
 
-The action doesn't make the second signature of `deleteTodo` (to
+The action doesn't make the second transition of `deleteTodo` (to
 `Screen.NoTodos` when the last todo goes) or `ToggleAll'` and `Footer'`
 go away; those follow from the list through derived values (Part B).
 
@@ -159,35 +159,35 @@ Open questions for B and C:
   or "a new list starts empty".
 - The separator: `//` is already "such that" in the "Dependent type"
   proposal; `/` (as in an EFSM) or a keyword are the alternatives.
-- One action per signature, or several (`toggleAll` may need `__each`
+- One action per transition, or several (`toggleAll` may need `__each`
   together with others).
 - Which names an action may use: the source's, the input's (`__add ts
   Todo(Title(t) * ...)` for `addTodo`), or both.
-- Where the action clause goes in a signature written on one line.
+- Where the action clause goes in a transition written on one line.
 
 ## 4. Event inputs and outputs
 
-Status: inputs decided (see "Transition inputs" in
+Status: inputs decided (see "Event inputs" in
 `spec-v1.md`); outputs open.
 
-A transition is only a name. It takes no input, so the typed text in
+An event is only a name. It takes no input, so the typed text in
 `NewTodo.Typing(Text)` appears only as "Text has some value". It
 produces no output, such as a message to the user or a call to a
 device.
 
 To decide:
 
-- Inputs (done): `f X :: A -> B`. Every signature of a transition takes
+- Inputs (done): `f X :: A -> B`. Every transition of an event takes
   the same input, as an EFSM event has one parameter list. How the
   target says "this part is set to the input" is part of 3.
-- Outputs: whether a transition can emit an event or effect, and its
+- Outputs: whether an event's transition can emit an event or effect, and its
   type.
 
-## 5. Nondeterminism between signatures
+## 5. Nondeterminism between transitions
 
 Status: open.
 
-Two signatures of one transition may share a source:
+Two transitions of one event may share a source:
 
     deleteTodo :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
     deleteTodo :: Screen.WithTodos -> Screen.NoTodos
@@ -199,7 +199,7 @@ To decide:
 
 - Whether overlapping sources must carry guards that exclude each other
   (depends on 2), or whether nondeterminism stays allowed and is marked.
-- Related: the "transitions whose signatures overlap" warning in
+- Related: the "events whose transitions overlap" warning in
   `TODO.md`.
 
 ## 6. Initial state

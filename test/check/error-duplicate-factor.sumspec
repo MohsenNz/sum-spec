@@ -1,6 +1,6 @@
 -- Also inside an inline payload.
 __atomics { A B }
-__txs {}
+__events {}
 
 App = A * A
 S = V (A * B * B) | W

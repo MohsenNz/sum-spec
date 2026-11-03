@@ -1,6 +1,6 @@
 -- A newtype chain that leads back to where it started.
 __atomics { Text }
-__txs {}
+__events {}
 
 App = Self
 Self = Self

@@ -28,8 +28,8 @@ data Spec = Spec
   -- means 'SumSpec.Version.defaultVersion'.
   , specAtomics :: [Name]
   -- ^ Names declared in @__atomics { ... }@.
-  , specTxs :: [Name]
-  -- ^ Names declared in @__txs { ... }@.
+  , specEvents :: [Name]
+  -- ^ Names declared in @__events { ... }@.
   , specDefinitions :: [Definition]
   }
   deriving stock (Eq, Show)
@@ -71,9 +71,11 @@ data TypeTerm
     TermList TypeTerm (Maybe Name)
   deriving stock (Eq, Show)
 
--- | @t :: from -> to@, or @t X :: from -> to@ with an input
+-- | @t :: from -> to@, or @t X :: from -> to@ with an input: one transition
+-- of the event @t@. An event may have several transitions.
 data Transition = Transition
-  { transitionName :: Name
+  { transitionEvent :: Name
+  -- ^ The event's name, @t@.
   , transitionInput :: Maybe Pattern
   -- ^ The input, @X@ in @t X :: ...@: a pattern headed by a type, never a
   -- 'PatternName'.
@@ -93,7 +95,7 @@ data Pattern
   | -- | @[T]@ or @[T by K]@: any list of that type. The parser reads it;
     -- the checker reports it, since a list is written by its type name.
     PatternList TypeTerm (Maybe Name)
-  | -- | @x@: the value named @x@ in this signature.
+  | -- | @x@: the value named @x@ in this transition.
     PatternName Name
   | -- | @P#x@: matches @P@ and names its value @x@. The name is the one
     -- after the @#@.

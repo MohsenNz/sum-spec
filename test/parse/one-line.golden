@@ -2,7 +2,7 @@ __atomics {
   A
 }
 
-__txs {
+__events {
   t
 }
 

@@ -1,0 +1,8 @@
+-- t is not listed in __events (reported once, at its first transition);
+-- u is listed but has no transition.
+__atomics { A }
+__events { u }
+
+App = X | Y
+t :: App.X -> App.Y
+t :: App.Y -> App.X

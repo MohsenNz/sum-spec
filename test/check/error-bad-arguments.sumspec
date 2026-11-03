@@ -1,6 +1,6 @@
 -- Arguments that don't fit what they follow.
 __atomics { A B }
-__txs { onSum onAtomic onNoPayload tooMany wrongType wrongList }
+__events { onSum onAtomic onNoPayload tooMany wrongType wrongList }
 
 App = Page * A
 Page = Home | Plan Mode | Pick (One | Two) | Many As
