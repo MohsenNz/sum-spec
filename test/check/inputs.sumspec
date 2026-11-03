@@ -4,6 +4,8 @@ __version 1.0
 __atomics { Id Text }
 __events { rename pick select }
 
+__init :: App
+
 App = Items * Selection
 Items = [Item]
 Item = Id * Name * State

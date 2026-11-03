@@ -1,0 +1,6 @@
+test/check/error-init-twice.sumspec:6:1:
+  |
+6 | __init :: App(Mode.On)
+  | ^
+__init is written twice (first on line 5)
+

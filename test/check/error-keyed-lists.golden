@@ -1,12 +1,12 @@
-test/check/error-keyed-lists.sumspec:8:18:
-  |
-8 | Items = [Item by Key]
-  |                  ^
+test/check/error-keyed-lists.sumspec:10:18:
+   |
+10 | Items = [Item by Key]
+   |                  ^
 unknown type Key; declare it in __atomics or define it
 
-test/check/error-keyed-lists.sumspec:9:19:
-  |
-9 | Others = [Item by Missing]
-  |                   ^
+test/check/error-keyed-lists.sumspec:11:19:
+   |
+11 | Others = [Item by Missing]
+   |                   ^
 unknown type Missing; declare it in __atomics or define it
 

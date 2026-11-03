@@ -37,6 +37,10 @@ data Spec = Spec
 data Definition
   = DefType TypeDef
   | DefTransition Transition
+  | -- | @__init :: P@: the initial state, @P@. Its head type is the root,
+    -- the type of every state. The name is the @__init@ keyword, for its
+    -- position.
+    DefInit Name Pattern
   deriving stock (Eq, Show)
 
 -- | @T = expr@

@@ -4,6 +4,8 @@ __version 1.0
 __atomics { Id }
 __events {}
 
+__init :: App
+
 App = Items * Others
 Items = [Item by Key]
 Others = [Item by Missing]

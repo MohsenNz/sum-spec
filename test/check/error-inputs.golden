@@ -1,24 +1,24 @@
-test/check/error-inputs.sumspec:12:3:
+test/check/error-inputs.sumspec:14:3:
    |
-12 | f Missing :: S.X -> S.Y
+14 | f Missing :: S.X -> S.Y
    |   ^
 unknown type Missing; declare it in __atomics or define it
 
-test/check/error-inputs.sumspec:15:1:
+test/check/error-inputs.sumspec:17:1:
    |
-15 | g :: S.Y -> S.X
+17 | g :: S.Y -> S.X
    | ^
-event g takes A (line 14), but this transition takes no input
+event g takes A (line 16), but this transition takes no input
 
-test/check/error-inputs.sumspec:18:3:
+test/check/error-inputs.sumspec:20:3:
    |
-18 | h B :: S.Y -> S.X
+20 | h B :: S.Y -> S.X
    |   ^
-event h takes A (line 17), but this transition takes B
+event h takes A (line 19), but this transition takes B
 
-test/check/error-inputs.sumspec:19:3:
+test/check/error-inputs.sumspec:21:3:
    |
-19 | h As :: S.Y -> S.X
+21 | h As :: S.Y -> S.X
    |   ^
-event h takes A (line 17), but this transition takes As
+event h takes A (line 19), but this transition takes As
 

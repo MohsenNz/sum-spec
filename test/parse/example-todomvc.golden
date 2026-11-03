@@ -21,6 +21,7 @@ __events {
   showCompleted
 }
 
+__init :: App(Screen.NoTodos * NewTodo.Blank * Filter.All)
 App = Screen * NewTodo * Filter
 NewTodo = Blank | Typing Text
 Screen = NoTodos | WithTodos (Todos * ToggleAll * Footer)

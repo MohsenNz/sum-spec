@@ -1,0 +1,6 @@
+test/check/init-root.sumspec:12:11:
+   |
+12 | toggle :: Cell.On -> Cell.Off
+   |           ^
+warning: toggle changes one Cell of a list, but doesn't say which; to pick it, use an element path, such as Cells[id](...)
+

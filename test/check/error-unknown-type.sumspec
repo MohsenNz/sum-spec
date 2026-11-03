@@ -2,6 +2,8 @@
 __atomics { A }
 __events { t }
 
+__init :: App
+
 App = Missing
 P = A * Gone
 S = X Nope | Y Losts

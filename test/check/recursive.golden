@@ -1,6 +1,6 @@
-test/check/recursive.sumspec:9:9:
-  |
-9 | grow :: Tree.Leaf -> Tree.Node
-  |         ^
+test/check/recursive.sumspec:11:9:
+   |
+11 | grow :: Tree.Leaf -> Tree.Node
+   |         ^
 warning: grow changes one Tree of a list, but doesn't say which; to pick it, give Trees a key (Trees = [Tree by Id]) and use an element path, such as Trees[id](...)
 

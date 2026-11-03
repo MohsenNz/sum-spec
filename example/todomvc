@@ -33,6 +33,9 @@ __events {
   showCompleted
 }
 
+-- The app starts with no todos, an empty text box, and all todos shown.
+__init :: App(Screen.NoTodos * NewTodo.Blank * Filter.All)
+
 App
   = Screen
   * NewTodo

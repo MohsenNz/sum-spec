@@ -2,6 +2,8 @@
 __events { trans3 }
 __atomics { X Y Z }
 
+__init :: App
+
 App = T2
 
 T2 = A

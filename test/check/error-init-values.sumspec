@@ -1,0 +1,11 @@
+-- The initial state has no old value and no input: no prime, naming,
+-- name or element path. The rest is checked like a target.
+__atomics { Id Text }
+__events {}
+
+__init :: App(Mode' * Label(Text#t) * x * Items[i](Mode.On) * Count)
+
+App = Mode * Label * Items * Missing
+Label = Text
+Items = [Mode by Id]
+Mode = On | Off

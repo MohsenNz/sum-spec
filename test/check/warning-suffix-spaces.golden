@@ -1,36 +1,36 @@
-test/check/warning-suffix-spaces.sumspec:12:24:
+test/check/warning-suffix-spaces.sumspec:14:24:
    |
-12 | primed :: App -> App(A ')
+14 | primed :: App -> App(A ')
    |                        ^
 warning: a prime (') goes right after its name, with no space: write A'
 
-test/check/warning-suffix-spaces.sumspec:13:12:
+test/check/warning-suffix-spaces.sumspec:15:12:
    |
-13 | named Text #t :: Holder.Empty -> Holder.Full(t)
+15 | named Text #t :: Holder.Empty -> Holder.Full(t)
    |            ^
 warning: #t goes right after the pattern it names, with no space: write Text#t
 
-test/check/warning-suffix-spaces.sumspec:14:15:
+test/check/warning-suffix-spaces.sumspec:16:15:
    |
-14 | inArgs Ref(Id #i * Name#n) :: App -> App
+16 | inArgs Ref(Id #i * Name#n) :: App -> App
    |               ^
 warning: #i goes right after the pattern it names, with no space: write Id#i
 
-test/check/warning-suffix-spaces.sumspec:15:32:
+test/check/warning-suffix-spaces.sumspec:17:32:
    |
-15 | afterParens Ref(Id#i * Name#n) #r :: App -> App
+17 | afterParens Ref(Id#i * Name#n) #r :: App -> App
    |                                ^
 warning: #r goes right after the pattern it names, with no space
 
-test/check/warning-suffix-spaces.sumspec:16:17:
+test/check/warning-suffix-spaces.sumspec:18:17:
    |
-16 | tabbed Text	#t :: Holder.Empty -> Holder.Full(t)
+18 | tabbed Text	#t :: Holder.Empty -> Holder.Full(t)
    |                 ^
 warning: #t goes right after the pattern it names, with no space: write Text#t
 
-test/check/warning-suffix-spaces.sumspec:18:1:
+test/check/warning-suffix-spaces.sumspec:20:1:
    |
-18 | ')
+20 | ')
    | ^
 warning: a prime (') goes right after its name, with no space: write A'
 

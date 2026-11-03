@@ -1,24 +1,24 @@
-test/check/warning-list-element.sumspec:20:11:
+test/check/warning-list-element.sumspec:22:11:
    |
-20 | inside :: State.Off -> State.On
+22 | inside :: State.Off -> State.On
    |           ^
 warning: inside changes a State inside one Item of a list, but doesn't say which Item; to pick it, give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
 
-test/check/warning-list-element.sumspec:22:10:
+test/check/warning-list-element.sumspec:24:10:
    |
-22 | noKey :: Item(State.Off) -> Item(State.On)
+24 | noKey :: Item(State.Off) -> Item(State.On)
    |          ^
 warning: noKey changes one Item of a list, but doesn't say which; to pick it, give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
 
-test/check/warning-list-element.sumspec:30:16:
+test/check/warning-list-element.sumspec:32:16:
    |
-30 | keyedInside :: Level.Low -> Level.High
+32 | keyedInside :: Level.Low -> Level.High
    |                ^
 warning: keyedInside changes a Level inside one Entry of a list, but doesn't say which Entry; to pick it, use an element path, such as Keyed[id](...)
 
-test/check/warning-list-element.sumspec:32:24:
+test/check/warning-list-element.sumspec:34:24:
    |
-32 | keyedElement Name#n :: Entry(n * Level.Low) -> Entry(Level.High)
+34 | keyedElement Name#n :: Entry(n * Level.Low) -> Entry(Level.High)
    |                        ^
 warning: keyedElement changes one Entry of a list, but doesn't say which; to pick it, use an element path, such as Keyed[id](...)
 

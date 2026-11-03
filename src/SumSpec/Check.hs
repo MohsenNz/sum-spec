@@ -43,24 +43,29 @@ hasErrors = any ((== Error) . errorSeverity)
 
 -- | Checks a spec and returns its errors and warnings sorted by position;
 -- no errors means the spec is valid. The file path is used for errors
--- that have no place in the source, such as a missing @App@. The source is
+-- that have no place in the source, such as a missing @__init@. The source is
 -- the text the spec was parsed from, for the warnings about spacing.
 checkSpec :: FilePath -> Text -> Spec -> [CheckError]
 checkSpec file source spec =
   sortOn (position . errorPos) $
     concat
       [ checkHeaders spec
-      , checkApp file env
+      , checkInit file env inits
       , checkTypeDefs env typeDefs
       , checkTransitions env spec transitions
-      , checkListPlaces typeDefs transitions
-      , warnListElements env transitions
+      , checkListPlaces typeDefs (map snd inits) transitions
+      , warnListElements env root transitions
       , warnSuffixSpaces source transitions
       ]
   where
     position pos = (unPos (sourceLine pos), unPos (sourceColumn pos))
     typeDefs = [d | DefType d <- specDefinitions spec]
     transitions = [t | DefTransition t <- specDefinitions spec]
+    inits = [(k, p) | DefInit k p <- specDefinitions spec]
+    -- The type of every state: the head type of the initial state.
+    root = case inits of
+      (_, p) : _ | isKnownType env (patternKey p) -> Just (patternKey p)
+      _ -> Nothing
     env = mkEnv spec typeDefs
 
 -- | Renders errors like parse errors: position, source line, caret and
@@ -110,7 +115,7 @@ isKnownType :: Env -> Text -> Bool
 isKnownType env name =
   Set.member name (envAtomics env) || Map.member name (envTypes env)
 
--- ---------- Headers and App ----------
+-- ---------- Headers and the initial state ----------
 
 checkHeaders :: Spec -> [CheckError]
 checkHeaders spec =
@@ -121,14 +126,67 @@ checkHeaders spec =
        | (n, _) <- repeats nameText (specEvents spec)
        ]
 
-checkApp :: FilePath -> Env -> [CheckError]
-checkApp file env
-  | Map.member "App" (envTypes env) = []
-  | otherwise =
-      [ errorAtPos
-          (initialPos file)
-          "App is not defined; every spec needs an App type as its entry point"
-      ]
+-- | A spec has exactly one @__init :: P@. @P@ is a whole new state: there's
+-- no old value and no input, so nothing in it takes a prime, a naming, a
+-- name or an element path. Apart from those it's checked like a target.
+-- See "Initial state" in spec-v1.md.
+checkInit :: FilePath -> Env -> [(Name, Pattern)] -> [CheckError]
+checkInit file env inits = case inits of
+  [] ->
+    [ errorAtPos
+        (initialPos file)
+        "no __init; every spec needs an initial state, such as __init :: App"
+    ]
+  _ ->
+    [ errorAt k ("__init is written twice (first on line " <> lineOf first <> ")")
+    | ((k, _), (first, _)) <- repeats (const "__init") inits
+    ]
+      <> concat [initValues p <> plain p | (_, p) <- inits]
+  where
+    -- A name or an element as the whole state is reported, and not
+    -- checked further.
+    plain p = case bare p of
+      PatternName _ -> []
+      PatternElement {} -> []
+      q -> checkPattern env Map.empty (withoutValues q)
+    initValues = \case
+      PatternPrimed pos inner ->
+        errorAtPos
+          pos
+          ( "the initial state has no old value, so nothing in it takes a prime ('); "
+              <> "write "
+              <> patternKey inner
+              <> " without one"
+          )
+          : initValues inner
+      PatternNamed inner n ->
+        errorAt
+          n
+          ("the initial state takes no input, so it names no value; remove #" <> nameText n)
+          : initValues inner
+      PatternName n ->
+        [ errorAt n $
+            "the initial state takes no input, so there's no value named "
+              <> nameText n
+              <> " to use"
+        ]
+      PatternElement (h :| _) _ _ ->
+        [ errorAt h $
+            "the initial state takes no input, so an element path can't pick an element; "
+              <> "write "
+              <> nameText h
+        ]
+      PatternPath _ args -> concatMap initValues args
+      PatternList _ _ -> []
+    -- Drops what 'initValues' reports, so it isn't reported again.
+    withoutValues = \case
+      PatternPath names args ->
+        PatternPath names [withoutValues (bare a) | a <- args, keep (bare a)]
+      p -> p
+    keep = \case
+      PatternName _ -> False
+      PatternElement {} -> False
+      _ -> True
 
 -- ---------- Type definitions ----------
 
@@ -381,9 +439,10 @@ elementSegment h key = nameText h <> "[" <> nameText key <> "]"
 -- list has a type name (@Points = [Point]@) and is written by it, in
 -- patterns as well. A list's element is a type name too (@Row = [Cell]@
 -- for a list of lists).
-checkListPlaces :: [TypeDef] -> [Transition] -> [CheckError]
-checkListPlaces defs transitions =
+checkListPlaces :: [TypeDef] -> [Pattern] -> [Transition] -> [CheckError]
+checkListPlaces defs inits transitions =
   concatMap (definitionLists . typeDefBody) defs
+    <> concatMap patternLists inits
     <> concat
       [ concatMap patternLists (maybe [] pure i <> [from, to])
       | Transition _ i from to <- transitions
@@ -799,7 +858,7 @@ checkArg env names term arg = case (term, arg) of
 
 -- ---------- Warnings ----------
 
--- | Where a type occurs inside @App@: the lists crossed on the way to it,
+-- | Where a type occurs inside the root: the lists crossed on the way to it,
 -- innermost first, and whether the type is the element of the innermost
 -- list itself (@Todo@ in @[Todo]@).
 data Place = Place [Crossed] Bool
@@ -810,12 +869,13 @@ data Place = Place [Crossed] Bool
 data Crossed = Crossed Text (Maybe Text) (Maybe Text)
   deriving stock (Eq, Ord)
 
--- | Every place of every type reachable from @App@. A recursive type is
--- followed again on a path only when it is inside another list, so a
--- tree's nodes are found both at the root and inside @[Tree]@.
-listPlaces :: Env -> Map Text [Place]
-listPlaces env =
-  Map.fromListWith (flip (<>)) [(t, [p]) | (t, p) <- goType Set.empty [] False "App"]
+-- | Every place of every type reachable from the root, the head type of
+-- @__init@. A recursive type is followed again on a path only when it is
+-- inside another list, so a tree's nodes are found both at the root and
+-- inside @[Tree]@.
+listPlaces :: Env -> Text -> Map Text [Place]
+listPlaces env root =
+  Map.fromListWith (flip (<>)) [(t, [p]) | (t, p) <- goType Set.empty [] False root]
   where
     goType seen lists direct name
       | Set.member visit seen = []
@@ -844,16 +904,17 @@ listPlaces env =
 -- says which only when it picks the element by key: with an element path
 -- on a keyed list (@Todos[id](...)@), or, in a list without a key,
 -- written from the element, comparing a key with a named value
--- (@Todo(id * ...)@). Warns about the others, once per transition.
-warnListElements :: Env -> [Transition] -> [CheckError]
-warnListElements env transitions =
+-- (@Todo(id * ...)@). Warns about the others, once per transition. Without
+-- a root (no @__init@), there are no places to warn about.
+warnListElements :: Env -> Maybe Text -> [Transition] -> [CheckError]
+warnListElements env root transitions =
   [ warningAt h (nameText n <> " " <> message)
   | Transition n _ from _ <- transitions
   , PatternPath (h :| _) args <- [bare from]
   , Just message <- [firstJust (map (problem (nameText h) args) (placesOf (nameText h)))]
   ]
   where
-    places = listPlaces env
+    places = maybe Map.empty (listPlaces env) root
     placesOf t = [p | p@(Place (_ : _) _) <- Map.findWithDefault [] t places]
     keyed args = any (not . null . nameUses) args
     problem t args (Place lists direct) = case lists of

@@ -2,6 +2,8 @@
 __atomics { Point Text }
 __events { anyApp bareSum bareVariant deepPath factorsAnyOrder newtypeArg listArg singlePayload }
 
+__init :: App
+
 App = Screen * Shape * Label
 
 Screen

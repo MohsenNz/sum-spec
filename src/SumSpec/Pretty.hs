@@ -38,6 +38,7 @@ renderDefinition = \case
       <> renderPattern from
       <> " -> "
       <> renderPattern to
+  DefInit _ p -> "__init :: " <> renderPattern p
 
 renderTypeExpr :: TypeExpr -> Text
 renderTypeExpr = \case

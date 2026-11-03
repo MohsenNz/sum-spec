@@ -1,30 +1,30 @@
-test/check/error-new-state-primes.sumspec:29:37:
+test/check/error-new-state-primes.sumspec:31:37:
    |
-29 | noVariant :: Page -> Page.Plan(PMode')
+31 | noVariant :: Page -> Page.Plan(PMode')
    |                                     ^
 Page.Plan is a new state here (the source doesn't fix it), so PMode has no old value to change; write PMode without a prime ('), or leave it out
 
-test/check/error-new-state-primes.sumspec:30:45:
+test/check/error-new-state-primes.sumspec:32:45:
    |
-30 | otherVariant :: Page.Home -> Page.Plan(PMode')
+32 | otherVariant :: Page.Home -> Page.Plan(PMode')
    |                                             ^
 Page.Plan is a new state here (the source doesn't fix it), so PMode has no old value to change; write PMode without a prime ('), or leave it out
 
-test/check/error-new-state-primes.sumspec:31:54:
+test/check/error-new-state-primes.sumspec:33:54:
    |
-31 | inFactor :: App(Screen.Home) -> App(Screen.Edit(Title'))
+33 | inFactor :: App(Screen.Home) -> App(Screen.Edit(Title'))
    |                                                      ^
 Screen.Edit is a new state here (the source doesn't fix it), so Title has no old value to change; write Title without a prime ('), or leave it out
 
-test/check/error-new-state-primes.sumspec:32:61:
+test/check/error-new-state-primes.sumspec:34:61:
    |
-32 | deepPath :: PMode.Show.List -> PMode.Show.List.Full(Missions')
+34 | deepPath :: PMode.Show.List -> PMode.Show.List.Full(Missions')
    |                                                             ^
 PMode.Show.List.Full is a new state here (the source doesn't fix it), so Missions has no old value to change; write Missions without a prime ('), or leave it out
 
-test/check/error-new-state-primes.sumspec:33:60:
+test/check/error-new-state-primes.sumspec:35:60:
    |
-33 | bareSource :: Page.Plan(PMode) -> Page.Plan(PMode.Plot(Plot'))
+35 | bareSource :: Page.Plan(PMode) -> Page.Plan(PMode.Plot(Plot'))
    |                                                            ^
 PMode.Plot is a new state here (the source doesn't fix it), so Plot has no old value to change; write Plot without a prime ('), or leave it out
 

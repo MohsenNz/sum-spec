@@ -3,6 +3,8 @@
 __atomics { A }
 __events { u }
 
+__init :: App
+
 App = X | Y
 t :: App.X -> App.Y
 t :: App.Y -> App.X

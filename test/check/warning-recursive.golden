@@ -1,6 +1,6 @@
-test/check/warning-recursive.sumspec:12:9:
+test/check/warning-recursive.sumspec:14:9:
    |
-12 | open :: Fold.Closed -> Fold.Open
+14 | open :: Fold.Closed -> Fold.Open
    |         ^
 warning: open changes a Fold inside one Tree of a list, but doesn't say which Tree; to pick it, give Children a key (Children = [Tree by Id]) and use an element path, such as Children[id](...)
 

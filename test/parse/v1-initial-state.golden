@@ -9,7 +9,7 @@ __events {
   trans2
 }
 
-App = Z
+__init :: Z(Y.V1)
 Z = Y * C
 Y = V1 | V2 | V3 A
 trans1 :: Y.V1 -> Y.V3(A)

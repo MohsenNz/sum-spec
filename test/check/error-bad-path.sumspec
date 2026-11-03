@@ -2,6 +2,8 @@
 __atomics { A }
 __events { notVariant onAtomic onProduct throughPayload throughNewtype }
 
+__init :: App
+
 App = Page * A
 Page = Home | Plan Mode
 Mode = Map | Plot

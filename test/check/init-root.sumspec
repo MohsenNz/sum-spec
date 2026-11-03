@@ -1,0 +1,12 @@
+-- The root is the head type of __init; it needn't be called App. The
+-- warning about list elements walks from it.
+__atomics { Id }
+__events { toggle }
+
+__init :: Board(Cells)
+
+Board = Cells
+Cells = [Cell by Id]
+Cell = On | Off
+
+toggle :: Cell.On -> Cell.Off

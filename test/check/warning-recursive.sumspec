@@ -4,6 +4,8 @@ __version 1.0
 __atomics { Id }
 __events { open close }
 
+__init :: App
+
 App = Tree
 Tree = Leaf | Node (Id * Children * Fold)
 Children = [Tree]

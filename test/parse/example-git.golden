@@ -24,7 +24,7 @@ __events {
   rebaseAbort
 }
 
-App = Repository
+__init :: Repository.Uninitialized
 Repository = Uninitialized | Initialized (Head * Branches * Files * Operation)
 Head = Unborn BranchName | OnBranch BranchName | Detached Hash
 Branches = [Tip by BranchName]

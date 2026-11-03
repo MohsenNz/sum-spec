@@ -3,6 +3,8 @@
 __atomics { Timestamp Point }
 __events { t }
 
+__init :: App
+
 App = Event * Boundary
 Event = At * Timestamp
 At = Timestamp

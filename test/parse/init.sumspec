@@ -1,0 +1,8 @@
+-- The initial state: __init, then a state pattern.
+__atomics { A }
+__events {}
+
+__init   ::   App(Mode.On   *   A)
+
+App = Mode * A
+Mode = On | Off

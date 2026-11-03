@@ -5,6 +5,8 @@ __version 1.0
 __atomics { A B }
 __events { f g h }
 
+__init :: App
+
 App = S
 S = X | Y
 As = [A]

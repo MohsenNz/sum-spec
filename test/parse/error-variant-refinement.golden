@@ -3,4 +3,4 @@ test/parse/error-variant-refinement.sumspec:4:2:
 4 | T.X = A * B
   |  ^
 unexpected '.'
-expecting '|', end of input, event name, or type or variant name
+expecting "__init", '|', end of input, event name, or type or variant name

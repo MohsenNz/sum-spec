@@ -61,9 +61,9 @@ canonical layout: one definition per line, with comments removed. A
 parse error is printed to stderr with exit code 1.
 
 ```
-$ sumspec parse test/parse/v1-entry-point.sumspec
+$ sumspec parse test/parse/v1-initial-state.sumspec
 ...
-App = Z
+__init :: Z(Y.V1)
 Z = Y * C
 Y = V1 | V2 | V3 A
 trans1 :: Y.V1 -> Y.V3(A)

@@ -33,7 +33,7 @@ index or id) picks the element.
 Decision: keep local transitions. Forbidding them would leave
 transitions on a list element, like `toggleTodo`, with no way to be
 written in v1 (a pattern can't reach into one element of `[T]`), and
-every pattern would repeat the path from `App`. Locality is also what
+every pattern would repeat the path from the root. Locality is also what
 the statechart reading (sums as OR-states, products as AND-states)
 relies on.
 
@@ -55,7 +55,7 @@ Rules:
    paths" in `spec-v1.md`.
 
 3. The checker rejects a local transition whose type occurs at more than
-   one place of `App` that isn't the same list. Such a transition is
+   one place of the root that isn't the same list. Such a transition is
    written from a common ancestor that tells the places apart.
 
 Open, after 3: effects outside the transition's type. `toggleTodo`
@@ -204,19 +204,23 @@ To decide:
 
 ## 6. Initial state
 
-Status: open.
+Status: decided (see "Initial state" in `spec-v1.md`).
 
-`App` is the type of every state, not the state the app starts in. An
-EFSM has an initial control state and initial values for its variables.
+An EFSM has an initial control state and initial values for its
+variables. `App` used to be the type of every state, not the state the
+app starts in.
 
-To decide:
+Decision: `__init :: P`, written once. `P` is the initial state, and its
+head type is the root, the type of every state, so `App` is an ordinary
+name. `P` is a whole new state: a part left out may have any value (gap
+7), and nothing in it takes a prime, a name or an element path.
 
-- A syntax for the initial state (for example a pattern for `App`, or a
-  transition with no source).
-- What a part that's left out means there: any value, or an empty value
-  for lists.
+Still open:
+
+- Empty values: whether a list left out of `__init` starts empty
+  (ties in with 7).
 - With an initial state, the checker can warn about states no
-  transition reaches (already an open question in `TODO.md`).
+  transition reaches (an open question in `TODO.md`).
 
 ## 7. Values inside a new state
 
@@ -234,4 +238,6 @@ To decide:
 - Whether a new state must give every part (a variant, a primed part, or
   a default), or whether "any value" stays and is written explicitly.
 - Whether types can declare a default value (empty list, a variant)
-  used when a new state leaves a part out. This ties in with 6.
+  used when a new state leaves a part out. This ties in with 6: the
+  `__init` pattern is a new state too, so a part it leaves out may have
+  any value.

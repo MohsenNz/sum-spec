@@ -1,4 +1,4 @@
--- The example from the "Entry point" section of spec/spec-v1.md.
+-- The example from the "Initial state" section of spec/spec-v1.md.
 __atomics {
   A
   B
@@ -10,7 +10,7 @@ __events {
   trans2
 }
 
-App = Z
+__init :: Z(Y.V1)
 
 Z = Y * C
 

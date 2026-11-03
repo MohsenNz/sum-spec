@@ -4,6 +4,8 @@ __version 1.0
 __atomics { Id Text }
 __events { unknown twice onTarget nameName mismatch primed notFactor }
 
+__init :: App
+
 App = Todo
 Todo = Id * Title * Mode
 Title = Text

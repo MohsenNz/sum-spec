@@ -10,6 +10,11 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- Initial state: `__init :: P` gives the state the app starts in, once
+  per spec. Its head type is the root, the type of every state, so `App`
+  is no longer required or special (`example/git` drops
+  `App = Repository` for `__init :: Repository.Uninitialized`). `P` is a
+  whole new state: no prime, name or element path in it.
 - Events: the lowercase name before `::` is an event, listed in
   `__events` (was `__txs`); each `event :: source -> target` is one of
   its transitions. An event may have several transitions, and they share
@@ -52,7 +57,10 @@ release" in `VERSIONING.md`).
 ### Tool
 
 - The parser, printer and checker read event inputs, named values,
-  keyed lists and element paths.
+  keyed lists, element paths and `__init`.
+- The checker reports a missing or repeated `__init` (in place of the
+  missing `App`), and a prime, naming, name or element path in it. The
+  warnings about list elements walk from the root.
 - `sumspec check` warns about a space before a prime or a naming
   (`A '`, `Text #t`).
 - The checker reports:

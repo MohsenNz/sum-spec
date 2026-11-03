@@ -2,5 +2,7 @@
 __atomics { A B }
 __events {}
 
+__init :: App
+
 App = A * A
 S = V (A * B * B) | W

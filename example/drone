@@ -19,6 +19,9 @@ __events {
   showMission
 }
 
+-- The app starts on the home page.
+__init :: App(Page.Home)
+
 App
   = Page
   * Settings

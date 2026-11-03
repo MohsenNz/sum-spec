@@ -2,6 +2,8 @@
 __atomics { A B }
 __events { onSum onAtomic onNoPayload tooMany wrongType wrongList }
 
+__init :: App
+
 App = Page * A
 Page = Home | Plan Mode | Pick (One | Two) | Many As
 As = [A]

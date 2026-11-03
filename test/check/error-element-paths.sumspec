@@ -4,6 +4,8 @@ __version 1.0
 __atomics { Id Other Text }
 __events { notList variant unkeyed wrongKey sumArgs primed named input unknown }
 
+__init :: App
+
 App = Items * Ring * Plain * States
 Items = [Item by Id]
 Item = Name * State

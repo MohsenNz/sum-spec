@@ -438,9 +438,18 @@ The version is `major.minor`, written as one token (`1.0`, not `1. 0`).
 A spec without the header is version 1.0. See `VERSIONING.md` for 
 how versions are numbered.
 
-## Entry point
+## Initial state (__init)
 
-The entry point is type `App`. Every spec should carry it. Also all the event names should declare inside `__events {}` block and all leaf types (atomic types) declare inside `__atomics {}` block as the start point.
+`__init :: P` gives the state the app starts in. `P` is a state pattern, like a target. Every spec has exactly one `__init`, written among the definitions (after `__atomics` and `__events`).
+
+`P` is a whole new state: nothing has a value before it, and no event brings an input. So:
+
+- A part that is left out may have any value.
+- Nothing in it takes a prime (`__init :: App(Mode')` is an error).
+- Nothing in it is named or uses a name (`Text#t`, `x`), and it has no element path (`Todos[id]`).
+- `__init` isn't listed in `__events`, and no `->` follows the `::`.
+
+`__atomics` and `__events` are written before any type, transition or `__init`.
 
 ### Example
 
@@ -456,7 +465,8 @@ __events {
   trans2
 }
 
-App = Z
+-- The app starts with Y at V1; C may have any value.
+__init :: Z(Y.V1)
 
 Z = Y * C
 
@@ -469,4 +479,8 @@ trans1 :: Y.V1 -> Y.V3(A)
 trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
 ```
 
-`__atomics` and `__events` should define before each type or transition, but they don't have any priority to each others.
+The root is `Z`. In `example/drone`, the app starts on the home page:
+
+```
+__init :: App(Page.Home)
+```

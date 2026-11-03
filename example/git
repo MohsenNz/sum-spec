@@ -41,7 +41,8 @@ __events {
   rebaseAbort
 }
 
-App = Repository
+-- A repository starts uninitialized, until git init.
+__init :: Repository.Uninitialized
 
 Repository
   = Uninitialized

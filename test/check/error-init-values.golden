@@ -1,0 +1,36 @@
+test/check/error-init-values.sumspec:6:19:
+  |
+6 | __init :: App(Mode' * Label(Text#t) * x * Items[i](Mode.On) * Count)
+  |                   ^
+the initial state has no old value, so nothing in it takes a prime ('); write Mode without one
+
+test/check/error-init-values.sumspec:6:34:
+  |
+6 | __init :: App(Mode' * Label(Text#t) * x * Items[i](Mode.On) * Count)
+  |                                  ^
+the initial state takes no input, so it names no value; remove #t
+
+test/check/error-init-values.sumspec:6:39:
+  |
+6 | __init :: App(Mode' * Label(Text#t) * x * Items[i](Mode.On) * Count)
+  |                                       ^
+the initial state takes no input, so there's no value named x to use
+
+test/check/error-init-values.sumspec:6:43:
+  |
+6 | __init :: App(Mode' * Label(Text#t) * x * Items[i](Mode.On) * Count)
+  |                                           ^
+the initial state takes no input, so an element path can't pick an element; write Items
+
+test/check/error-init-values.sumspec:6:63:
+  |
+6 | __init :: App(Mode' * Label(Text#t) * x * Items[i](Mode.On) * Count)
+  |                                                               ^
+Count is not a factor of App (Mode * Label * Items * Missing)
+
+test/check/error-init-values.sumspec:8:30:
+  |
+8 | App = Mode * Label * Items * Missing
+  |                              ^
+unknown type Missing; declare it in __atomics or define it
+

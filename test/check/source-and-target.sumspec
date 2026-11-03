@@ -5,6 +5,8 @@ __version 1.0
 __atomics { Text Count }
 __events { rename renameShort count enter leave noop }
 
+__init :: App
+
 App = Page * Counter
 
 Page

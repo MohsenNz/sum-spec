@@ -2,5 +2,7 @@
 __atomics { A }
 __events {}
 
+__init :: App
+
 App = X | Y | X A
 S = P (Q | R | Q) | Z

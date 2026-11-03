@@ -3,6 +3,8 @@
 __atomics { Text Id Counter }
 __events { noVariant otherVariant inFactor deepPath bareSource keeps anyValue sibling element }
 
+__init :: App
+
 App = Page * Screen * Counter * Items
 
 Page = Home | Plan (PMode * Missions)

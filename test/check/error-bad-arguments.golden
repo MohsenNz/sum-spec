@@ -1,48 +1,48 @@
-test/check/error-bad-arguments.sumspec:11:10:
+test/check/error-bad-arguments.sumspec:13:10:
    |
-11 | onSum :: Mode(Map) -> Mode
+13 | onSum :: Mode(Map) -> Mode
    |          ^
 Mode is a sum; pick a variant with "." instead of arguments
 
-test/check/error-bad-arguments.sumspec:12:13:
+test/check/error-bad-arguments.sumspec:14:13:
    |
-12 | onAtomic :: A(B) -> A
+14 | onAtomic :: A(B) -> A
    |             ^
 A takes no arguments
 
-test/check/error-bad-arguments.sumspec:12:13:
+test/check/error-bad-arguments.sumspec:14:13:
    |
-12 | onAtomic :: A(B) -> A
+14 | onAtomic :: A(B) -> A
    |             ^
 warning: onAtomic changes one A of a list, but doesn't say which; to pick it, give As a key (As = [A by Id]) and use an element path, such as As[id](...)
 
-test/check/error-bad-arguments.sumspec:13:21:
+test/check/error-bad-arguments.sumspec:15:21:
    |
-13 | onNoPayload :: Page.Home(A) -> Page.Home
+15 | onNoPayload :: Page.Home(A) -> Page.Home
    |                     ^
 Page.Home takes no arguments
 
-test/check/error-bad-arguments.sumspec:14:17:
+test/check/error-bad-arguments.sumspec:16:17:
    |
-14 | tooMany :: Page.Plan(Mode.Map * Mode.Plot) -> Page.Home
+16 | tooMany :: Page.Plan(Mode.Map * Mode.Plot) -> Page.Home
    |                 ^
 Page.Plan takes one argument, Mode, but 2 are given
 
-test/check/error-bad-arguments.sumspec:15:24:
+test/check/error-bad-arguments.sumspec:17:24:
    |
-15 | wrongType :: Page.Plan(A) -> Page.Home
+17 | wrongType :: Page.Plan(A) -> Page.Home
    |                        ^
 expected Mode here, not A
 
-test/check/error-bad-arguments.sumspec:16:24:
+test/check/error-bad-arguments.sumspec:18:24:
    |
-16 | wrongList :: Page.Many(Bs) -> Page.Pick(One)
+18 | wrongList :: Page.Many(Bs) -> Page.Pick(One)
    |                        ^
 expected As here, not Bs
 
-test/check/error-bad-arguments.sumspec:16:36:
+test/check/error-bad-arguments.sumspec:18:36:
    |
-16 | wrongList :: Page.Many(Bs) -> Page.Pick(One)
+18 | wrongList :: Page.Many(Bs) -> Page.Pick(One)
    |                                    ^
 Page.Pick is a sum; pick a variant with "." instead of arguments
 

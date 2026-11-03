@@ -6,6 +6,8 @@ __version 1.0
 __atomics { Id Text }
 __events { inside noKey keyed above outside keyedInside keyedElement picked }
 
+__init :: App
+
 App = Items * Mode * Keyed
 Items = [Item]
 Item = Id * Name * State

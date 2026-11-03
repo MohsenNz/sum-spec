@@ -1,0 +1,6 @@
+test/check/error-no-init.sumspec:1:1:
+  |
+1 | -- No __init, though App is defined: App is an ordinary name.
+  | ^
+no __init; every spec needs an initial state, such as __init :: App
+

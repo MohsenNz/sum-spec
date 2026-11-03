@@ -5,6 +5,8 @@ __version 1.0
 __atomics { Id Text }
 __events { finish select keep reset }
 
+__init :: App
+
 App = Todos * Selection
 Todos = [Todo]
 Todo = Id * Title * Mode

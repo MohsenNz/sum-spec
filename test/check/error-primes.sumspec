@@ -2,6 +2,8 @@
 __atomics { A B }
 __events { onSource twice onPath onArgs }
 
+__init :: App
+
 App = Page * A
 Page = Home | Plan (A * B)
 

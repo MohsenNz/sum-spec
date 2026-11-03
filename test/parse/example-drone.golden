@@ -19,6 +19,7 @@ __events {
   showMission
 }
 
+__init :: App(Page.Home)
 App = Page * Settings
 Page = Home | Plan (PMode * Missions) | Devices
 PMode = JustMap | Plot (PlotOrigin * Plot) | Flight | ShowMission (List (Empty | NonEmpty MissionSummaries) | Selected Mission)

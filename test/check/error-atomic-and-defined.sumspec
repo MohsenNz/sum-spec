@@ -1,5 +1,7 @@
 __atomics { A Text }
 __events {}
 
+__init :: App
+
 App = A
 Text = A

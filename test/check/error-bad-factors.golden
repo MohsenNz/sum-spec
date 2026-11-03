@@ -1,18 +1,18 @@
-test/check/error-bad-factors.sumspec:8:26:
-  |
-8 | notFactor :: App(A * B * C) -> App
-  |                          ^
+test/check/error-bad-factors.sumspec:10:26:
+   |
+10 | notFactor :: App(A * B * C) -> App
+   |                          ^
 C is not a factor of App (A * B)
 
-test/check/error-bad-factors.sumspec:9:18:
-  |
-9 | twice :: App(A * A * B) -> App
-  |                  ^
+test/check/error-bad-factors.sumspec:11:18:
+   |
+11 | twice :: App(A * A * B) -> App
+   |                  ^
 factor A is written twice
 
-test/check/error-bad-factors.sumspec:10:31:
+test/check/error-bad-factors.sumspec:12:31:
    |
-10 | primedTwice :: App -> App(A * A')
+12 | primedTwice :: App -> App(A * A')
    |                               ^
 factor A is written twice
 

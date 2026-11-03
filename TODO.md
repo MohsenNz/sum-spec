@@ -15,8 +15,8 @@
       examples already follow the rule.
 
 ### Open questions
-- [ ] More warnings: states no transition reaches, and events whose
-      transitions overlap.
+- [ ] More warnings: states no transition reaches (now possible, from
+      `__init`), and events whose transitions overlap.
 - [ ] Should the checker build a resolved model of the spec (e.g.
       `SumSpec.Model`) for code generators to consume?
 

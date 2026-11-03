@@ -3,6 +3,8 @@
 __atomics { A Id Name Text }
 __events { primed named inArgs afterParens tabbed lineStart fine }
 
+__init :: App
+
 App = A * Holder
 Holder = Empty | Full Text
 Ref = Id * Name

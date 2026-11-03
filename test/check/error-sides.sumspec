@@ -2,6 +2,8 @@
 __atomics { Text TodoId }
 __events { sameType otherSum productToSum elementToElementType }
 
+__init :: App
+
 App = Screen * Mode * Todos
 
 Screen = Home | Edit

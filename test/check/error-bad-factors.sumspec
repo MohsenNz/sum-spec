@@ -3,6 +3,8 @@
 __atomics { A B C }
 __events { notFactor twice primedTwice }
 
+__init :: App
+
 App = A * B
 
 notFactor :: App(A * B * C) -> App

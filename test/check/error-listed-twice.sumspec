@@ -1,5 +1,7 @@
 __atomics { A B A }
 __events { t t }
 
+__init :: App
+
 App = A
 t :: App -> App

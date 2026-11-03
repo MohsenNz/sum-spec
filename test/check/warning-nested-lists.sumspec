@@ -5,6 +5,8 @@ __version 1.0
 __atomics { ProjectId TodoId }
 __events { toggle }
 
+__init :: App
+
 App = Projects
 Projects = [Project]
 Project = ProjectId * Todos

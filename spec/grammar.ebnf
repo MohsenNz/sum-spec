@@ -19,8 +19,14 @@ headers       = atomics_block , events_block
 atomics_block = "__atomics" , "{" , { UPPER } , "}" ;
 events_block  = "__events" , "{" , { LOWER } , "}" ;
 
-definition    = type_def
+definition    = init_state
+              | type_def
               | transition ;
+
+(* The initial state: a state pattern for the root, the type of every
+   state. It isn't a transition: no source, no "->", no event.
+     __init :: App(Page.Home)                                          *)
+init_state    = "__init" , "::" , pattern ;
 
 
 (* ---------- Type definitions ---------- *)
@@ -153,7 +159,11 @@ character     = ? any Unicode character ? ;
 
    Not in the grammar (the type checker, src/SumSpec/Check.hs, checks
    these):
-   - App is defined;
+   - __init is written exactly once. Its head type is the root, the
+     type of every state; App is an ordinary name. Its pattern is checked
+     like a target, but it's a whole new state with no input: it has no
+     prime, no naming, no name and no element path. See "Initial state"
+     in spec-v1.md;
    - every type name used in a definition or pattern is an atomic or a
      defined type;
    - no type is both atomic and defined, and no type is defined twice;
@@ -202,8 +212,8 @@ character     = ? any Unicode character ? ;
      spec-v1.md.
 
    Warnings (the checker reports them, but the spec is valid):
-   - a transition on a part inside a list element that doesn't pick
-     the element: in a keyed list, it doesn't use an element path; in a
+   - a transition on a part inside a list element (of a list reachable
+     from the root) that doesn't pick the element: in a keyed list, it doesn't use an element path; in a
      list without a key, it isn't written from the element, or doesn't
      compare a key with a named value (Todo(id * ...)), or the element
      is inside another list. The warning suggests an element path, and

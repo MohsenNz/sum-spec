@@ -2,6 +2,8 @@
 __atomics { Text }
 __events {}
 
+__init :: App
+
 App = Self
 Self = Self
 First = Second

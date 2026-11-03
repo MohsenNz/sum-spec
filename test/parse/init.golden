@@ -1,0 +1,10 @@
+__atomics {
+  A
+}
+
+__events {
+}
+
+__init :: App(Mode.On * A)
+App = Mode * A
+Mode = On | Off

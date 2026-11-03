@@ -69,8 +69,22 @@ atomicsBlock = symbol "__atomics" *> braces (many upperName)
 eventsBlock :: Parser [Name]
 eventsBlock = symbol "__events" *> braces (many lowerName)
 
+-- definition = init_state | type_def | transition ;
 definition :: Parser Definition
-definition = DefTransition <$> transition <|> DefType <$> typeDef
+definition =
+  choice
+    [ uncurry DefInit <$> initState
+    , DefTransition <$> transition
+    , DefType <$> typeDef
+    ]
+
+-- init_state = "__init" , "::" , pattern ;
+initState :: Parser (Name, Pattern)
+initState = do
+  pos <- getSourcePos
+  keyword "__init"
+  _ <- symbol "::"
+  (,) (Name pos "__init") <$> pattern
 
 typeDef :: Parser TypeDef
 typeDef = TypeDef <$> upperName <* symbol "=" <*> typeExpr

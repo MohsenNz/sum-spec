@@ -1,30 +1,30 @@
-test/check/error-bad-path.sumspec:10:20:
+test/check/error-bad-path.sumspec:12:20:
    |
-10 | notVariant :: Page.Nope -> Page.Home
+12 | notVariant :: Page.Nope -> Page.Home
    |                    ^
 Nope is not a variant of Page
 
-test/check/error-bad-path.sumspec:11:15:
+test/check/error-bad-path.sumspec:13:15:
    |
-11 | onAtomic :: A.X -> A
+13 | onAtomic :: A.X -> A
    |               ^
 A has no variants, so .X is invalid
 
-test/check/error-bad-path.sumspec:12:18:
+test/check/error-bad-path.sumspec:14:18:
    |
-12 | onProduct :: App.Page -> App
+14 | onProduct :: App.Page -> App
    |                  ^
 App has no variants, so .Page is invalid
 
-test/check/error-bad-path.sumspec:14:29:
+test/check/error-bad-path.sumspec:16:29:
    |
-14 | throughPayload :: Page.Plan.Map -> Page.Home
+16 | throughPayload :: Page.Plan.Map -> Page.Home
    |                             ^
 Page.Plan carries Mode and has no variants of its own; write Page.Plan(Mode.Map)
 
-test/check/error-bad-path.sumspec:16:25:
+test/check/error-bad-path.sumspec:18:25:
    |
-16 | throughNewtype :: Alias.Home -> Alias
+18 | throughNewtype :: Alias.Home -> Alias
    |                         ^
 Alias carries Page and has no variants of its own; write Alias(Page.Home)
 

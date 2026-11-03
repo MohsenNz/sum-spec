@@ -1,0 +1,9 @@
+-- __init is written once.
+__atomics { A }
+__events {}
+
+__init :: App
+__init :: App(Mode.On)
+
+App = Mode * A
+Mode = On | Off

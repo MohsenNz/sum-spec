@@ -5,6 +5,8 @@ __version 1.0
 __atomics { Id Cell }
 __events { source target input named }
 
+__init :: App
+
 App = Ids * Grid * Holder * Pair * Choice
 Ids = [Id]
 -- Fine: a list type, and a list of a named list type.

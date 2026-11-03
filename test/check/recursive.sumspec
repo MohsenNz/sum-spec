@@ -2,6 +2,8 @@
 __atomics { Text }
 __events { grow }
 
+__init :: App
+
 App = Tree
 Tree = Leaf Text | Node Trees
 Trees = [Tree]

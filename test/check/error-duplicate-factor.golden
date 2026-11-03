@@ -1,12 +1,12 @@
-test/check/error-duplicate-factor.sumspec:5:11:
+test/check/error-duplicate-factor.sumspec:7:11:
   |
-5 | App = A * A
+7 | App = A * A
   |           ^
 factor A appears twice in this product
 
-test/check/error-duplicate-factor.sumspec:6:16:
+test/check/error-duplicate-factor.sumspec:8:16:
   |
-6 | S = V (A * B * B) | W
+8 | S = V (A * B * B) | W
   |                ^
 factor B appears twice in this product
 

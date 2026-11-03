@@ -1,0 +1,5 @@
+-- No __init, though App is defined: App is an ordinary name.
+__atomics { A }
+__events {}
+
+App = A
