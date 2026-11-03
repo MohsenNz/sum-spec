@@ -74,6 +74,8 @@ trans3 :: T2.A -> T2.B(X * Y * Z)
 
 **Note**: types are uppercase and transitions are lowercase
 
+### Transition parts:
+
 In transition `trans3 :: T2.A -> T2.B(X * Y * Z)` we call each part like this:
 
 ```haskell
@@ -87,11 +89,11 @@ trans3
 
 **Source:** the left side of ->, the state the app must be in for the transition to apply (a precondition).
 
-**Target:** the right side of ->, the state the app is in after the transition (the effect).
+**Target:** the right side of ->, the state the app is in after the transition.
 
 **State pattern:** a description of a set of states, such as Page.Plan(PMode.JustMap), written on either side of a transition (and in its input).
 
-**Argument:** a pattern inside the parentheses after a type or variant, saying which state an inner part of that state must be in.
+**Argument:** a pattern inside the parentheses after a type or variant, saying which inner state must be there.
 
 ### Summary:
 
@@ -284,7 +286,7 @@ toggleTodo TodoId :: Completion.Completed -> Completion.Active
 
 A signature doesn't have to use the input.
 
-## Named values
+## Named values (#name)
 
 A pattern followed by `#x` names the value it matches; a lowercase name
 alone in a pattern stands for that value:
@@ -298,108 +300,32 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
   token: no space between `#` and the name. The canonical form writes no
   space before `#` either, and the type checker warns about one
   (`Text #t`).
-- A name is given in the input or on the source side, once per
-  signature. Its type is the type `P` is headed by (`Completion` for
-  `Completion.Active#c`).
-- A name is used anywhere in the signature, where its type is expected:
-  as an argument (`Typing(t)`), as a product's factor, where it stands
-  for the factor of its type (`Todo(id * ...)`), or as the key of an
-  element path (`Todos[id]`; see "Element paths").
-- On the source side, a name used stands for a value that must be equal
-  to the named one: `Todo(id * ...)` matches the todo whose `TodoId`
-  equals the input `id`.
-- On the target side, a name sets the part to the named value:
-  `Title(e)` is the title, set to the text that was being edited.
+- A name is given once per signature, in the input or on the source
+  side. Its type is like: `Completion` for `Completion.Active#c`, `Ids` for `Ids#ids`.
+- **On the source side**, a name that is used is a guard: the value there
+  must equal the named one. `unlock` applies only when the entered code
+  `c` equals the lock's secret:
+
+  ```
+  Lock   = Secret * State
+  Secret = Code
+  State  = Locked | Unlocked
+
+  unlock Code#c :: Lock(Secret(c) * State.Locked) -> Lock(State.Unlocked)
+  ```
+
+- **On the target side**, a name sets the part to the named value:
+  `Title(e)` is the title, set to the text `e`:
+
+  ```
+  startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
+  ```
+
 - Names belong to one signature. Two signatures of a transition may name
   their input differently.
 
 A name says which value; a prime says only that the value is new.
 `Title'` is some new title, and `Title(e)` is the title `e`.
-
-### Keys
-
-A transition written on a part inside a list element (`toggleTodo` on
-`Completion`, inside `Todos = [Todo]`) changes one element, but doesn't
-say which:
-
-```
-toggleTodo :: Completion.Active -> Completion.Completed
-```
-
-In a list without a key, pick the element by writing the transition
-from the element and comparing a key factor with a named input:
-
-```
-Todos = [Todo]
-Todo  = TodoId * Title * Completion * RowMode
-
-toggleTodo TodoId#id :: Todo(id * Completion.Active) -> Todo(Completion.Completed)
-```
-
-Here `toggleTodo` changes the todo whose `TodoId` equals the input.
-
-This form picks only the innermost element: inside nested lists
-(`Projects = [Project]`, `Project = ProjectId * Todos`), the project
-isn't picked. Nothing says that two todos can't have the same `TodoId`,
-either. A keyed list with element paths does both; see "Keyed lists"
-and "Element paths".
-
-The type checker warns about a transition inside a list element that
-doesn't pick the element, by key or with an element path.
-
-## Element paths
-
-`L[x]` is the element of the keyed list type `L` (see "Keyed lists")
-whose key equals the named value `x`. It's written where `L` is
-expected, and the arguments after it are the element's:
-
-```
-Todos = [Todo by TodoId]
-Todo  = Title * Completion * RowMode
-
-toggleTodo TodoId#id :: Todos[id](Completion.Active) -> Todos[id](Completion.Completed)
-```
-
-- `L` is a type defined as a keyed list (`Todos = [Todo by TodoId]`).
-  The path starts at the list type, so from a variant that carries the
-  list, the list type is its argument: `Ring.Points(Points[i](...))`.
-- `x` is a name given in the input or on the source side, of the list's
-  key type (`TodoId`).
-- The arguments are the element's. When the element type is a product,
-  they're its factors: `Todos[id](Completion.Active)`. Otherwise, the
-  element takes one argument headed by its type, as a variant's payload
-  does: with `Files = [FileState by Path]`, write
-  `Files[p](FileState.Staged)`.
-- On the source side, `L[x]` is a precondition: the element exists and
-  matches its arguments. Without arguments, it only has to exist.
-- On the target side, `L[x](...)` is that element's new state, read as
-  any target. Without arguments, the element keeps its value.
-- The key isn't part of the element, so an element can't change it.
-- An element takes no prime (`Todos[id]'`): prime its parts instead,
-  `Todos[id](Title')`. It can't be named (`Todos[id]#t`) either, and it
-  doesn't go in the input.
-
-A path is written from where the list is, so the parts around it can be
-written too:
-
-```
-deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
-```
-
-A path picks an element of each list it goes through, so nested lists
-work:
-
-```
-Projects = [Project by ProjectId]
-Project  = Name * Todos
-Ref      = ProjectId * TodoId
-
-toggleTodo Ref(ProjectId#p * TodoId#t)
-  :: Projects[p](Todos[t](Completion.Active))
-  -> Projects[p](Todos[t](Completion.Completed))
-```
-
-`Projects[p]` is the project, and `Todos[t]` the todo inside it.
 
 ## List
 
@@ -415,14 +341,10 @@ Ring = Partial Points | Enclosed Points
 pick Points#ps :: Ring.Partial -> Ring.Enclosed(ps)
 ```
 
-**Notes:**
-- A list's element is a type name too. A list of lists names the inner
-  list: `Row = [Cell]`, `Grid = [Row]`.
-- A list isn't a product's factor (`[A] * B`), a variant's payload
+- A list of lists names the inner list: `Row = [Cell]`, `Grid = [Row]`.
+- A list can't be a product's factor (`[A] * B`), a variant's payload
   (`V [A]`) or a pattern (`[A]`, in an input or on a side): write its
   type name.
-- A list type takes no arguments; see "Element paths" to pick an
-  element.
 
 ### Keyed lists
 
@@ -435,10 +357,7 @@ Files    = [FileState by Path]
 Branches = [Tip by BranchName]
 ```
 
-- The list is ordered, and no two of its elements have the same key.
-- The key belongs to the list, not to the element: `Todo` has no
-  `TodoId`. So any type can be an element, including a sum
-  (`FileState`) or an atomic.
+- No two of its elements have the same key.
 - `K` is an atomic or a defined type.
 - `[T by K]` and `[T]` are different types, and so are two keyed lists
   with different keys.
@@ -447,6 +366,53 @@ Branches = [Tip by BranchName]
 
 An element of a keyed list is picked with an element path,
 `Todos[id]`; see "Element paths".
+
+### Element paths
+
+`L[x]` is the element of the keyed list type `L` whose key equals the named value `x`:
+
+```
+Todos = [Todo by TodoId]
+Todo  = Title * Completion * RowMode
+
+toggleTodo TodoId#id :: Todos[id](Completion.Active) -> Todos[id](Completion.Completed)
+```
+
+`Todo[id]` will be resolved to a `Todo` and then `(Completion.Active)` will apply
+to that `Todo`: `Todo(Completion.Active)`.
+
+- `L` is a type defined as a keyed list (`Todos = [Todo by TodoId]`).
+  The path starts at the list type, so from a variant that carries the
+  list: `Ring.Points(Points[i](...))`.
+- On the source side, `L[x]` is a precondition: the element exists and
+  matches its arguments. Without arguments, it only has to exist.
+- On the target side, `L[x](...)` is that element's new state.
+  Without arguments, the element keeps its value.
+- An element takes no prime (`Todos[id]'`): prime its parts instead,
+  `Todos[id](Title')`. It can't be named (`Todos[id]#t`) either, and it
+  doesn't go in the input.
+
+**More Examples:**
+
+```
+deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
+```
+
+A path is written from where the list is, so the parts around it can be
+written too.
+
+```
+Projects = [Project by ProjectId]
+Project  = Name * Todos
+Ref      = ProjectId * TodoId
+
+toggleTodo Ref(ProjectId#p * TodoId#t)
+  :: Projects[p](Todos[t](Completion.Active))
+  -> Projects[p](Todos[t](Completion.Completed))
+```
+
+A path picks an element of each list it goes through, so nested lists work.
+`Projects[p]` is the project, and `Todos[t]` the todo inside it.
 
 ## Language version
 
@@ -458,9 +424,8 @@ __version 1.0
 ```
 
 The version is `major.minor`, written as one token (`1.0`, not `1. 0`).
-A spec without the header is version 1.0. A tool that doesn't implement
-the declared version stops at the header with an error that names the
-version. See `VERSIONING.md` for how versions are numbered.
+A spec without the header is version 1.0. See `VERSIONING.md` for 
+how versions are numbered.
 
 ## Entry point
 

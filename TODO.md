@@ -2,7 +2,7 @@
 
 ## Remaining
 
-
+- [ ] An element can't be named (`Todos[id]#t`), should we allow it?
 - [ ] Does transition is the right name?
 - [x] Require the two sides of a transition to be states of the same
       type (the same head type: `Page.Home -> Page.Plan`, not
