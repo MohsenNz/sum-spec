@@ -2,17 +2,7 @@
 
 ## Remaining
 
-- [ ] An element can't be named (`Todos[id]#t`), should we allow it?
-- [x] Does transition is the right name? No: the name is an event, listed
-      in `__events`; each `event :: source -> target` is a transition.
-- [x] Require the two sides of a transition to be states of the same
-      type (the same head type: `Page.Home -> Page.Plan`, not
-      `Page.Home -> Missions`). Today `spec/spec-v1.md` ("Arguments in
-      state patterns") says they don't have to be. Update the spec
-      sentence, add the rule to the checker notes in `grammar.ebnf`, add
-      the check in `src/SumSpec/Check.hs` with an `error-*` case in
-      `test/check/`, and record it in `CHANGES.md` (language). The
-      examples already follow the rule.
+- [ ] About "An element can't be named (`Todos[id]#t`)", should we allow it?
 
 ### Open questions
 - [x] More warnings: variants the app never reaches (from `__init`),
@@ -26,10 +16,6 @@
 Decide on each gap, one at a time, then move it to `proposals.md`:
 - [ ] Where a local transition applies (decided in part; waits for
       derived values in "How updates change values").
-- [x] Warning: a local transition inside a list element that doesn't
-      pick the element by key.
-- [x] Nested lists: pick an element of an outer list in a pattern
-      (element paths).
 - [x] Event inputs.
 - [ ] Event outputs.
 - [ ] Guards on data.
@@ -39,30 +25,17 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
       an action clause, `// __remove ts[id]`).
 - [ ] Nondeterminism between transitions: first match, once guards
       exist (see gap 5).
-- [x] Initial state (`__init`).
 - [ ] Values inside a new state.
 
 ### Versioning
-- [x] One language version (1.0, in development) until the first
-      release; no version checks or "Added in" notes until then.
-- [x] Versioning policy (`VERSIONING.md`) and `CHANGES.md`; proposals
-      marked additive or breaking.
 - [ ] Release 0.1.0.0: date it in `CHANGES.md`, then tag `v0.1.0.0`.
-- [x] `__version major.minor` header in spec files (part of 1.0; no
-      header means 1.0). The parser rejects versions it doesn't
-      implement.
 
 ### Later (`spec/proposals.md`)
 Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
-- [ ] Several events with one transition (`g, h :: Y -> Z`).
-- [x] Event inputs (`f X :: A -> B`).
 - [ ] `=>` (shared construction path) and `<-` shorthand.
+- [ ] Naming an element (`Todos[id]#t`).
 - [ ] Annotations (`__annotations`).
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
-- [x] Several transitions under one event name (input written once).
-- [x] Element paths (`Todos[id]`).
-- [x] Keyed lists (`[Todo by TodoId]`); element paths need them.
-- [x] Lists only as whole type definitions (`Points = [Point]`).
-- [ ] Naming an element (`Todos[id]#t`).
+- [ ] Several events with one transition (`g, h :: Y -> Z`).
