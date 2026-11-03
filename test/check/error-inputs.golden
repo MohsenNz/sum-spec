@@ -22,3 +22,9 @@ test/check/error-inputs.sumspec:21:3:
    |   ^
 event h takes A (line 19), but this transition takes As
 
+test/check/error-inputs.sumspec:21:9:
+   |
+21 | h As :: S.Y -> S.X
+   |         ^
+warning: h: this transition and the one on line 20 can apply to the same state, and which one happens isn't said; give their sources different variants
+

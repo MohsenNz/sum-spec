@@ -58,6 +58,14 @@ release" in `VERSIONING.md`).
 
 - The parser, printer and checker read event inputs, named values,
   keyed lists, element paths and `__init`.
+- Warnings for a variant the app never reaches from `__init`, and for
+  two transitions of one event, on the same type, whose sources can
+  match the same state (`example/todomvc` warns about `deleteTodo` and
+  `clearCompleted`, and `example/git` about `merge` and
+  `rebaseContinue`). `example/drone` gains `selectMission`,
+  `editMission`, `startFlight`, `takeOff`, `flightFailed`, `landed` and
+  `dismissFailure`, so every variant is reached; its `PMode.Flight`
+  now carries `Flight`.
 - The checker reports a missing or repeated `__init` (in place of the
   missing `App`), and a prime, naming, name or element path in it. The
   warnings about list elements walk from the root.

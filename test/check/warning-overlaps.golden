@@ -1,0 +1,6 @@
+test/check/warning-overlaps.sumspec:14:10:
+   |
+14 | press :: App(Mode.Off) -> App(Level.High)
+   |          ^
+warning: press: this transition and the one on line 13 can apply to the same state, and which one happens isn't said; give their sources different variants
+

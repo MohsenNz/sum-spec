@@ -15,8 +15,10 @@
       examples already follow the rule.
 
 ### Open questions
-- [ ] More warnings: states no transition reaches (now possible, from
-      `__init`), and events whose transitions overlap.
+- [x] More warnings: variants the app never reaches (from `__init`),
+      and transitions of one event, on one type, whose sources overlap.
+- [ ] A warning for transitions that can never happen (their source is
+      never reached)? `reachable` in `Check.hs` already knows them.
 - [ ] Should the checker build a resolved model of the spec (e.g.
       `SumSpec.Model`) for code generators to consume?
 
@@ -36,7 +38,7 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
 - [ ] How updates change values, Part C: list updates (form chosen:
       an action clause, `// __remove ts[id]`).
 - [ ] Nondeterminism between transitions.
-- [ ] Initial state.
+- [x] Initial state (`__init`).
 - [ ] Values inside a new state.
 
 ### Versioning

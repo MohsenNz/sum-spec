@@ -55,6 +55,8 @@ checkSpec file source spec =
       , checkTransitions env spec transitions
       , checkListPlaces typeDefs (map snd inits) transitions
       , warnListElements env root transitions
+      , warnUnreached env typeDefs (map snd (take 1 inits)) transitions
+      , warnOverlaps transitions
       , warnSuffixSpaces source transitions
       ]
   where
@@ -979,6 +981,230 @@ nameUses = \case
   PatternElement _ k args -> k : concatMap nameUses args
   PatternPrimed _ p -> nameUses p
   PatternList _ _ -> []
+
+-- | A variant, named by the type it belongs to and the path to it
+-- (@PMode.ShowMission.List@). Variants are named by type, not by where
+-- the type occurs, as a transition on a type applies wherever it occurs.
+type Label = Text
+
+-- | What a part a pattern leaves out means: on the target side it keeps
+-- its value, but inside a new state (and in @__init@) it may have any
+-- value.
+data Fill = Keeps | AnyValue
+  deriving stock (Eq)
+
+-- | The variants and types of a value that may have any value: every
+-- variant of the type, and of every type inside it.
+anyType :: Env -> Text -> (Set Label, Set Text)
+anyType env start = (foldMap labelsOf types, types)
+  where
+    types = close Set.empty [start]
+    close seen = \case
+      [] -> seen
+      t : rest
+        | Set.member t seen -> close seen rest
+        | otherwise -> close (Set.insert t seen) (snd (contentsOf t) <> rest)
+    labelsOf = Set.fromList . fst . contentsOf
+    contentsOf t = maybe ([], []) (exprContents t) (Map.lookup t (envTypes env))
+
+-- | The variants a type expression defines, under the label @prefix@, and
+-- the types it names directly.
+exprContents :: Label -> TypeExpr -> ([Label], [Text])
+exprContents prefix = \case
+  TypeSum variants ->
+    mconcat
+      [ ([label], []) <> maybe mempty (exprContents label) payload
+      | Variant n payload <- variants
+      , let label = prefix <> "." <> nameText n
+      ]
+  TypeProduct terms -> ([], concatMap termRefs terms)
+  TypeTerm term -> ([], termRefs term)
+
+-- | The types a term names: the type, or a list's element and key types.
+termRefs :: TypeTerm -> [Text]
+termRefs = \case
+  TermName n -> [nameText n]
+  TermList t key -> termRefs t <> map nameText (maybe [] pure key)
+
+-- | The variants a pattern may put a value in, and the types it holds.
+-- @fixed@ is the source's variant positions, which a target compares with
+-- to find new states ('Nothing': nothing is a new state). A primed part, a
+-- part left out of a new state, and a name (an input's value, or one
+-- already there) may have any value. Errors are reported elsewhere, so a
+-- pattern that doesn't fit its type adds nothing.
+reach
+  :: Env -> Names -> Maybe (Set Position) -> Fill -> Pattern -> (Set Label, Set Text)
+reach env names fixed = goPattern []
+  where
+    goPattern at fill = \case
+      PatternPrimed _ p -> anyOf (patternKey p)
+      PatternNamed p _ -> goPattern at fill p
+      PatternName n -> maybe mempty anyOf (Map.lookup (nameText n) names)
+      PatternList _ _ -> mempty
+      PatternPath (h :| path) args ->
+        typeOnly (nameText h)
+          <> walkVariants
+            at
+            fill
+            (nameText h)
+            (Map.lookup (nameText h) (envTypes env))
+            h
+            path
+            args
+      PatternElement (h :| _) key args ->
+        typeOnly (nameText h) <> case Map.lookup (nameText h) (envTypes env) of
+          Just (TypeTerm (TermList (TermName e) _)) ->
+            let body = case Map.lookup (nameText e) (envTypes env) of
+                  Just elementBody@(TypeProduct _) -> Just elementBody
+                  _ -> Just (TypeTerm (TermName e))
+            in  goNode (at <> [elementSegment h key]) fill (nameText e) body args
+          _ -> mempty
+    -- Follows the variants of the path @h.V1.V2@: each one is reached, and
+    -- one the source doesn't fix starts a new state.
+    walkVariants at fill label body h rest args = go fill label body [h] rest
+      where
+        go f l b seen = \case
+          [] -> goNode (at <> map nameText seen) f l b args
+          v : more -> case b of
+            Just (TypeSum variants)
+              | Just (Variant _ payload) <- find ((== nameText v) . nameText . variantName) variants ->
+                  let
+                    l' = l <> "." <> nameText v
+                    seen' = seen <> [v]
+                    f' = case fixed of
+                      Just positions
+                        | f == Keeps
+                        , (at <> map nameText seen') `Set.notMember` positions ->
+                            AnyValue
+                      _ -> f
+                  in
+                    (Set.singleton l', mempty) <> go f' l' payload seen' more
+            _ -> mempty
+    -- The arguments at the end of a path, and what the left-out parts are.
+    goNode at fill label body args = case body of
+      Nothing -> mempty
+      Just expr@(TypeSum _)
+        | null args, fill == AnyValue -> anyExpr label expr
+        | otherwise -> mempty
+      Just (TypeProduct factors) ->
+        let given = Map.fromList [(k, a) | a <- args, Just k <- [argKey names a]]
+        in  mconcat
+              [ case Map.lookup (termKey factor) given of
+                  Just a -> goPattern at fill a
+                  Nothing
+                    | fill == AnyValue -> foldMap anyOf (termRefs factor)
+                    | otherwise -> mempty
+              | factor <- factors
+              ]
+      Just (TypeTerm term) -> case args of
+        [a] -> goPattern at fill a
+        []
+          | fill == AnyValue -> foldMap anyOf (termRefs term)
+        _ -> mempty
+    anyExpr label expr =
+      let (labels, refs) = exprContents label expr
+      in  (Set.fromList labels, mempty) <> foldMap anyOf refs
+    anyOf = anyType env
+    typeOnly t = (mempty, Set.singleton t)
+
+-- | Every variant the app can reach: from @__init@, then each transition
+-- whose source's variants have all been reached adds what its target
+-- may put the app in, until nothing more is added. Parts of a source are
+-- tested one by one, and names are ignored, so this may find more than
+-- the app can really reach, never less.
+reachable :: Env -> Pattern -> [Transition] -> (Set Label, Set Text)
+reachable env initial transitions = go (reach env Map.empty Nothing AnyValue initial)
+  where
+    go found =
+      let found' = found <> foldMap fire [t | t <- transitions, enabled (fst found) t]
+      in  if found' == found then found else go found'
+    enabled found (Transition _ _ from _) = fst (sourceOf from) `Set.isSubsetOf` found
+    sourceOf = reach env Map.empty Nothing Keeps
+    fire (Transition _ input from to) =
+      reach
+        env
+        (Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from])
+        (Just (fixedVariants from))
+        Keeps
+        to
+
+-- | Warns about a variant the app never reaches: neither @__init@ nor a
+-- transition that can happen puts it there. Only variants of the types
+-- inside the root are reported, and only the outermost one: a variant
+-- inside an unreached variant, or of a type that never holds a value, is
+-- left out.
+warnUnreached :: Env -> [TypeDef] -> [Pattern] -> [Transition] -> [CheckError]
+warnUnreached env defs inits transitions = case inits of
+  [initial]
+    | isKnownType env (patternKey initial) ->
+        let
+          (found, live) = reachable env initial transitions
+          (inRoot, _) = anyType env (patternKey initial)
+        in
+          [ warningAt n $
+              label
+                <> " is never reached: neither __init nor any transition that can happen "
+                <> "puts the app there"
+          | (label, n, parent) <- variantNames defs
+          , label `Set.member` inRoot
+          , label `Set.notMember` found
+          , maybe (Set.member (T.takeWhile (/= '.') label) live) (`Set.member` found) parent
+          ]
+  _ -> []
+
+-- | Every variant defined, with its name and the variant it is inside
+-- ('Nothing' for a variant of the type itself).
+variantNames :: [TypeDef] -> [(Label, Name, Maybe Label)]
+variantNames defs =
+  concat
+    [ go (nameText n) Nothing body | TypeDef n body <- firsts (nameText . typeDefName) defs
+    ]
+  where
+    go prefix parent = \case
+      TypeSum variants ->
+        concat
+          [ (label, n, parent) : maybe [] (go label (Just label)) payload
+          | Variant n payload <- variants
+          , let label = prefix <> "." <> nameText n
+          ]
+      _ -> []
+
+-- | Two transitions of one event on the same type overlap when a state
+-- can match both sources: no part of the sources picks different
+-- variants. The spec doesn't say which one happens (gap 5 in
+-- spec/efsm-gaps.md). Transitions on different types describe effects
+-- on different parts, so they aren't compared. Names are ignored, so two
+-- element paths are taken to pick the same element. Warns once per
+-- transition, naming the first one it overlaps.
+warnOverlaps :: [Transition] -> [CheckError]
+warnOverlaps transitions =
+  [ warningAt (patternHead from) $
+      nameText n
+        <> ": this transition and the one on line "
+        <> lineOf (transitionEvent earlier)
+        <> " can apply to the same state, and which one happens isn't said; "
+        <> "give their sources different variants"
+  | (i, t@(Transition n _ from _)) <- indexed
+  , Just earlier <- [find (overlaps t) [e | (j, e) <- indexed, j < i]]
+  ]
+  where
+    indexed = zip [0 :: Int ..] transitions
+    overlaps (Transition n _ from _) (Transition m _ other _) =
+      nameText n == nameText m
+        && patternKey from == patternKey other
+        && not (excludes (variantsOf from) (variantsOf other))
+    variantsOf = Set.map (map dropKey) . fixedVariants
+    dropKey segment = T.takeWhile (/= '[') segment
+    -- Two variants at the same place differ: their positions share all
+    -- but the last segment.
+    excludes a b =
+      or
+        [ init pa == init pb && last pa /= last pb
+        | pa <- Set.toList a
+        , pb <- Set.toList b
+        , not (null pa)
+        , not (null pb)
+        ]
 
 -- ---------- Helpers ----------
 

@@ -4,6 +4,12 @@ example/git:105:11:
     |           ^
 warning: commit changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
+example/git:116:10:
+    |
+116 | merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+    |          ^
+warning: merge: this transition and the one on line 113 can apply to the same state, and which one happens isn't said; give their sources different variants
+
 example/git:121:10:
     |
 121 | merge :: FileState.Unmodified -> FileState.Conflicted
@@ -15,4 +21,10 @@ example/git:133:15:
 133 | mergeAbort :: FileState.Conflicted -> FileState.Unmodified
     |               ^
 warning: mergeAbort changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
+
+example/git:141:19:
+    |
+141 | rebaseContinue :: Repository.Initialized(Head.Detached * Operation.Rebasing)
+    |                   ^
+warning: rebaseContinue: this transition and the one on line 138 can apply to the same state, and which one happens isn't said; give their sources different variants
 

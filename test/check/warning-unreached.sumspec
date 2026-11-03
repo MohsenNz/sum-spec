@@ -1,0 +1,23 @@
+-- A variant the app never reaches: __init doesn't start there, and no
+-- transition that can happen enters it.
+__atomics { Id }
+__events { open close fix }
+
+__init :: App(Door.Closed * Alarm.Off)
+
+App = Door * Alarm * Log
+Door = Open | Closed | Locked (Bolt | Chain)
+Alarm = Off | Ringing
+-- Left out of __init, so a Log may have any value: Entry.Read and
+-- Entry.Unread are both reached.
+Log = [Entry by Id]
+Entry = Read | Unread
+
+open :: Door.Closed -> Door.Open
+close :: Door.Open -> Door.Closed
+-- Locked is never reached, so Bolt and Chain aren't reported as well.
+-- Its source is never reached, so fix never happens, and Alarm.Ringing
+-- stays unreached.
+fix :: App(Door.Locked) -> App(Door.Closed * Alarm.Ringing)
+-- An unused type: its variants aren't part of the root.
+Spare = Up | Down

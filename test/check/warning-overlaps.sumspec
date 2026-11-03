@@ -1,0 +1,21 @@
+-- Two transitions of one event on the same type overlap when their
+-- sources don't pick different variants anywhere.
+__atomics { Id }
+__events { press reset step }
+
+__init :: App(Mode.Off * Level.Low)
+
+App = Mode * Level
+Mode = On | Off
+Level = Low | High
+
+-- Overlap: one source leaves Level out, so it may be Low.
+press :: App(Mode.Off * Level.Low) -> App(Mode.On)
+press :: App(Mode.Off) -> App(Level.High)
+-- No overlap: the sources pick different variants of Mode.
+reset :: App(Mode.On) -> App(Mode.Off)
+reset :: App(Mode.Off) -> App(Level.Low)
+-- No overlap: transitions on different types describe effects on
+-- different parts, and both happen.
+step :: Mode.On -> Mode.Off
+step :: Level.Low -> Level.High

@@ -484,3 +484,17 @@ The root is `Z`. In `example/drone`, the app starts on the home page:
 ```
 __init :: App(Page.Home)
 ```
+
+## Warnings
+
+Transitions of one event on different types describe its effect on different parts, and all of them happen (`commit` in `example/git` changes the branch and the files). Two transitions on the same type should have sources that exclude each other: somewhere, they pick different variants. Otherwise one state can match both, and the spec doesn't say which happens; the type checker warns:
+
+```
+-- Warned: Level is left out of the second source, so it may be Low.
+press :: App(Mode.Off * Level.Low) -> App(Mode.On)
+press :: App(Mode.Off) -> App(Level.High)
+```
+
+The check reads only variants: two sources that differ only in a named value (`Todos[a]`, `Todos[b]`) are taken to overlap.
+
+From `__init`, the type checker finds the variants the app can reach: a transition can happen once every variant its source writes has been reached, and its target then reaches the variants it writes. A part that may have any value (left out of `__init` or of a new state, or primed) reaches every variant inside it. The checker warns about a variant of a type inside the app's state that is never reached, and reports only the outermost one (not `Bolt` inside an unreached `Locked (Bolt | Chain)`). Parts of a source are tested one at a time and names are ignored, so a variant may be counted as reached when the app can't really get there, but never the other way around.

@@ -1,1 +1,12 @@
-OK
+example/todomvc:114:25:
+    |
+114 | deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
+    |                         ^
+warning: deleteTodo: this transition and the one on line 112 can apply to the same state, and which one happens isn't said; give their sources different variants
+
+example/todomvc:121:19:
+    |
+121 | clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown))
+    |                   ^
+warning: clearCompleted: this transition and the one on line 116 can apply to the same state, and which one happens isn't said; give their sources different variants
+

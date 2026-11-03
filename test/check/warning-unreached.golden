@@ -1,0 +1,12 @@
+test/check/warning-unreached.sumspec:9:24:
+  |
+9 | Door = Open | Closed | Locked (Bolt | Chain)
+  |                        ^
+warning: Door.Locked is never reached: neither __init nor any transition that can happen puts the app there
+
+test/check/warning-unreached.sumspec:10:15:
+   |
+10 | Alarm = Off | Ringing
+   |               ^
+warning: Alarm.Ringing is never reached: neither __init nor any transition that can happen puts the app there
+

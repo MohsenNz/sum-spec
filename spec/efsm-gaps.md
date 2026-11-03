@@ -199,8 +199,9 @@ To decide:
 
 - Whether overlapping sources must carry guards that exclude each other
   (depends on 2), or whether nondeterminism stays allowed and is marked.
-- Related: the "events whose transitions overlap" warning in
-  `TODO.md`.
+- The checker already warns about two transitions of one event, on
+  the same type, whose sources can match the same state (see "Several
+  transitions for one event" in `spec-v1.md`).
 
 ## 6. Initial state
 
@@ -219,8 +220,8 @@ Still open:
 
 - Empty values: whether a list left out of `__init` starts empty
   (ties in with 7).
-- With an initial state, the checker can warn about states no
-  transition reaches (an open question in `TODO.md`).
+- The checker warns about variants the app never reaches, from
+  `__init` (see "Initial state" in `spec-v1.md`).
 
 ## 7. Values inside a new state
 

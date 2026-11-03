@@ -221,6 +221,11 @@ character     = ? any Unicode character ? ;
      in spec-v1.md;
    - a space before a prime or a naming (A ', Text #t); it's read the
      same, and the canonical form writes A' and Text#t. See "Source and
-     target" and "Named values" in spec-v1.md.
+     target" and "Named values" in spec-v1.md;
+   - a variant of a type inside the root that the app never reaches:
+     neither __init nor a transition that can happen puts the app
+     there. Only the outermost unreached variant is reported;
+   - two transitions of one event, on the same type, whose sources can
+     match the same state (no part of them picks different variants).
 
    Not in v1 (see proposals.md): "=>", "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)
