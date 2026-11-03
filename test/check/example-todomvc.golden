@@ -1,12 +1,12 @@
-example/todomvc:114:25:
+example/todomvc:113:25:
     |
-114 | deleteTodo TodoId#id :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
+113 |                      :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
     |                         ^
-warning: deleteTodo: this transition and the one on line 112 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: deleteTodo: this transition and the one on line 111 can apply to the same state, and which one happens isn't said; give their sources different variants
 
-example/todomvc:121:19:
+example/todomvc:119:19:
     |
-121 | clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown))
+119 |                :: Screen.WithTodos(Footer(ClearCompleted.Shown))
     |                   ^
-warning: clearCompleted: this transition and the one on line 116 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: clearCompleted: this transition and the one on line 115 can apply to the same state, and which one happens isn't said; give their sources different variants
 

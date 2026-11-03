@@ -90,41 +90,6 @@ definition, addressed by its path. Today the payload is written inline:
       = ...
       | ShowMission (List (...) | Selected Mission)
 
-## Several transitions under one event name
-
-Version impact: additive.
-
-    toggleTodo TodoId#id
-      :: Todo(id * Completion.Active)    -> Todo(Completion.Completed)
-      :: Todo(id * Completion.Completed) -> Todo(Completion.Active)
-
-An event writes its name and input once, then one `:: source ->
-target` arm per transition. Today the name and input are repeated for
-each transition (see "Several transitions for one event" in
-`spec-v1.md`); that form stays valid.
-
-    transition = LOWER , [ input ] , arm , { arm } ;
-    arm        = "::" , pattern , "->" , pattern ;
-
-An arm starts with `::`, which can't begin a definition, so the parser
-knows where the next arm starts.
-
-- Names bound in the input are visible in every arm. Names bound in a
-  source belong to that arm.
-- The input belongs to the event (see "Event inputs" in
-  `spec-v1.md`), so it's written in one place.
-
-Writing the source first and grouping events below it (a state table)
-was considered and rejected: an event's transitions end up in several
-groups, and once patterns pick list elements by key, few sources are
-shared. A tool can print the by-state view instead (e.g. `sumspec
-states FILE`).
-
-Open:
-
-- Does the canonical form print every transition of an event as one group?
-- Must the transitions of an event then be adjacent?
-
 ## Naming an element
 
 Version impact: additive.

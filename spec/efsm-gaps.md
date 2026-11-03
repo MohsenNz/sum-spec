@@ -177,8 +177,8 @@ device.
 
 To decide:
 
-- Inputs (done): `f X :: A -> B`. Every transition of an event takes
-  the same input, as an EFSM event has one parameter list. How the
+- Inputs (done): `f X :: A -> B`. The input is written once, after the
+  event's name, as an EFSM event has one parameter list. How the
   target says "this part is set to the input" is part of 3.
 - Outputs: whether an event's transition can emit an event or effect, and its
   type.
@@ -190,15 +190,23 @@ Status: open.
 Two transitions of one event may share a source:
 
     deleteTodo :: Screen.WithTodos -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
-    deleteTodo :: Screen.WithTodos -> Screen.NoTodos
+               :: Screen.WithTodos -> Screen.NoTodos
 
 Which one applies depends on data the spec doesn't express (whether the
 deleted todo was the last). An EFSM separates them with guards.
 
 To decide:
 
-- Whether overlapping sources must carry guards that exclude each other
-  (depends on 2), or whether nondeterminism stays allowed and is marked.
+- Chosen direction, once guards exist (2): the transitions of an event
+  are tried in order, and the first whose source matches applies (as in
+  a Haskell `case`). The checker then warns about a transition an
+  earlier one covers, as it can never apply. Transitions on different
+  types still all happen (`commit` in `example/git`). Not before
+  guards: every overlap in the examples has identical sources
+  (`deleteTodo`, `clearCompleted`, `merge`, `rebaseContinue`), so the
+  second transition of each would never apply. The transitions of an
+  event are already written together, in order (see "Several
+  transitions for one event" in `spec-v1.md`).
 - The checker already warns about two transitions of one event, on
   the same type, whose sources can match the same state (see "Several
   transitions for one event" in `spec-v1.md`).

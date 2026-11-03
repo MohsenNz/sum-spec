@@ -1,0 +1,15 @@
+__atomics {
+  Id
+}
+
+__events {
+  toggle
+  press
+}
+
+App = Mode
+Mode = On | Off
+toggle Id#i :: Mode.On -> Mode.Off
+            :: Mode.Off -> Mode.On
+press :: Mode.On -> Mode.Off
+      :: Mode.Off -> Mode.On

@@ -74,7 +74,7 @@ definition :: Parser Definition
 definition =
   choice
     [ uncurry DefInit <$> initState
-    , DefTransition <$> transition
+    , DefEvent <$> eventDef
     , DefType <$> typeDef
     ]
 
@@ -140,16 +140,17 @@ typeTerm = TermName <$> upperName <|> uncurry TermList <$> listTerm
 listTerm :: Parser (TypeTerm, Maybe Name)
 listTerm = brackets ((,) <$> typeTerm <*> optional (keyword "by" *> upperName))
 
--- transition = LOWER , [ input ] , "::" , pattern , "->" , pattern ;
-transition :: Parser Transition
-transition =
-  Transition
+-- event_def = LOWER , [ input ] , transition , { transition } ;
+eventDef :: Parser Event
+eventDef =
+  Event
     <$> lowerName
     <*> optional (input <?> "input type")
-    <* symbol "::"
-    <*> pattern
-    <* symbol "->"
-    <*> pattern
+    <*> ((:|) <$> transition <*> many transition)
+
+-- transition = "::" , pattern , "->" , pattern ;
+transition :: Parser Transition
+transition = Transition <$> (symbol "::" *> pattern) <*> (symbol "->" *> pattern)
 
 -- input = type_pattern , [ NAMING ] ;
 input :: Parser Pattern

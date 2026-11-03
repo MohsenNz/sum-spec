@@ -1,0 +1,6 @@
+test/check/error-event-twice.sumspec:12:1:
+   |
+12 | open :: Door.Open -> Door.Open
+   | ^
+event open is defined twice (first on line 10); write all its transitions under one name, each starting with ::
+

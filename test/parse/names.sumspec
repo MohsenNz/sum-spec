@@ -17,7 +17,7 @@ Ref = Id * Name
 rename Text#t :: Item(Name(Text#old)) -> Item(Name(t))
 -- Factors inside the input are named.
 select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On)
-select Ref(Id#i * Name#n) :: Selection -> Selection.Some(i)
+                          :: Selection -> Selection.Some(i)
 -- Any pattern can be named, a list too; the space before # is style.
 keep [Id]#ids :: Selection.None -> Selection.Many(ids)
 copy :: Item(State.On #s * Name#n) -> Item(State.Off)

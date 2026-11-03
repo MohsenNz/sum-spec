@@ -1,0 +1,7 @@
+-- A transition starts with ::, after an event name or another
+-- transition; it can't follow a type definition.
+__atomics { A }
+__events {}
+
+App = A
+  :: App -> App

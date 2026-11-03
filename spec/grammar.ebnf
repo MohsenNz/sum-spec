@@ -21,7 +21,7 @@ events_block  = "__events" , "{" , { LOWER } , "}" ;
 
 definition    = init_state
               | type_def
-              | transition ;
+              | event_def ;
 
 (* The initial state: a state pattern for the root, the type of every
    state. It isn't a transition: no source, no "->", no event.
@@ -70,13 +70,18 @@ type_term     = UPPER
 
 (* ---------- Transitions ---------- *)
 
-(* A transition of the event named by LOWER. An event may have several
-   transitions, one per definition. The optional input after the name is
-   the value the event brings,
-   a type pattern that may name values:
+(* The event named by LOWER, with all its transitions. The optional
+   input after the name is the value the event brings, a type pattern
+   that may name values; its names are visible in every transition:
      toggleTodo TodoId :: Completion.Active -> Completion.Completed
-     select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On) *)
-transition    = LOWER , [ input ] , "::" , pattern , "->" , pattern ;
+     select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On)
+     press :: App(Mode.Off * Level.Low) -> App(Mode.On)
+           :: App(Mode.Off) -> App(Level.High)
+   A transition starts with "::", which can't begin a definition, so
+   layout doesn't matter.                                              *)
+event_def     = LOWER , [ input ] , transition , { transition } ;
+
+transition    = "::" , pattern , "->" , pattern ;
 
 input         = type_pattern , [ NAMING ] ;
 
@@ -170,9 +175,11 @@ character     = ? any Unicode character ? ;
    - no name is listed twice in __atomics or in __events;
    - every event is listed in __events, and every name in __events has
      at least one transition;
-   - an event's input is headed by an atomic or a defined type, and
-     every transition of an event takes an input of the same type or
-     none. See "Event inputs" in spec-v1.md;
+   - an event is defined once (one event_def), with all its
+     transitions. See "Several transitions for one event" in
+     spec-v1.md;
+   - an event's input is headed by an atomic or a defined type. See
+     "Event inputs" in spec-v1.md;
    - a value is named (P#x) only in the input or on the source side,
      once per transition, and only after a type pattern; a name used (x)
      is named in the same transition and has the type expected where it

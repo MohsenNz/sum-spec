@@ -10,6 +10,11 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- An event is defined once: its name and input, then all its
+  transitions, each starting with `::`:
+  `press :: A -> B`, then `:: C -> D` on the next line. Writing an
+  event's name again is an error. The input is written once, and its
+  names are visible in every transition.
 - Initial state: `__init :: P` gives the state the app starts in, once
   per spec. Its head type is the root, the type of every state, so `App`
   is no longer required or special (`example/git` drops
@@ -26,10 +31,9 @@ release" in `VERSIONING.md`).
 - A prime doesn't go inside a new state (`Page -> Page.Plan(PMode')`):
   nothing there has an old value to change. Write `PMode`, which may
   have any value there, or leave it out.
-- Event inputs: an event may take an input, written after its name
-  (`toggleTodo TodoId :: ...`). Every transition of an event takes the
-  same input, or none. The input is a type pattern, so it can
-  name its parts: `select Ref(Id#i * Name#n) :: ...`.
+- Event inputs: an event may take an input, written once after its
+  name (`toggleTodo TodoId :: ...`). The input is a type pattern, so it
+  can name its parts: `select Ref(Id#i * Name#n) :: ...`.
 - Named values: `P#x` names the value a pattern matches, in the input or
   on the source side, and `x` uses it. On the source side a name is an
   equality guard; on the target side it sets the value.
@@ -72,8 +76,7 @@ release" in `VERSIONING.md`).
 - `sumspec check` warns about a space before a prime or a naming
   (`A '`, `Text #t`).
 - The checker reports:
-  - an input whose type is unknown, and transitions of one event with
-    different inputs;
+  - an input whose type is unknown, and an event defined twice;
   - unknown names, names given twice or on the target side, and names
     of the wrong type;
   - an unknown key type;

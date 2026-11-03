@@ -1,21 +1,16 @@
--- The input type must be known, and every transition of an event takes
--- the same input, or none.
+-- The input type must be known. The input is written once, so it is
+-- checked once, however many transitions the event has.
 __version 1.0
 
 __atomics { A B }
-__events { f g h }
+__events { f g }
 
 __init :: App
 
 App = S
 S = X | Y
-As = [A]
 
 f Missing :: S.X -> S.Y
 
-g A :: S.X -> S.Y
-g :: S.Y -> S.X
-
-h A :: S.X -> S.Y
-h B :: S.Y -> S.X
-h As :: S.Y -> S.X
+g Missing2 :: S.X -> S.Y
+           :: S.Y -> S.X

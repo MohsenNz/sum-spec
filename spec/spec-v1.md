@@ -103,7 +103,7 @@ trans3
 `|`  sum type
 `*`  product type
 `.`  selects a variant of a sum type
-`::` transition definition
+`::` starts a transition
 `->` state transition
 
 ## Types, more
@@ -215,7 +215,7 @@ A part keeps its value only where the source fixes the same variants along its p
 
 Examples, with the types of `example/drone`:
 
-```
+```haskell
 -- Only the mode changes; Missions keeps its value.
 changeMode :: Page.Plan(PMode * Missions) -> Page.Plan(PMode' * Missions)
 
@@ -247,13 +247,17 @@ Where a prime may go:
 ### Several transitions for one event
 
 An event may apply from more than one state, reaching a different
-target or having a different effect from each. Repeat the name, one
-transition per state:
+target or having a different effect from each. Write the name (and the
+input) once, then one transition per state, each starting with `::`:
 
 ```
 f :: A -> B
-f :: C -> D
+  :: C -> D
 ```
+
+An event is defined once, with all its transitions together. A transition
+starts with `::`, so layout doesn't matter, and comments may go between
+transitions; the canonical form puts each `::` under the first.
 
 ### Event inputs
 
@@ -285,18 +289,6 @@ select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On)
 A variant or argument written in the input is a precondition on it, as
 on the source side.
 
-The input belongs to the event, not to one of its transitions: an
-event has one input, whatever state it applies from. So every
-transition of an event writes an input of the same type, or none (the
-names in it may differ):
-
-```
-toggleTodo TodoId :: Completion.Active -> Completion.Completed
-toggleTodo TodoId :: Completion.Completed -> Completion.Active
-```
-
-A transition doesn't have to use the input.
-
 ## Named values (#name)
 
 A pattern followed by `#x` names the value it matches; a lowercase name
@@ -312,7 +304,8 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
   space before `#` either, and the type checker warns about one
   (`Text #t`).
 - A name is given once per transition, in the input or on the source
-  side. Its type is like: `Completion` for `Completion.Active#c`, `Ids` for `Ids#ids`.
+  side. A name given in the input is visible in every transition of the
+  event; one given on a source belongs to that transition. Its type is like: `Completion` for `Completion.Active#c`, `Ids` for `Ids#ids`.
 - **On the source side**, a name that is used is a guard: the value there
   must equal the named one. `unlock` applies only when the entered code
   `c` equals the lock's secret:
@@ -492,7 +485,7 @@ Transitions of one event on different types describe its effect on different par
 ```
 -- Warned: Level is left out of the second source, so it may be Low.
 press :: App(Mode.Off * Level.Low) -> App(Mode.On)
-press :: App(Mode.Off) -> App(Level.High)
+      :: App(Mode.Off) -> App(Level.High)
 ```
 
 The check reads only variants: two sources that differ only in a named value (`Todos[a]`, `Todos[b]`) are taken to overlap.

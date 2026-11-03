@@ -21,4 +21,4 @@ Ref = Id * Name
 rename Name :: Item(Name) -> Item(Name')
 pick [Id] :: Selection.None -> Selection.Some(Id)
 select Ref :: State.Off -> State.On
-select Ref :: State.On -> State.Off
+           :: State.On -> State.Off

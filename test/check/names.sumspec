@@ -20,6 +20,6 @@ Ref = Id * Title
 finish Id#id :: Todo(id * Mode.Editing(EditText(Text#e)))
              -> Todo(Title(e) * Mode.Viewing)
 select Ref(Id#i * Title#t) :: Selection.None -> Selection.Some(i)
-select Ref(Id#j) :: Selection.Some(j) -> Selection.None
+                           :: Selection.Some(i) -> Selection.None
 keep Ids#ids :: Selection.None -> Selection.Many(ids)
 reset :: App(Selection.Some#s) -> App(Selection.None)

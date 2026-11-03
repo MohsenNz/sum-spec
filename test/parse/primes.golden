@@ -9,6 +9,6 @@ __events {
 
 App = A * B
 t :: App(A * B) -> App(A' * B')
-t :: App -> A''
-t :: App.X' -> App(A)'
-t :: [A]' -> [B]
+  :: App -> A''
+  :: App.X' -> App(A)'
+  :: [A]' -> [B]

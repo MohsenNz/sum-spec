@@ -10,6 +10,7 @@ module SumSpec.Syntax
   , TypeExpr (..)
   , Variant (..)
   , TypeTerm (..)
+  , Event (..)
   , Transition (..)
   , Pattern (..)
   , Name (..)
@@ -36,7 +37,7 @@ data Spec = Spec
 
 data Definition
   = DefType TypeDef
-  | DefTransition Transition
+  | DefEvent Event
   | -- | @__init :: P@: the initial state, @P@. Its head type is the root,
     -- the type of every state. The name is the @__init@ keyword, for its
     -- position.
@@ -75,15 +76,20 @@ data TypeTerm
     TermList TypeTerm (Maybe Name)
   deriving stock (Eq, Show)
 
--- | @t :: from -> to@, or @t X :: from -> to@ with an input: one transition
--- of the event @t@. An event may have several transitions.
+-- | @t X :: from -> to :: from -> to ...@: the event @t@, its optional
+-- input @X@, and its transitions, in order. An event is defined once.
+data Event = Event
+  { eventName :: Name
+  , eventInput :: Maybe Pattern
+  -- ^ The input, @X@: a pattern headed by a type, never a 'PatternName'.
+  -- Its names are visible in every transition.
+  , eventTransitions :: NonEmpty Transition
+  }
+  deriving stock (Eq, Show)
+
+-- | @:: from -> to@: one transition of an event.
 data Transition = Transition
-  { transitionEvent :: Name
-  -- ^ The event's name, @t@.
-  , transitionInput :: Maybe Pattern
-  -- ^ The input, @X@ in @t X :: ...@: a pattern headed by a type, never a
-  -- 'PatternName'.
-  , transitionFrom :: Pattern
+  { transitionFrom :: Pattern
   , transitionTo :: Pattern
   }
   deriving stock (Eq, Show)

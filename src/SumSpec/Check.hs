@@ -52,17 +52,22 @@ checkSpec file source spec =
       [ checkHeaders spec
       , checkInit file env inits
       , checkTypeDefs env typeDefs
-      , checkTransitions env spec transitions
+      , checkEvents env spec events
+      , checkTransitions env transitions
       , checkListPlaces typeDefs (map snd inits) transitions
       , warnListElements env root transitions
       , warnUnreached env typeDefs (map snd (take 1 inits)) transitions
       , warnOverlaps transitions
-      , warnSuffixSpaces source transitions
+      , warnSuffixSpaces
+          source
+          (inputs <> concat [[from, to] | Flat _ _ from to <- transitions])
       ]
   where
     position pos = (unPos (sourceLine pos), unPos (sourceColumn pos))
     typeDefs = [d | DefType d <- specDefinitions spec]
-    transitions = [t | DefTransition t <- specDefinitions spec]
+    events = [e | DefEvent e <- specDefinitions spec]
+    transitions = concatMap flatten events
+    inputs = mapMaybe eventInput events
     inits = [(k, p) | DefInit k p <- specDefinitions spec]
     -- The type of every state: the head type of the initial state.
     root = case inits of
@@ -246,34 +251,60 @@ newtypeCycle env (TypeDef start _) = go [nameText start] (nameText start)
 
 -- ---------- Transitions ----------
 
-checkTransitions :: Env -> Spec -> [Transition] -> [CheckError]
-checkTransitions env spec transitions =
+-- | One transition with its event's name and input (then its source and
+-- target): what most checks look at.
+data Flat = Flat Name (Maybe Pattern) Pattern Pattern
+
+flatten :: Event -> [Flat]
+flatten (Event n input transitions) =
+  [Flat n input from to | Transition from to <- NE.toList transitions]
+
+-- | Every event is listed in @__events@ and defined once, with all its
+-- transitions; every listed event is defined. The input is checked once
+-- per event, like a source: it's what the event brings, so it can name
+-- values but not give new ones.
+checkEvents :: Env -> Spec -> [Event] -> [CheckError]
+checkEvents env spec events =
   [ errorAt n ("event " <> nameText n <> " is not listed in __events")
-  | Transition n _ _ _ <- firsts (nameText . transitionEvent) transitions
+  | Event n _ _ <- firsts (nameText . eventName) events
   , nameText n `Set.notMember` listed
   ]
-    <> checkInputs transitions
+    <> [ errorAt n $
+           "event "
+             <> nameText n
+             <> " is defined twice (first on line "
+             <> lineOf first
+             <> "); write all its transitions under one name, each starting with ::"
+       | (Event n _ _, Event first _ _) <- repeats (nameText . eventName) events
+       ]
     <> [ errorAt n ("event " <> nameText n <> " is listed in __events but has no transition")
        | n <- firsts nameText (specEvents spec)
-       , nameText n `Set.notMember` signed
+       , nameText n `Set.notMember` defined
        ]
-    <> concatMap checkTransition transitions
+    <> concatMap checkInput (mapMaybe eventInput events)
   where
     listed = Set.fromList (map nameText (specEvents spec))
-    signed = Set.fromList (map (nameText . transitionEvent) transitions)
-    -- The input is checked like the source: it's what the transition
-    -- receives, so it can name values but not give new ones.
-    checkTransition (Transition _ input from to) =
-      concatMap (checkPrimes Source) input
-        <> checkPrimes Source from
-        <> checkPrimes Target to
-        <> checkNamings input from to
+    defined = Set.fromList (map (nameText . eventName) events)
+    checkInput input =
+      checkPrimes Source input
         <> [ errorAt k "an element path goes on the source or target side, not in the input"
-           | k <- concatMap elementKeys input
+           | k <- elementKeys input
            ]
         -- An element in the input is reported above; its key can't be
         -- named anywhere the input could see it.
-        <> concat [checkPattern env names i | i <- maybe [] pure input, null (elementKeys i)]
+        <> [ e
+           | null (elementKeys input)
+           , e <-
+               checkPattern env (Map.fromList [(nameText n, k) | (n, k) <- namings input]) input
+           ]
+
+checkTransitions :: Env -> [Flat] -> [CheckError]
+checkTransitions env = concatMap checkTransition
+  where
+    checkTransition (Flat _ input from to) =
+      checkPrimes Source from
+        <> checkPrimes Target to
+        <> checkNamings input from to
         <> checkPattern env names from
         <> checkPattern env names to
         <> checkSides env names from to
@@ -306,11 +337,10 @@ checkSides env names from to =
 -- @Text#t@). A space there is read the same, so it's only a warning. The
 -- AST doesn't keep where the pattern before ends (it may end in @)@), so
 -- this looks at the source character before the @'@ or @#@.
-warnSuffixSpaces :: Text -> [Transition] -> [CheckError]
-warnSuffixSpaces source transitions =
+warnSuffixSpaces :: Text -> [Pattern] -> [CheckError]
+warnSuffixSpaces source patterns =
   [ CheckError Warning pos message
-  | Transition _ input from to <- transitions
-  , p <- maybe [] pure input <> [from, to]
+  | p <- patterns
   , (pos, message) <- suffixes p
   , maybe True isSpace (charBefore sourceLines pos)
   ]
@@ -441,13 +471,13 @@ elementSegment h key = nameText h <> "[" <> nameText key <> "]"
 -- list has a type name (@Points = [Point]@) and is written by it, in
 -- patterns as well. A list's element is a type name too (@Row = [Cell]@
 -- for a list of lists).
-checkListPlaces :: [TypeDef] -> [Pattern] -> [Transition] -> [CheckError]
+checkListPlaces :: [TypeDef] -> [Pattern] -> [Flat] -> [CheckError]
 checkListPlaces defs inits transitions =
   concatMap (definitionLists . typeDefBody) defs
     <> concatMap patternLists inits
     <> concat
       [ concatMap patternLists (maybe [] pure i <> [from, to])
-      | Transition _ i from to <- transitions
+      | Flat _ i from to <- transitions
       ]
   where
     report term = errorAt (termName term)
@@ -484,32 +514,6 @@ checkListPlaces defs inits transitions =
       PatternNamed p _ -> patternLists p
       PatternPrimed _ p -> patternLists p
       PatternName _ -> []
-
--- | An input belongs to the event, not to one of its transitions (as an
--- EFSM event has one parameter list), so every transition of an event
--- takes the input of the first one, or none like it.
-checkInputs :: [Transition] -> [CheckError]
-checkInputs transitions =
-  [ errorAt (maybe n patternHead input) $
-      "event "
-        <> nameText n
-        <> " takes "
-        <> describe firstInput
-        <> " (line "
-        <> lineOf firstName
-        <> "), but this transition takes "
-        <> describe input
-  | Transition n input _ _ <- transitions
-  , Just (Transition firstName firstInput _ _) <- [Map.lookup (nameText n) firstByName]
-  , fmap patternKey input /= fmap patternKey firstInput
-  ]
-  where
-    firstByName =
-      Map.fromList
-        [ (nameText (transitionEvent t), t)
-        | t <- firsts (nameText . transitionEvent) transitions
-        ]
-    describe = maybe "no input" patternKey
 
 -- | The names a transition gives, with their types: in its input and on
 -- its source side.
@@ -908,10 +912,10 @@ listPlaces env root =
 -- written from the element, comparing a key with a named value
 -- (@Todo(id * ...)@). Warns about the others, once per transition. Without
 -- a root (no @__init@), there are no places to warn about.
-warnListElements :: Env -> Maybe Text -> [Transition] -> [CheckError]
+warnListElements :: Env -> Maybe Text -> [Flat] -> [CheckError]
 warnListElements env root transitions =
   [ warningAt h (nameText n <> " " <> message)
-  | Transition n _ from _ <- transitions
+  | Flat n _ from _ <- transitions
   , PatternPath (h :| _) args <- [bare from]
   , Just message <- [firstJust (map (problem (nameText h) args) (placesOf (nameText h)))]
   ]
@@ -1112,15 +1116,15 @@ reach env names fixed = goPattern []
 -- may put the app in, until nothing more is added. Parts of a source are
 -- tested one by one, and names are ignored, so this may find more than
 -- the app can really reach, never less.
-reachable :: Env -> Pattern -> [Transition] -> (Set Label, Set Text)
+reachable :: Env -> Pattern -> [Flat] -> (Set Label, Set Text)
 reachable env initial transitions = go (reach env Map.empty Nothing AnyValue initial)
   where
     go found =
       let found' = found <> foldMap fire [t | t <- transitions, enabled (fst found) t]
       in  if found' == found then found else go found'
-    enabled found (Transition _ _ from _) = fst (sourceOf from) `Set.isSubsetOf` found
+    enabled found (Flat _ _ from _) = fst (sourceOf from) `Set.isSubsetOf` found
     sourceOf = reach env Map.empty Nothing Keeps
-    fire (Transition _ input from to) =
+    fire (Flat _ input from to) =
       reach
         env
         (Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from])
@@ -1133,7 +1137,7 @@ reachable env initial transitions = go (reach env Map.empty Nothing AnyValue ini
 -- inside the root are reported, and only the outermost one: a variant
 -- inside an unreached variant, or of a type that never holds a value, is
 -- left out.
-warnUnreached :: Env -> [TypeDef] -> [Pattern] -> [Transition] -> [CheckError]
+warnUnreached :: Env -> [TypeDef] -> [Pattern] -> [Flat] -> [CheckError]
 warnUnreached env defs inits transitions = case inits of
   [initial]
     | isKnownType env (patternKey initial) ->
@@ -1176,20 +1180,20 @@ variantNames defs =
 -- on different parts, so they aren't compared. Names are ignored, so two
 -- element paths are taken to pick the same element. Warns once per
 -- transition, naming the first one it overlaps.
-warnOverlaps :: [Transition] -> [CheckError]
+warnOverlaps :: [Flat] -> [CheckError]
 warnOverlaps transitions =
   [ warningAt (patternHead from) $
       nameText n
         <> ": this transition and the one on line "
-        <> lineOf (transitionEvent earlier)
+        <> lineOf (patternHead earlierFrom)
         <> " can apply to the same state, and which one happens isn't said; "
         <> "give their sources different variants"
-  | (i, t@(Transition n _ from _)) <- indexed
-  , Just earlier <- [find (overlaps t) [e | (j, e) <- indexed, j < i]]
+  | (i, t@(Flat n _ from _)) <- indexed
+  , Just (Flat _ _ earlierFrom _) <- [find (overlaps t) [e | (j, e) <- indexed, j < i]]
   ]
   where
     indexed = zip [0 :: Int ..] transitions
-    overlaps (Transition n _ from _) (Transition m _ other _) =
+    overlaps (Flat n _ from _) (Flat m _ other _) =
       nameText n == nameText m
         && patternKey from == patternKey other
         && not (excludes (variantsOf from) (variantsOf other))

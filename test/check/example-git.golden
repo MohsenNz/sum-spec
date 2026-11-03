@@ -1,30 +1,30 @@
-example/git:105:11:
+example/git:103:11:
     |
-105 | commit :: FileState.Staged -> FileState.Unmodified
+103 |        :: FileState.Staged -> FileState.Unmodified
     |           ^
 warning: commit changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:116:10:
+example/git:113:10:
     |
-116 | merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+113 |       :: Repository.Initialized(Head.OnBranch * Operation.Idle)
     |          ^
-warning: merge: this transition and the one on line 113 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: merge: this transition and the one on line 111 can apply to the same state, and which one happens isn't said; give their sources different variants
 
-example/git:121:10:
+example/git:117:10:
     |
-121 | merge :: FileState.Unmodified -> FileState.Conflicted
+117 |       :: FileState.Unmodified -> FileState.Conflicted
     |          ^
 warning: merge changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:133:15:
+example/git:128:15:
     |
-133 | mergeAbort :: FileState.Conflicted -> FileState.Unmodified
+128 |            :: FileState.Conflicted -> FileState.Unmodified
     |               ^
 warning: mergeAbort changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:141:19:
+example/git:135:19:
     |
-141 | rebaseContinue :: Repository.Initialized(Head.Detached * Operation.Rebasing)
+135 |                :: Repository.Initialized(Head.Detached * Operation.Rebasing)
     |                   ^
-warning: rebaseContinue: this transition and the one on line 138 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: rebaseContinue: this transition and the one on line 133 can apply to the same state, and which one happens isn't said; give their sources different variants
 

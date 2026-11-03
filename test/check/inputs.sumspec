@@ -19,4 +19,4 @@ rename Name :: Item(Name) -> Item(Name')
 pick Ids :: Selection.None -> Selection.Some(Id)
 -- Every transition writes the input.
 select Ref :: State.Off -> State.On
-select Ref :: State.On -> State.Off
+           :: State.On -> State.Off

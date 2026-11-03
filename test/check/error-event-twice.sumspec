@@ -1,0 +1,12 @@
+-- An event is defined once, with all its transitions under its name.
+__atomics { Id }
+__events { open close }
+
+__init :: App(Door.Closed)
+
+App = Door
+Door = Open | Closed
+
+open :: Door.Closed -> Door.Open
+close :: Door.Open -> Door.Closed
+open :: Door.Open -> Door.Open

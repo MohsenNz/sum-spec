@@ -17,16 +17,16 @@ __events {
   devicesBackToHome
   newPlot
   showMission
-  selectMission
-  editMission
-  startFlight
+  selectMission         -- The mission list may have any value here: a new state.
+  editMission           -- Edits the selected mission's plot.
+  startFlight           -- Flies a plot whose boundary is closed.
   takeOff
-  flightFailed
-  landed
-  dismissFailure
+  flightFailed          -- An occurrence: the drone reports why the flight failed.
+  landed                -- An occurrence: the drone is back on the ground. The flight is saved
+                        -- as a mission, so Missions gets a new value.
+  dismissFailure        -- The user closes the failure report and is back at the map.
 }
 
--- The app starts on the home page.
 __init :: App(Page.Home)
 
 App
@@ -124,35 +124,28 @@ devicesBackToHome :: Page.Devices -> Page.Home
 newPlot       :: Page.Plan(PMode.JustMap * Missions)
               -> Page.Plan(PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions)
 
-newPlot       :: Page.Plan(PMode.ShowMission.List * Missions)
+              :: Page.Plan(PMode.ShowMission.List * Missions)
               -> Page.Plan(PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions)
 
 showMission   :: Page.Plan(PMode.JustMap * Missions)
               -> Page.Plan(PMode.ShowMission.List * Missions)
 
--- The mission list may have any value here: a new state.
 selectMission :: Page.Plan(PMode.ShowMission.List.NonEmpty)
               -> Page.Plan(PMode.ShowMission.Selected)
 
--- Edits the selected mission's plot.
 editMission   :: Page.Plan(PMode.ShowMission.Selected(Mission(Plot#p)))
               -> Page.Plan(PMode.Plot(PlotOrigin.Editing * p))
 
--- Flies a plot whose boundary is closed.
 startFlight   :: Page.Plan(PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed))))
               -> Page.Plan(PMode.Flight(Flight.Arming))
 
 takeOff       :: Flight.Arming -> Flight.Flying
 
--- An occurrence: the drone reports why the flight failed.
 flightFailed FailureReason#r :: Flight.Arming -> Flight.Failed(r)
-flightFailed FailureReason#r :: Flight.Flying -> Flight.Failed(r)
+                             :: Flight.Flying -> Flight.Failed(r)
 
--- An occurrence: the drone is back on the ground. The flight is saved
--- as a mission, so Missions gets a new value.
 landed         :: Page.Plan(PMode.Flight(Flight.Flying))
                -> Page.Plan(PMode.JustMap * Missions')
 
--- The user closes the failure report and is back at the map.
 dismissFailure :: Page.Plan(PMode.Flight(Flight.Failed))
                -> Page.Plan(PMode.JustMap)

@@ -11,11 +11,11 @@ Level = Low | High
 
 -- Overlap: one source leaves Level out, so it may be Low.
 press :: App(Mode.Off * Level.Low) -> App(Mode.On)
-press :: App(Mode.Off) -> App(Level.High)
+      :: App(Mode.Off) -> App(Level.High)
 -- No overlap: the sources pick different variants of Mode.
 reset :: App(Mode.On) -> App(Mode.Off)
-reset :: App(Mode.Off) -> App(Level.Low)
+      :: App(Mode.Off) -> App(Level.Low)
 -- No overlap: transitions on different types describe effects on
 -- different parts, and both happen.
 step :: Mode.On -> Mode.Off
-step :: Level.Low -> Level.High
+     :: Level.Low -> Level.High

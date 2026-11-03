@@ -37,7 +37,8 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
 - [ ] How updates change values, Part B: derived values.
 - [ ] How updates change values, Part C: list updates (form chosen:
       an action clause, `// __remove ts[id]`).
-- [ ] Nondeterminism between transitions.
+- [ ] Nondeterminism between transitions: first match, once guards
+      exist (see gap 5).
 - [x] Initial state (`__init`).
 - [ ] Values inside a new state.
 
@@ -60,7 +61,7 @@ update before any code:
 - [ ] Annotations (`__annotations`).
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
-- [ ] Several transitions under one event name (input written once).
+- [x] Several transitions under one event name (input written once).
 - [x] Element paths (`Todos[id]`).
 - [x] Keyed lists (`[Todo by TodoId]`); element paths need them.
 - [x] Lists only as whole type definitions (`Points = [Point]`).

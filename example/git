@@ -78,68 +78,83 @@ Onto = Hash
 
 Remaining = [Hash]
 
-init :: Repository.Uninitialized
-     -> Repository.Initialized(Head.Unborn * Operation.Idle)
+init
+  :: Repository.Uninitialized
+  -> Repository.Initialized(Head.Unborn * Operation.Idle)
 
-edit Path#p :: Files[p](FileState.Unmodified) -> Files[p](FileState.Modified)
-edit Path#p :: Files[p](FileState.Staged) -> Files[p](FileState.StagedAndModified)
+edit Path#p
+  :: Files[p](FileState.Unmodified) -> Files[p](FileState.Modified)
+  :: Files[p](FileState.Staged) -> Files[p](FileState.StagedAndModified)
 
-add Path#p :: Files[p](FileState.Untracked) -> Files[p](FileState.Staged)
-add Path#p :: Files[p](FileState.Modified) -> Files[p](FileState.Staged)
-add Path#p :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Staged)
+add Path#p
+  :: Files[p](FileState.Untracked) -> Files[p](FileState.Staged)
+  :: Files[p](FileState.Modified) -> Files[p](FileState.Staged)
+  :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Staged)
 
-unstage Path#p :: Files[p](FileState.Staged) -> Files[p](FileState.Modified)
-unstage Path#p :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Modified)
+unstage Path#p
+  :: Files[p](FileState.Staged) -> Files[p](FileState.Modified)
+  :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Modified)
 
-restore Path#p :: Files[p](FileState.Modified) -> Files[p](FileState.Unmodified)
-restore Path#p :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Staged)
+restore Path#p
+  :: Files[p](FileState.Modified) -> Files[p](FileState.Unmodified)
+  :: Files[p](FileState.StagedAndModified) -> Files[p](FileState.Staged)
 
-commit :: Repository.Initialized(Head.Unborn * Operation.Idle)
-       -> Repository.Initialized(Head.OnBranch * Branches' * Files')
+commit
+  :: Repository.Initialized(Head.Unborn * Operation.Idle)
+  -> Repository.Initialized(Head.OnBranch * Branches' * Files')
 
-commit :: Repository.Initialized(Head.OnBranch * Operation.Idle)
-       -> Repository.Initialized(Branches' * Files')
+  :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+  -> Repository.Initialized(Branches' * Files')
 
--- Every staged file becomes unmodified. SumSpec can't say "every" yet,
--- so the checker warns that this doesn't say which file.
-commit :: FileState.Staged -> FileState.Unmodified
+  -- Every staged file becomes unmodified. SumSpec can't say "every" yet,
+  -- so the checker warns that this doesn't say which file.
+  :: FileState.Staged -> FileState.Unmodified
 
-switch :: Repository.Initialized(Operation.Idle)
-       -> Repository.Initialized(Head.OnBranch * Files')
+switch 
+  :: Repository.Initialized(Operation.Idle)
+  -> Repository.Initialized(Head.OnBranch * Files')
 
-checkoutCommit :: Repository.Initialized(Operation.Idle)
-               -> Repository.Initialized(Head.Detached * Files')
+checkoutCommit
+  :: Repository.Initialized(Operation.Idle)
+  -> Repository.Initialized(Head.Detached * Files')
 
-merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
-      -> Repository.Initialized(Branches' * Files')
+merge
+  :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+  -> Repository.Initialized(Branches' * Files')
 
-merge :: Repository.Initialized(Head.OnBranch * Operation.Idle)
-      -> Repository.Initialized(Files' * Operation.Merging)
+  :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+  -> Repository.Initialized(Files' * Operation.Merging)
 
--- The files both sides changed become conflicted. SumSpec can't say
--- which yet, so the checker warns.
-merge :: FileState.Unmodified -> FileState.Conflicted
+  -- The files both sides changed become conflicted. SumSpec can't say
+  -- which yet, so the checker warns.
+  :: FileState.Unmodified -> FileState.Conflicted
 
-resolve Path#p :: Files[p](FileState.Conflicted) -> Files[p](FileState.Staged)
+resolve Path#p
+  :: Files[p](FileState.Conflicted) -> Files[p](FileState.Staged)
 
-mergeContinue :: Repository.Initialized(Operation.Merging)
-              -> Repository.Initialized(Branches' * Operation.Idle)
+mergeContinue
+  :: Repository.Initialized(Operation.Merging)
+  -> Repository.Initialized(Branches' * Operation.Idle)
 
-mergeAbort :: Repository.Initialized(Operation.Merging)
-           -> Repository.Initialized(Files' * Operation.Idle)
+mergeAbort
+  :: Repository.Initialized(Operation.Merging)
+  -> Repository.Initialized(Files' * Operation.Idle)
 
--- Every conflicted file goes back to unmodified; the checker warns, as
--- for commit.
-mergeAbort :: FileState.Conflicted -> FileState.Unmodified
+  -- Every conflicted file goes back to unmodified; the checker warns, as
+  -- for commit.
+  :: FileState.Conflicted -> FileState.Unmodified
 
-rebase :: Repository.Initialized(Head.OnBranch * Operation.Idle)
-       -> Repository.Initialized(Head.Detached * Files' * Operation.Rebasing)
+rebase
+  :: Repository.Initialized(Head.OnBranch * Operation.Idle)
+  -> Repository.Initialized(Head.Detached * Files' * Operation.Rebasing)
 
-rebaseContinue :: Repository.Initialized(Head.Detached * Operation.Rebasing)
-               -> Repository.Initialized(Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining'))
+rebaseContinue
+  :: Repository.Initialized(Head.Detached * Operation.Rebasing)
+  -> Repository.Initialized(Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining'))
 
-rebaseContinue :: Repository.Initialized(Head.Detached * Operation.Rebasing)
-               -> Repository.Initialized(Head.OnBranch * Branches' * Operation.Idle)
+  :: Repository.Initialized(Head.Detached * Operation.Rebasing)
+  -> Repository.Initialized(Head.OnBranch * Branches' * Operation.Idle)
 
-rebaseAbort :: Repository.Initialized(Head.Detached * Operation.Rebasing)
-            -> Repository.Initialized(Head.OnBranch * Files' * Operation.Idle)
+rebaseAbort
+  :: Repository.Initialized(Head.Detached * Operation.Rebasing)
+  -> Repository.Initialized(Head.OnBranch * Files' * Operation.Idle)

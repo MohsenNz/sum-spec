@@ -31,13 +31,15 @@ renderSpec (Spec version atomics events defs) =
 renderDefinition :: Definition -> Text
 renderDefinition = \case
   DefType (TypeDef name body) -> nameText name <> " = " <> renderTypeExpr body
-  DefTransition (Transition name input from to) ->
-    nameText name
-      <> maybe "" ((" " <>) . renderPattern) input
-      <> " :: "
-      <> renderPattern from
-      <> " -> "
-      <> renderPattern to
+  DefEvent (Event name input transitions) ->
+    heading
+      <> T.intercalate
+        ("\n" <> T.replicate (T.length heading) " ")
+        (map renderTransition (NE.toList transitions))
+    where
+      heading = nameText name <> maybe "" ((" " <>) . renderPattern) input <> " "
+      renderTransition (Transition from to) =
+        ":: " <> renderPattern from <> " -> " <> renderPattern to
   DefInit _ p -> "__init :: " <> renderPattern p
 
 renderTypeExpr :: TypeExpr -> Text

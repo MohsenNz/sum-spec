@@ -1,0 +1,12 @@
+-- An event's transitions follow its name, each starting with ::. Layout
+-- is free; the canonical form aligns each :: under the first.
+__atomics { Id }
+__events { toggle press }
+
+App = Mode
+Mode = On | Off
+
+toggle Id#i :: Mode.On -> Mode.Off
+  -- a comment between transitions
+  :: Mode.Off -> Mode.On
+press :: Mode.On -> Mode.Off :: Mode.Off -> Mode.On
