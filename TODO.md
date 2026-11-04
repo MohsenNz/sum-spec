@@ -7,7 +7,7 @@
 ### Open questions
 - [x] More warnings: variants the app never reaches (from `__init`),
       and transitions of one event, on one type, whose sources overlap.
-- [ ] A warning for transitions that can never happen (their source is
+- [x] A warning for transitions that can never happen (their source is
       never reached)? `reachable` in `Check.hs` already knows them.
 - [ ] Should the checker build a resolved model of the spec (e.g.
       `SumSpec.Model`) for code generators to consume?

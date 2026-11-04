@@ -22,6 +22,12 @@ test/check/error-bad-path.sumspec:16:29:
    |                             ^
 Page.Plan carries Mode and has no variants of its own; write Page.Plan(Mode.Map)
 
+test/check/error-bad-path.sumspec:18:19:
+   |
+18 | throughNewtype :: Alias.Home -> Alias
+   |                   ^
+warning: throughNewtype: this transition can never happen: no state holds a value of type Alias
+
 test/check/error-bad-path.sumspec:18:25:
    |
 18 | throughNewtype :: Alias.Home -> Alias

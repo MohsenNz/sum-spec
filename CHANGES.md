@@ -70,6 +70,8 @@ release" in `VERSIONING.md`).
   `editMission`, `startFlight`, `takeOff`, `flightFailed`, `landed` and
   `dismissFailure`, so every variant is reached; its `PMode.Flight`
   now carries `Flight`.
+- A warning for a transition that can never happen: its source needs a
+  variant that is never reached, or its type is one no state holds.
 - The checker reports a missing or repeated `__init` (in place of the
   missing `App`), and a prime, naming, name or element path in it. The
   warnings about list elements walk from the root.

@@ -56,7 +56,7 @@ checkSpec file source spec =
       , checkTransitions env transitions
       , checkListPlaces typeDefs (map snd inits) transitions
       , warnListElements env root transitions
-      , warnUnreached env typeDefs (map snd (take 1 inits)) transitions
+      , warnReachability env typeDefs (map snd (take 1 inits)) transitions
       , warnOverlaps transitions
       , warnSuffixSpaces
           source
@@ -1111,8 +1111,9 @@ reach env names fixed = goPattern []
     anyOf = anyType env
     typeOnly t = (mempty, Set.singleton t)
 
--- | Every variant the app can reach: from @__init@, then each transition
--- whose source's variants have all been reached adds what its target
+-- | Every variant the app can reach, and every type that holds a value:
+-- from @__init@, then each transition on a type that holds a value, and
+-- whose source's variants have all been reached, adds what its target
 -- may put the app in, until nothing more is added. Parts of a source are
 -- tested one by one, and names are ignored, so this may find more than
 -- the app can really reach, never less.
@@ -1120,10 +1121,11 @@ reachable :: Env -> Pattern -> [Flat] -> (Set Label, Set Text)
 reachable env initial transitions = go (reach env Map.empty Nothing AnyValue initial)
   where
     go found =
-      let found' = found <> foldMap fire [t | t <- transitions, enabled (fst found) t]
+      let found' = found <> foldMap fire [t | t <- transitions, enabled found t]
       in  if found' == found then found else go found'
-    enabled found (Flat _ _ from _) = fst (sourceOf from) `Set.isSubsetOf` found
-    sourceOf = reach env Map.empty Nothing Keeps
+    enabled (labels, live) (Flat _ _ from _) =
+      patternKey from `Set.member` live
+        && sourceVariants env from `Set.isSubsetOf` labels
     fire (Flat _ input from to) =
       reach
         env
@@ -1132,29 +1134,56 @@ reachable env initial transitions = go (reach env Map.empty Nothing AnyValue ini
         Keeps
         to
 
--- | Warns about a variant the app never reaches: neither @__init@ nor a
--- transition that can happen puts it there. Only variants of the types
--- inside the root are reported, and only the outermost one: a variant
--- inside an unreached variant, or of a type that never holds a value, is
--- left out.
-warnUnreached :: Env -> [TypeDef] -> [Pattern] -> [Flat] -> [CheckError]
-warnUnreached env defs inits transitions = case inits of
+-- | The variants a source writes: a transition can happen only once all
+-- of them have been reached.
+sourceVariants :: Env -> Pattern -> Set Label
+sourceVariants env = fst . reach env Map.empty Nothing Keeps
+
+-- | The warnings found from what the app can reach (see 'reachable'):
+--
+-- * a variant the app never reaches: neither @__init@ nor a transition
+--   that can happen puts it there. Only variants of the types inside the
+--   root are reported, and only the outermost one: a variant inside an
+--   unreached variant, or of a type that never holds a value, is left
+--   out;
+-- * a transition that can never happen: its source writes a variant that
+--   is never reached (the outermost one is named), or its type never
+--   holds a value.
+warnReachability :: Env -> [TypeDef] -> [Pattern] -> [Flat] -> [CheckError]
+warnReachability env defs inits transitions = case inits of
   [initial]
     | isKnownType env (patternKey initial) ->
         let
           (found, live) = reachable env initial transitions
           (inRoot, _) = anyType env (patternKey initial)
+          unreached =
+            [ warningAt n $
+                label
+                  <> " is never reached: neither __init nor any transition that can happen "
+                  <> "puts the app there"
+            | (label, n, parent) <- variantNames defs
+            , label `Set.member` inRoot
+            , label `Set.notMember` found
+            , maybe (Set.member (T.takeWhile (/= '.') label) live) (`Set.member` found) parent
+            ]
+          dead =
+            [ warningAt (patternHead from) $
+                nameText n <> ": this transition can never happen: " <> reason
+            | Flat n _ from _ <- transitions
+            , Just reason <- [whyDead live (sourceVariants env from `Set.difference` found) from]
+            ]
         in
-          [ warningAt n $
-              label
-                <> " is never reached: neither __init nor any transition that can happen "
-                <> "puts the app there"
-          | (label, n, parent) <- variantNames defs
-          , label `Set.member` inRoot
-          , label `Set.notMember` found
-          , maybe (Set.member (T.takeWhile (/= '.') label) live) (`Set.member` found) parent
-          ]
+          unreached <> dead
   _ -> []
+  where
+    whyDead live missing from =
+      case sortOn (\l -> (T.count "." l, l)) (Set.toList missing) of
+        label : _ -> Just ("its source needs " <> label <> ", which is never reached")
+        []
+          | isKnownType env (patternKey from)
+          , patternKey from `Set.notMember` live ->
+              Just ("no state holds a value of type " <> patternKey from)
+          | otherwise -> Nothing
 
 -- | Every variant defined, with its name and the variant it is inside
 -- ('Nothing' for a variant of the type itself).

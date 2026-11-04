@@ -232,6 +232,8 @@ character     = ? any Unicode character ? ;
    - a variant of a type inside the root that the app never reaches:
      neither __init nor a transition that can happen puts the app
      there. Only the outermost unreached variant is reported;
+   - a transition that can never happen: its source writes a variant
+     that is never reached, or its type is one no state holds;
    - two transitions of one event, on the same type, whose sources can
      match the same state (no part of them picks different variants).
 

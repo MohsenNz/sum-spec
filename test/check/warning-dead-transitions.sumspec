@@ -1,0 +1,19 @@
+-- Transitions that can never happen: their source needs a variant the
+-- app never reaches, or their type never holds a value.
+__atomics { Wheel Tyre }
+__events { start finish repair spin }
+
+__init :: App(Stage.Idle)
+
+App = Stage
+Stage = Idle | Running | Done | Broken (Hard | Soft)
+-- Not part of App, so no state holds a Spare.
+Spare = Wheel * Tyre
+
+start :: Stage.Idle -> Stage.Running
+-- Running is reached only once start happens; finish can happen then.
+finish :: Stage.Running -> Stage.Done
+-- Broken and Broken.Hard are both never reached; the outer one is named.
+repair :: Stage.Broken.Hard -> Stage.Idle
+-- Writes no variant, but its type never holds a value.
+spin :: Spare -> Spare'

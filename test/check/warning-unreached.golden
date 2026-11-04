@@ -10,3 +10,9 @@ test/check/warning-unreached.sumspec:10:15:
    |               ^
 warning: Alarm.Ringing is never reached: neither __init nor any transition that can happen puts the app there
 
+test/check/warning-unreached.sumspec:21:8:
+   |
+21 | fix :: App(Door.Locked) -> App(Door.Closed * Alarm.Ringing)
+   |        ^
+warning: fix: this transition can never happen: its source needs Door.Locked, which is never reached
+

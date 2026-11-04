@@ -1,0 +1,18 @@
+test/check/warning-dead-transitions.sumspec:9:33:
+  |
+9 | Stage = Idle | Running | Done | Broken (Hard | Soft)
+  |                                 ^
+warning: Stage.Broken is never reached: neither __init nor any transition that can happen puts the app there
+
+test/check/warning-dead-transitions.sumspec:17:11:
+   |
+17 | repair :: Stage.Broken.Hard -> Stage.Idle
+   |           ^
+warning: repair: this transition can never happen: its source needs Stage.Broken, which is never reached
+
+test/check/warning-dead-transitions.sumspec:19:9:
+   |
+19 | spin :: Spare -> Spare'
+   |         ^
+warning: spin: this transition can never happen: no state holds a value of type Spare
+
