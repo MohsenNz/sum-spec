@@ -2,8 +2,6 @@
 
 ## Remaining
 
-- [ ] About "An element can't be named (`Todos[id]#t`)", should we allow it?
-
 ### Open questions
 - [x] More warnings: variants the app never reaches (from `__init`),
       and transitions of one event, on one type, whose sources overlap.
@@ -17,7 +15,8 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
 - [ ] Where a local transition applies (decided in part; waits for
       derived values in "How updates change values").
 - [x] Event inputs.
-- [ ] Event outputs.
+- [x] Event outputs (decided: none; side effects go in annotations on
+      transitions).
 - [ ] Guards on data.
 - [x] How updates change values, Part A: named values.
 - [ ] How updates change values, Part B: derived values.
@@ -35,7 +34,7 @@ Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
 - [x] `=>` (shared construction path).
 - [ ] Naming an element (`Todos[id]#t`).
-- [ ] Annotations (`__annotations`).
+- [ ] Annotations (`__annotations`), also on transitions.
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
 - [ ] Several events with one transition (`g, h :: Y -> Z`).

@@ -44,7 +44,7 @@ Or
     T = A <Annotations> * ...
     T = A <Annotations> | ...
 
-Or after a function definition:
+Or after a transition:
 
     f :: A -> B <Annotations>
 

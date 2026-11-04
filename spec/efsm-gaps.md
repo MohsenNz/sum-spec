@@ -168,7 +168,7 @@ Open questions for B and C:
 ## 4. Event inputs and outputs
 
 Status: inputs decided (see "Event inputs" in
-`spec-v1.md`); outputs open.
+`spec-v1.md`); outputs decided: not in the language.
 
 An event is only a name. It takes no input, so the typed text in
 `NewTodo.Typing(Text)` appears only as "Text has some value". It
@@ -180,8 +180,20 @@ To decide:
 - Inputs (done): `f X :: A -> B`. The input is written once, after the
   event's name, as an EFSM event has one parameter list. How the
   target says "this part is set to the input" is part of 3.
-- Outputs: whether an event's transition can emit an event or effect, and its
-  type.
+- Outputs (decided: none): a transition does not emit events or
+  effects. SumSpec describes the states and how they change, not how
+  the app touches the world, so effects are left to the generator.
+  - The state change already implies most effects (`Form.Saving` says
+    a save is in progress), and a response is an ordinary event
+    (`saved`, `failed`).
+  - What the types can't say (which API, a debounce) is metadata, so
+    it goes in an annotation on the transition (see `@` annotation in
+    `proposals.md`), not in a second, typed mechanism.
+  - Considered and dropped: an `__effects` block with typed payloads
+    and a `! effect(x)` clause on transitions. It adds checking
+    (payload types, every effect emitted) at the cost of a block, a
+    clause and more rules, which a spec read by an AI agent doesn't
+    need. Reopen it only if annotations prove too weak.
 
 ## 5. Nondeterminism between transitions
 
