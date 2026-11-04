@@ -10,6 +10,13 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- Shared path: `=>` writes a path both sides of a transition share
+  once, `Files[p] => FileState.Staged -> FileState.Modified` for
+  `Files[p](FileState.Staged) -> Files[p](FileState.Modified)`. A
+  shared path is a path or an element path, with no arguments, prime
+  or naming; shared paths chain (`X => Y => A -> B`), and after the
+  last one each side may be several factors
+  (`Page.Plan => PMode.JustMap * Missions -> ...`).
 - An event is defined once: its name and input, then all its
   transitions, each starting with `::`:
   `press :: A -> B`, then `:: C -> D` on the next line. Writing an
@@ -70,6 +77,11 @@ release" in `VERSIONING.md`).
   `editMission`, `startFlight`, `takeOff`, `flightFailed`, `landed` and
   `dismissFailure`, so every variant is reached; its `PMode.Flight`
   now carries `Flight`.
+- The parser, printer and checker read `=>`; the canonical form keeps
+  it, and the checker checks the expanded form, reporting a problem in
+  a shared path once. The examples use it: git's `Files[p]` and
+  `Repository.Initialized` events, todomvc's `Todos[id]`, `App` and
+  `Screen.WithTodos` events, and drone's `Page.Plan` events.
 - A warning for a transition that can never happen: its source needs a
   variant that is never reached, or its type is one no state holds.
 - The checker reports a missing or repeated `__init` (in place of the

@@ -69,7 +69,7 @@ atomicsBlock = symbol "__atomics" *> braces (many upperName)
 eventsBlock :: Parser [Name]
 eventsBlock = symbol "__events" *> braces (many lowerName)
 
--- definition = init_state | type_def | transition ;
+-- definition = init_state | type_def | event_def ;
 definition :: Parser Definition
 definition =
   choice
@@ -87,7 +87,7 @@ initState = do
   (,) (Name pos "__init") <$> pattern
 
 typeDef :: Parser TypeDef
-typeDef = TypeDef <$> upperName <* symbol "=" <*> typeExpr
+typeDef = TypeDef <$> upperName <* equals <*> typeExpr
 
 -- type_expr = sum | product | type_term ;
 --
@@ -128,7 +128,7 @@ payload =
   choice
     [ parens typeExpr
     , TypeTerm . uncurry TermList <$> listTerm
-    , TypeTerm . TermName <$> try (upperName <* notFollowedBy (symbol "="))
+    , TypeTerm . TermName <$> try (upperName <* notFollowedBy equals)
     ]
 
 -- type_term = UPPER | "[" , type_term , [ "by" , UPPER ] , "]" ;
@@ -148,9 +148,26 @@ eventDef =
     <*> optional (input <?> "input type")
     <*> ((:|) <$> transition <*> many transition)
 
--- transition = "::" , pattern , "->" , pattern ;
+-- transition = "::" , ( shared , "=>" , { shared , "=>" } , arguments ,
+--                       "->" , arguments
+--                     | pattern , "->" , pattern ) ;
+--
+-- A shared path starts like a pattern; the "=>" after it tells them
+-- apart.
 transition :: Parser Transition
-transition = Transition <$> (symbol "::" *> pattern) <*> (symbol "->" *> pattern)
+transition = do
+  _ <- symbol "::"
+  paths <- many (try (shared <* symbol "=>"))
+  let side = if null paths then (:| []) <$> pattern else arguments
+  Transition paths <$> side <*> (symbol "->" *> side)
+
+-- shared = path , [ element_key ] ;
+shared :: Parser Shared
+shared = Shared <$> path <*> optional elementKey
+
+-- arguments = pattern , { "*" , pattern } ;
+arguments :: Parser (NonEmpty Pattern)
+arguments = (:|) <$> pattern <*> many (symbol "*" *> pattern)
 
 -- input = type_pattern , [ NAMING ] ;
 input :: Parser Pattern

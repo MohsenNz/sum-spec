@@ -121,31 +121,31 @@ goToDevices       :: Page.Home -> Page.Devices
 planBackToHome    :: Page.Plan(PMode.JustMap * Missions) -> Page.Home
 devicesBackToHome :: Page.Devices -> Page.Home
 
-newPlot       :: Page.Plan(PMode.JustMap * Missions)
-              -> Page.Plan(PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions)
+newPlot       :: Page.Plan => PMode.JustMap * Missions
+                           -> PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions
 
-              :: Page.Plan(PMode.ShowMission.List * Missions)
-              -> Page.Plan(PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions)
+              :: Page.Plan => PMode.ShowMission.List * Missions
+                           -> PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions
 
-showMission   :: Page.Plan(PMode.JustMap * Missions)
-              -> Page.Plan(PMode.ShowMission.List * Missions)
+showMission   :: Page.Plan => PMode.JustMap * Missions
+                           -> PMode.ShowMission.List * Missions
 
-selectMission :: Page.Plan(PMode.ShowMission.List.NonEmpty)
-              -> Page.Plan(PMode.ShowMission.Selected)
+selectMission :: Page.Plan => PMode.ShowMission.List.NonEmpty
+                           -> PMode.ShowMission.Selected
 
-editMission   :: Page.Plan(PMode.ShowMission.Selected(Mission(Plot#p)))
-              -> Page.Plan(PMode.Plot(PlotOrigin.Editing * p))
+editMission   :: Page.Plan => PMode.ShowMission.Selected(Mission(Plot#p))
+                           -> PMode.Plot(PlotOrigin.Editing * p)
 
-startFlight   :: Page.Plan(PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed))))
-              -> Page.Plan(PMode.Flight(Flight.Arming))
+startFlight   :: Page.Plan => PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed)))
+                           -> PMode.Flight(Flight.Arming)
 
 takeOff       :: Flight.Arming -> Flight.Flying
 
 flightFailed FailureReason#r :: Flight.Arming -> Flight.Failed(r)
                              :: Flight.Flying -> Flight.Failed(r)
 
-landed         :: Page.Plan(PMode.Flight(Flight.Flying))
-               -> Page.Plan(PMode.JustMap * Missions')
+landed         :: Page.Plan => PMode.Flight(Flight.Flying)
+                            -> PMode.JustMap * Missions'
 
-dismissFailure :: Page.Plan(PMode.Flight(Flight.Failed))
-               -> Page.Plan(PMode.JustMap)
+dismissFailure :: Page.Plan => PMode.Flight(Flight.Failed)
+                            -> PMode.JustMap

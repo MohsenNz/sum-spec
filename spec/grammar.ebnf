@@ -81,7 +81,22 @@ type_term     = UPPER
    layout doesn't matter.                                              *)
 event_def     = LOWER , [ input ] , transition , { transition } ;
 
-transition    = "::" , pattern , "->" , pattern ;
+(* A transition may start with shared paths, each followed by "=>": the
+   path both sides share, written once. Each side is then what goes in
+   the parentheses after the innermost shared path, so it may be several
+   factors:
+     unstage Path#p :: Files[p] => FileState.Staged -> FileState.Modified
+       means  Files[p](FileState.Staged) -> Files[p](FileState.Modified)
+     X => Y => A * B -> C   means   X(Y(A * B)) -> X(Y(C))
+   A shared path and a pattern start alike (path, element_key); the
+   "=>" after it tells them apart.                                      *)
+transition    = "::" , ( shared , "=>" , { shared , "=>" } , arguments ,
+                         "->" , arguments
+                       | pattern , "->" , pattern ) ;
+
+shared        = path , [ element_key ] ;
+
+arguments     = pattern , { "*" , pattern } ;
 
 input         = type_pattern , [ NAMING ] ;
 
@@ -150,20 +165,27 @@ character     = ? any Unicode character ? ;
    end of a line of code:
      Plot = Empty | Drawn (Boundary * Markings)  -- Empty: nothing drawn
    Tokens are matched longest first, so "->--x" is "->" followed by a
-   comment. No token contains "--", so "--" always starts a comment.
+   comment, and "=>" is never "=" followed by ">". No token contains
+   "--", so "--" always starts a comment.
 
    Definition boundary: a variant's payload can be a bare UPPER, so
    "Failed FailureReason" is one variant. An UPPER followed by "=" always
    starts a new type_def and is never a payload or a variant. A parser
-   checks this with one extra token of lookahead (LL(2) at this point;
-   LL(1) everywhere else).
+   checks this with one extra token of lookahead (LL(2) at this point).
+
+   Shared path: at the start of a transition, a shared path and a
+   pattern begin with the same path and element_key; a parser reads
+   them and then decides by whether "=>" follows. Everywhere else the
+   grammar is LL(1).
 
    Version: a parser stops at a version_header whose version it doesn't
    implement (a different major version, or a newer minor version) and
    says so, instead of failing later on syntax it doesn't know.
 
    Not in the grammar (the type checker, src/SumSpec/Check.hs, checks
-   these):
+   these). A transition with shared paths is checked as its expanded
+   form (S => a -> b as S(a) -> S(b)), and a problem in a shared path is
+   reported once:
    - __init is written exactly once. Its head type is the root, the
      type of every state; App is an ordinary name. Its pattern is checked
      like a target, but it's a whole new state with no input: it has no
@@ -237,4 +259,4 @@ character     = ? any Unicode character ? ;
    - two transitions of one event, on the same type, whose sources can
      match the same state (no part of them picks different variants).
 
-   Not in v1 (see proposals.md): "=>", "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)
+   Not in v1 (see proposals.md): "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

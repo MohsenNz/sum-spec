@@ -1,0 +1,24 @@
+test/check/error-shared-path.sumspec:15:19:
+   |
+15 | noPayload :: Page.Home => Mode.View -> Mode.Edit
+   |                   ^
+Page.Home takes no arguments
+
+test/check/error-shared-path.sumspec:17:12:
+   |
+17 | unknown :: Nope => Mode.View -> Mode.Edit
+   |            ^
+unknown type Nope; declare it in __atomics or define it
+
+test/check/error-shared-path.sumspec:19:17:
+   |
+19 | badKey :: Items[k] => Item.Done -> Item.Todo
+   |                 ^
+unknown name k; name a value with #k in the input or on the source side
+
+test/check/error-shared-path.sumspec:22:40:
+   |
+22 | otherType :: Page.Plan => Mode.View -> Item.Done
+   |                                        ^
+Item is not a factor of Page.Plan (Mode * Items)
+

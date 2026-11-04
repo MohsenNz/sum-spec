@@ -9,6 +9,7 @@ module SumSpec.Lexer
   , spaceConsumer
   , symbol
   , keyword
+  , equals
   , upperName
   , lowerName
   , valueName
@@ -46,6 +47,11 @@ symbol = L.symbol spaceConsumer
 -- letter or digit follows (@byX@).
 keyword :: Text -> Parser ()
 keyword word = lexeme (try (chunk word *> notFollowedBy (satisfy isIdentChar)))
+
+-- | The @=@ of a type definition. Tokens are matched longest first, and
+-- @=>@ is another token, so @=@ isn't followed by @>@.
+equals :: Parser ()
+equals = lexeme (try (char '=' *> notFollowedBy (char '>'))) <?> "'='"
 
 -- | A type or variant name: @UPPER@.
 upperName :: Parser Name

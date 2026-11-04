@@ -38,8 +38,16 @@ renderDefinition = \case
         (map renderTransition (NE.toList transitions))
     where
       heading = nameText name <> maybe "" ((" " <>) . renderPattern) input <> " "
-      renderTransition (Transition from to) =
-        ":: " <> renderPattern from <> " -> " <> renderPattern to
+      renderTransition (Transition paths from to) =
+        ":: "
+          <> T.concat [renderShared p <> " => " | p <- paths]
+          <> renderSide from
+          <> " -> "
+          <> renderSide to
+      renderSide = T.intercalate " * " . map renderPattern . NE.toList
+      renderShared (Shared names key) =
+        T.intercalate "." (map nameText (NE.toList names))
+          <> maybe "" (\k -> "[" <> nameText k <> "]") key
   DefInit _ p -> "__init :: " <> renderPattern p
 
 renderTypeExpr :: TypeExpr -> Text

@@ -97,15 +97,6 @@ trans3
 
 **Argument:** a pattern inside the parentheses after a type or variant, saying which inner state must be there.
 
-### Summary:
-
-`=`  used for type definition
-`|`  sum type
-`*`  product type
-`.`  selects a variant of a sum type
-`::` starts a transition
-`->` state transition
-
 ## Types, more
 
 ### Products are keyed by type
@@ -289,6 +280,30 @@ select Ref(Id#i * Name#n) :: Item(i * State.Off) -> Item(State.On)
 A variant or argument written in the input is a precondition on it, as
 on the source side.
 
+### Shared path (=>)
+
+The two sides of a transition often start with the same path. `=>` writes it once, before both sides:
+
+```
+-- The same as: Files[p](FileState.Staged) -> Files[p](FileState.Modified)
+unstage Path#p :: Files[p] => FileState.Staged -> FileState.Modified
+```
+
+`S => A -> B` means `S(A) -> S(B)`: each side is what would go inside the parentheses after `S`:
+
+```
+-- The same as: Page.Plan(PMode.JustMap * Missions)
+--           -> Page.Plan(PMode.ShowMission.List * Missions)
+showMission :: Page.Plan 
+            => PMode.JustMap * Missions
+            -> PMode.ShowMission.List * Missions
+```
+
+Shared paths chain, outermost first: `X => Y => a -> b` means `X(Y(a)) -> X(Y(b))`.
+
+A shared path takes no arguments, prime or naming.
+
+
 ## Named values (#name)
 
 A pattern followed by `#x` names the value it matches; a lowercase name
@@ -444,7 +459,17 @@ how versions are numbered.
 
 `__atomics` and `__events` are written before any type, transition or `__init`.
 
-### Example
+## Summary:
+
+`=`  used for type definition
+`|`  sum type
+`*`  product type
+`.`  selects a variant of a sum type
+`::` starts a transition
+`->` state transition
+`=>` a path both sides of a transition share
+
+## Example
 
 ```
 __atomics {

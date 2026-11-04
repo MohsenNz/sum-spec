@@ -12,6 +12,7 @@ module SumSpec.Check
   ) where
 
 import Data.Char (isSpace)
+import Data.Containers.ListUtils (nubOrdOn)
 import Data.List (find, sortOn)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
@@ -44,10 +45,11 @@ hasErrors = any ((== Error) . errorSeverity)
 -- | Checks a spec and returns its errors and warnings sorted by position;
 -- no errors means the spec is valid. The file path is used for errors
 -- that have no place in the source, such as a missing @__init@. The source is
--- the text the spec was parsed from, for the warnings about spacing.
+-- the text the spec was parsed from, for the warnings about spacing. A
+-- transition with shared paths (@=>@) is checked as its expanded form.
 checkSpec :: FilePath -> Text -> Spec -> [CheckError]
 checkSpec file source spec =
-  sortOn (position . errorPos) $
+  sortOn (position . errorPos) . nubOrdOn key $
     concat
       [ checkHeaders spec
       , checkInit file env inits
@@ -64,6 +66,9 @@ checkSpec file source spec =
       ]
   where
     position pos = (unPos (sourceLine pos), unPos (sourceColumn pos))
+    -- A shared path is part of both sides, so a problem in it is found
+    -- twice; it is reported once.
+    key e = (position (errorPos e), errorSeverity e == Error, errorMessage e)
     typeDefs = [d | DefType d <- specDefinitions spec]
     events = [e | DefEvent e <- specDefinitions spec]
     transitions = concatMap flatten events
@@ -257,7 +262,19 @@ data Flat = Flat Name (Maybe Pattern) Pattern Pattern
 
 flatten :: Event -> [Flat]
 flatten (Event n input transitions) =
-  [Flat n input from to | Transition from to <- NE.toList transitions]
+  [ Flat n input (expand paths from) (expand paths to)
+  | Transition paths from to <- NE.toList transitions
+  ]
+
+-- | A side of a transition as one pattern: its shared paths put back
+-- around it (@S1 => S2 => a * b@ is @S1(S2(a * b))@).
+expand :: [Shared] -> NonEmpty Pattern -> Pattern
+expand paths side = case reverse paths of
+  [] -> NE.head side
+  innermost : outer -> foldl (wrap . pure) (wrap (NE.toList side) innermost) outer
+  where
+    wrap args (Shared names key) =
+      maybe (PatternPath names args) (\k -> PatternElement names k args) key
 
 -- | Every event is listed in @__events@ and defined once, with all its
 -- transitions; every listed event is defined. The input is checked once

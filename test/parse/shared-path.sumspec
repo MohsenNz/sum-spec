@@ -1,0 +1,16 @@
+-- A shared path, written once before =>, is part of both sides:
+-- X => Y => A -> B means X(Y(A)) -> X(Y(B)). It may have an element
+-- key, and after => each side may be several factors.
+__atomics { Id }
+__events { toggle edit open }
+
+App = Page
+Page = Home | Plan (Mode * Items)
+Mode = View | Edit
+Items = [Item by Id]
+Item = Done | Todo
+
+toggle Id#i :: Items[i] => Item.Done -> Item.Todo
+            :: Items[i] => Item.Todo -> Item.Done
+edit :: Page.Plan=>Mode.View*Items -> Mode.Edit * Items'
+open :: App => Page.Plan => Mode.View -> Mode.Edit

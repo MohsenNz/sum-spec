@@ -1,0 +1,11 @@
+-- A shared path takes no arguments: the part both sides share is
+-- written as a path, and the arguments go after =>.
+__atomics { }
+__events { t }
+
+App = P
+P = V (A * B) | U
+A = X | Y
+B = Z | W
+
+t :: P.V(A.X) => B.Z -> B.W

@@ -8,7 +8,8 @@
 --
 -- Todos is a keyed list: each todo is identified by its TodoId, which the
 -- list holds. An event on one todo takes a TodoId, and picks the todo
--- with an element path (Todos[id](...)).
+-- with an element path, written once for both sides with =>
+-- (Todos[id] => Completion.Active -> Completion.Completed).
 
 __version 1.0
 
@@ -90,36 +91,38 @@ Filter
 startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
 
 addTodo
-  :: App(Screen.NoTodos * NewTodo.Typing)
-  -> App(Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank)
+  :: App
+  => Screen.NoTodos * NewTodo.Typing
+  -> Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank
 
-  :: App(Screen.WithTodos * NewTodo.Typing)
-  -> App(Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank)
+  :: App
+  => Screen.WithTodos * NewTodo.Typing
+  -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank
 
 toggleTodo TodoId#id 
-  :: Todos[id](Completion.Active) -> Todos[id](Completion.Completed)
-  :: Todos[id](Completion.Completed) -> Todos[id](Completion.Active)
+  :: Todos[id] => Completion.Active -> Completion.Completed
+  :: Todos[id] => Completion.Completed -> Completion.Active
 
 toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
           :: ToggleAll.AllDone -> ToggleAll.NotAllDone
 
-startEditing TodoId#id :: Todos[id](Title(Text#t) * RowMode.Viewing)
-                       -> Todos[id](RowMode.Editing(EditText(t)))
+startEditing TodoId#id :: Todos[id] => Title(Text#t) * RowMode.Viewing
+                                    -> RowMode.Editing(EditText(t))
 
-finishEditing TodoId#id :: Todos[id](RowMode.Editing(EditText(Text#e)))
-                        -> Todos[id](Title(e) * RowMode.Viewing)
+finishEditing TodoId#id :: Todos[id] => RowMode.Editing(EditText(Text#e))
+                                     -> Title(e) * RowMode.Viewing
 
-cancelEditing TodoId#id :: Todos[id](RowMode.Editing) -> Todos[id](RowMode.Viewing)
+cancelEditing TodoId#id :: Todos[id] => RowMode.Editing -> RowMode.Viewing
 
-deleteTodo TodoId#id :: Screen.WithTodos(Todos[id])
-                     -> Screen.WithTodos(Todos' * ToggleAll' * Footer')
+deleteTodo TodoId#id :: Screen.WithTodos => Todos[id]
+                                         -> Todos' * ToggleAll' * Footer'
 
                      :: Screen.WithTodos(Todos[id]) -> Screen.NoTodos
 
-clearCompleted :: Screen.WithTodos(Footer(ClearCompleted.Shown))
-               -> Screen.WithTodos( Todos'
-                                  * ToggleAll.NotAllDone
-                                  * Footer(ClearCompleted.Hidden))
+clearCompleted :: Screen.WithTodos => Footer(ClearCompleted.Shown)
+                                   -> Todos'
+                                    * ToggleAll.NotAllDone
+                                    * Footer(ClearCompleted.Hidden)
 
                :: Screen.WithTodos(Footer(ClearCompleted.Shown))
                -> Screen.NoTodos

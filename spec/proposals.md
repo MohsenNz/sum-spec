@@ -15,24 +15,11 @@ Version impact: additive.
 
     g, h :: Y -> Z  -- two events "g" and "h" with the same transition
 
-## `=>` enters one construction level shared by both sides of a transition
-
-Version impact: additive.
-
-    t :: P.V1(A.H) -> P.V1(A.G)
-
-To be:
-
-    t :: P.V1 => A.H -> A.G
-
-The source and target of a transition usually share a construction
-path. `=>` enters one level of it, so the shared part is written once:
-
-    X => Y => A -> B    means    X(Y(A)) -> X(Y(B))
-
 ## `<-` is a shorthand, `a' <-` means `a -> a'`
 
 Version impact: additive.
+
+It builds on `=>`, which is in v1 (see "Shared path" in `spec-v1.md`):
 
     X => Y => A' * B' <-
 

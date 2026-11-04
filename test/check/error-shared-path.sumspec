@@ -1,0 +1,22 @@
+-- Errors in shared paths: a transition with => is checked as its
+-- expanded form, and an error in a shared path is reported once.
+__atomics { Id }
+__events { noPayload unknown badKey otherType }
+
+__init :: App
+
+App = Page
+Page = Home | Plan (Mode * Items)
+Mode = View | Edit
+Items = [Item by Id]
+Item = Done | Todo
+
+-- Page.Home has no payload, so it takes no argument.
+noPayload :: Page.Home => Mode.View -> Mode.Edit
+-- Nope is not a type; reported once, though it is on both sides.
+unknown :: Nope => Mode.View -> Mode.Edit
+-- k is not a name of this transition.
+badKey :: Items[k] => Item.Done -> Item.Todo
+-- Expanded, the sides are Page.Plan(Mode.View) -> Page.Plan(Item.Done):
+-- Item is not a factor of Plan.
+otherType :: Page.Plan => Mode.View -> Item.Done

@@ -33,9 +33,10 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
 ### Later (`spec/proposals.md`)
 Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
-- [ ] `=>` (shared construction path) and `<-` shorthand.
+- [x] `=>` (shared construction path).
 - [ ] Naming an element (`Todos[id]#t`).
 - [ ] Annotations (`__annotations`).
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
 - [ ] Several events with one transition (`g, h :: Y -> Z`).
+- [ ] `<-` shorthand.

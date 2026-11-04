@@ -1,0 +1,17 @@
+-- Shared paths (=>), checked as their expanded form: an element key
+-- named by the input, a chain, and factor lists.
+__atomics { Id }
+__events { toggle edit open }
+
+__init :: App(Page.Home)
+
+App = Page
+Page = Home | Plan (Mode * Items)
+Mode = View | Edit
+Items = [Item by Id]
+Item = Done | Todo
+
+toggle Id#i :: Items[i] => Item.Done -> Item.Todo
+            :: Items[i] => Item.Todo -> Item.Done
+edit :: Page.Plan => Mode.View * Items -> Mode.Edit * Items'
+open :: App => Page.Home -> Page.Plan(Mode.View)

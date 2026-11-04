@@ -12,6 +12,7 @@ module SumSpec.Syntax
   , TypeTerm (..)
   , Event (..)
   , Transition (..)
+  , Shared (..)
   , Pattern (..)
   , Name (..)
   ) where
@@ -87,11 +88,22 @@ data Event = Event
   }
   deriving stock (Eq, Show)
 
--- | @:: from -> to@: one transition of an event.
+-- | @:: from -> to@: one transition of an event. With shared paths,
+-- @:: S1 => S2 => a * b -> c@ means @S1(S2(a * b)) -> S1(S2(c))@.
 data Transition = Transition
-  { transitionFrom :: Pattern
-  , transitionTo :: Pattern
+  { transitionShared :: [Shared]
+  -- ^ The paths written once before @=>@, outermost first.
+  , transitionFrom :: NonEmpty Pattern
+  -- ^ The source. Without a shared path it is one pattern; after one,
+  -- it is the arguments of the innermost shared path.
+  , transitionTo :: NonEmpty Pattern
+  -- ^ The target, written like the source.
   }
+  deriving stock (Eq, Show)
+
+-- | @P =>@ or @L[x] =>@: a path, with an optional element key, that both
+-- sides of a transition share. It takes no arguments, prime or naming.
+data Shared = Shared (NonEmpty Name) (Maybe Name)
   deriving stock (Eq, Show)
 
 data Pattern
