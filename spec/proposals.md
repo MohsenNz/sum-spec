@@ -31,24 +31,42 @@ Means:
 
 Version impact: additive.
 
-An annotation is metadata.
+An annotation is metadata: something the application needs that the
+types can't say (how a value is drawn, when a transition is unavailable,
+which side effect a transition causes). SumSpec gives it no meaning; the
+target (the code generator) does.
 
-Annotations add application-level metadata to definitions.
-Annotations come after the type name in a type definition:
+An annotation is `@name` followed by its arguments, which the checker
+treats as opaque. Available annotations are declared once, in a header
+block like `__events`; only declared names may be used. A comment next to
+each name documents it:
 
-    T <Annotations> = ...
+    __annotations {
+      @control     -- what widget edits a value or triggers an action
+      @unless      -- a transition is unavailable while this state holds
+      @effect      -- a side effect the transition causes
+    }
 
-Or
+An annotation goes after the head of a type definition, after the
+variant or member it belongs to, or on the lines after a transition.
+Several may be stacked:
 
-    T = A <Annotations>
-    T = A <Annotations> * ...
-    T = A <Annotations> | ...
+    Draft @default Empty = Empty | Typing Text @control text_field
 
-Or after a transition:
+    exportLogs :: Page.Logs -> Page.Logs
+      @control button_icon
+      @effect share Logs
 
-    f :: A -> B <Annotations>
+In a newtype `A = B @x`, the annotation belongs to `A`; in a sum or a
+product it belongs to the variant or member it follows.
 
-Available annotations should be defined inside __annotations.
+SumSpec has no event outputs (see `efsm-gaps.md`, section 4): a side
+effect is an annotation on the transition, such as `@effect`.
+
+The checker verifies that every name is declared in `__annotations` and
+declared once. Checking arguments is open: opaque tokens first, then
+arguments that are state paths (`@unless`, `@when`) read as patterns.
+
 A type the notation does not decompose is declared inside __atomics. An
 atomic has no members here; each target supplies it.
 
