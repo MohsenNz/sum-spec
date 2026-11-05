@@ -1,0 +1,18 @@
+test/check/warning-guard-compare-overlaps.sumspec:11:6:
+   |
+11 |   :: App => Percent#c // c >= 15 -> Percent'
+   |      ^
+warning: drain: this transition and the one on line 10 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
+
+test/check/warning-guard-compare-overlaps.sumspec:15:6:
+   |
+15 |   :: App => Percent#c // c > 10 -> Percent'
+   |      ^
+warning: tight: this transition and the one on line 14 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
+
+test/check/warning-guard-compare-overlaps.sumspec:19:6:
+   |
+19 |   :: App => Count -> Count'
+   |      ^
+warning: mixed: this transition and the one on line 18 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
+

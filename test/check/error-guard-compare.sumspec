@@ -1,0 +1,34 @@
+-- Comparisons that break the rules.
+__atomics {
+  Meters = __float
+  Seconds = __float
+  Count = __int
+  Name = __text
+  Tag
+}
+__events {
+  unbound units decimal textnum numtext ordtext ordatom atomlit product
+  wrongsum payloadsum badvariant unknowntype
+}
+
+__init :: App
+
+App = Meters * Seconds * Count * Name * Tag * Box * Gps * Mode
+Box = Meters * Count
+Shape = Circle Meters | Square
+Gps = NoFix | Fix3D
+Mode = Off | On
+
+unbound :: App => Meters // z > 1 -> Meters'
+units :: App => Meters#m * Seconds#s // m < s -> Meters'
+decimal :: App => Count#k // k > 1.5 -> Count'
+textnum :: App => Name#n // n == 3 -> Name'
+numtext :: App => Meters#m // m == "a" -> Meters'
+ordtext :: App => Name#n // n < "a" -> Name'
+ordatom :: App => Tag#t // t < t -> Tag'
+atomlit :: App => Tag#t // t == 3 -> Tag'
+product :: App => Box#x // x == x -> Box'
+wrongsum :: App => Gps#g // g == Mode.On -> Gps'
+payloadsum :: App => Gps#g // g == Shape.Square -> Gps'
+badvariant :: App => Gps#g // g == Gps.Missing -> Gps'
+unknowntype :: App => Gps#g // g == Nothing.There -> Gps'

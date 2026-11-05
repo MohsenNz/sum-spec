@@ -68,7 +68,16 @@ renderGuard = \case
     renderNegated = \case
       GuardNot inner -> "not " <> renderNegated inner
       GuardPattern p -> renderPattern p
+      GuardCompare op l r -> renderOperand l <> " " <> compareWord op <> " " <> renderOperand r
       guard -> "(" <> renderGuard guard <> ")"
+
+renderOperand :: Operand -> Text
+renderOperand = \case
+  OperandName name -> nameText name
+  OperandLiteral _ (LitInt n) -> T.pack (show n)
+  OperandLiteral _ (LitDecimal text) -> text
+  OperandLiteral _ (LitText text) -> "\"" <> text <> "\""
+  OperandVariant names -> T.intercalate "." (map nameText (NE.toList names))
 
 renderTypeExpr :: TypeExpr -> Text
 renderTypeExpr = \case

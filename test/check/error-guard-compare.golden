@@ -1,0 +1,96 @@
+test/check/error-guard-compare.sumspec:22:29:
+   |
+22 | unbound :: App => Meters // z > 1 -> Meters'
+   |                             ^
+unknown name z; name a value with #z in the input or on the source side
+
+test/check/error-guard-compare.sumspec:23:45:
+   |
+23 | units :: App => Meters#m * Seconds#s // m < s -> Meters'
+   |                                             ^
+cannot compare m (a Meters) with s (a Seconds); they are different types
+
+test/check/error-guard-compare.sumspec:24:34:
+   |
+24 | decimal :: App => Count#k // k > 1.5 -> Count'
+   |                                  ^
+k is a Count (an __int), so it can't be compared with the decimal 1.5
+
+test/check/error-guard-compare.sumspec:25:34:
+   |
+25 | textnum :: App => Name#n // n == 3 -> Name'
+   |                                  ^
+n is a Name (a __text), so it can't be compared with the integer 3
+
+test/check/error-guard-compare.sumspec:26:36:
+   |
+26 | numtext :: App => Meters#m // m == "a" -> Meters'
+   |                                    ^
+m is a Meters (a __float), so it can't be compared with the text "a"
+
+test/check/error-guard-compare.sumspec:27:29:
+   |
+27 | ordtext :: App => Name#n // n < "a" -> Name'
+   |                             ^
+ordering needs a number or an enumeration, but n is a Name (a __text)
+
+test/check/error-guard-compare.sumspec:27:33:
+   |
+27 | ordtext :: App => Name#n // n < "a" -> Name'
+   |                                 ^
+ordering needs a number or an enumeration, but this is text
+
+test/check/error-guard-compare.sumspec:28:28:
+   |
+28 | ordatom :: App => Tag#t // t < t -> Tag'
+   |                            ^
+ordering needs a number or an enumeration, but t is a Tag (an atomic with no base)
+
+test/check/error-guard-compare.sumspec:28:32:
+   |
+28 | ordatom :: App => Tag#t // t < t -> Tag'
+   |                                ^
+ordering needs a number or an enumeration, but t is a Tag (an atomic with no base)
+
+test/check/error-guard-compare.sumspec:29:33:
+   |
+29 | atomlit :: App => Tag#t // t == 3 -> Tag'
+   |                                 ^
+t is a Tag (an atomic with no base), so it can't be compared with the integer 3
+
+test/check/error-guard-compare.sumspec:30:28:
+   |
+30 | product :: App => Box#x // x == x -> Box'
+   |                            ^
+x is a Box (neither a number, text nor an enumeration), which can't be compared
+
+test/check/error-guard-compare.sumspec:30:33:
+   |
+30 | product :: App => Box#x // x == x -> Box'
+   |                                 ^
+x is a Box (neither a number, text nor an enumeration), which can't be compared
+
+test/check/error-guard-compare.sumspec:31:34:
+   |
+31 | wrongsum :: App => Gps#g // g == Mode.On -> Gps'
+   |                                  ^
+cannot compare g (a Gps) with Mode.On (a Mode); they are different types
+
+test/check/error-guard-compare.sumspec:32:36:
+   |
+32 | payloadsum :: App => Gps#g // g == Shape.Square -> Gps'
+   |                                    ^
+Shape has variants with a payload, so its variants can't be compared
+
+test/check/error-guard-compare.sumspec:33:40:
+   |
+33 | badvariant :: App => Gps#g // g == Gps.Missing -> Gps'
+   |                                        ^
+Missing is not a variant of Gps
+
+test/check/error-guard-compare.sumspec:34:37:
+   |
+34 | unknowntype :: App => Gps#g // g == Nothing.There -> Gps'
+   |                                     ^
+unknown type Nothing; declare it in __atomics or define it
+

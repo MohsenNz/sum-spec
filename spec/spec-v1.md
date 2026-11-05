@@ -135,7 +135,7 @@ __atomics {
 ```
 
 - Each atomic is its own type: `Port = __int` and `Count = __int` are different types.
-- A primitive says what kind of value a type holds. The target picks the representation (a `__float` may be a double or a decimal). Literals and the operations on these values come with guards.
+- A primitive says what kind of value a type holds.
 - A bare atomic (`Timestamp`) has no base: the notation does not decompose it, and each target supplies it.
 
 ### Inline payloads and paths
@@ -265,7 +265,7 @@ goToAircraft :: App
 - A guard starts with `//` and is built from patterns with `not`, `and`, `or` and parentheses. `not` binds tighter than `and`, and `and` tighter than `or`. These are words only here; elsewhere they are ordinary lowercase names.
 - A guard is read where the source is. After a shared path (`App =>`), a pattern in the guard is an argument of the innermost shared path, written like the source's arguments: `not AircraftLink.Disconnected` above is `not App(AircraftLink.Disconnected)`. Without a shared path, a pattern in the guard describes the same type as the source (`Page.Home // not Page.Plan`).
 - So a local transition sees only its own part of the state. To look at a wider part, start the transition with a shared path that holds both: `App => ...`. To look at the other parts of one list element, start it with the element path: `Files[p] => Kind.Text // Flag.On -> Kind.Binary`.
-- A guard is a condition on the source, not the target. It binds no value: no `#x`, no prime and no lowercase name. A pattern in it may use a name the transition binds in its input or source, as an element path does: `drop Id#p :: App => Page.Home // Files[p](Kind.Text) -> Page.Plan`.
+- A guard is a condition on the source. A pattern in it may use a name the transition binds in its input or source, as an element path does: `drop Id#p :: App => Page.Home // Files[p](Kind.Text) -> Page.Plan`.
 - A condition that is one variant of a sum is often better written in the source as a positive pattern. `not AircraftLink.Disconnected` is the same as `AircraftLink.Connected` there. Use a guard for what a source cannot say: a negation across several parts (`not (A and B)`), or an `or` across them.
 
 ```
@@ -274,7 +274,34 @@ a :: App => Page.Home // not Link.Off -> Page.Plan
 b :: App => Page.Home * Link.On -> Page.Plan
 ```
 
-Conditions on values (`Count > 0`) are not in this version.
+#### Comparing values
+
+A guard may compare values. A comparison is `left op right`, with `==`, `!=`, `<`, `<=`, `>` or `>=`. It is a condition like a pattern, and `not`, `and`, `or` combine it with them:
+
+```
+-- Start only with enough charge and at least a 3D fix.
+startMission :: App
+             => Battery(BatteryCharge#c) * GPSFix#g
+             // c > 15 and g >= GPSFix.Fix3D
+             -> ...
+```
+
+- A side is a **name** (`c`: a value bound with `#c` in the input or source), a **literal**, or a **variant** of a sum without payloads (`GPSFix.Fix3D`).
+- A literal is an integer (`15`, `-1`), a decimal (`1.5`) or a string (`"abc"`, no escapes, no quote or line break inside). A `-` touches its digits.
+- The type of a name resolves through newtypes: to an atomic with a base (`__int`, `__float`, `__text`), to a sum without payloads (an enumeration), or to an atomic with no base. Nothing else compares (a product, a list, a sum with payloads): test it with a pattern.
+- Two values compare only if they have the same type: `Meters` and `Seconds` do not, though both are `__float`. A name compares with a literal or a variant that fits it:
+
+  | The value is | A literal that fits | Operators |
+  |---|---|---|
+  | `__int` | integer | all |
+  | `__float` | integer, decimal | all |
+  | `__text` | string | `==` `!=` |
+  | a sum without payloads | a variant of that sum | all |
+  | an atomic with no base | none (name against name only) | `==` `!=` |
+
+- A sum without payloads is **ordered by the order of its variants, the first being the smallest**: with `GPSFix = NoFix | Fix2D | Fix3D | DGPS | RTKFix`, `g >= GPSFix.Fix3D` holds for `Fix3D`, `DGPS` and `RTKFix`. Reordering its variants changes what a guard means, so keep the order meaningful once a guard compares it.
+- `not`, `and` and `or` can't be value names in a guard.
+- A comparison reads the values the transition binds; it binds none. A guard still only restricts.
 
 ### Several transitions for one event
 
@@ -557,6 +584,8 @@ press :: App(Mode.Off * Level.Low) -> App(Mode.On)
 The check reads only variants: two sources that differ only in a named value (`Todos[a]`, `Todos[b]`) are taken to overlap.
 
 A guard can separate two transitions whose sources overlap. They do not overlap when their guards can never hold in the same state: one requires a variant and the other forbids it (`// Link.On` and `// not Link.On`), or they require different variants of one part. The check does not notice that several forbidden patterns together can cover every variant of a part, so it may warn about guards that really do exclude each other; write one of them as a positive pattern then.
+
+Comparisons of a name with a literal or a variant count too: `c < 15` and `c >= 15`, or `p == 1` and `p == 2`, exclude each other, and so do `n > 4` and `n < 5` on integers. Comparisons of two names are not read. Two transitions of one event that use the same name with the same type are taken to mean the same value.
 
 From `__init`, the type checker finds the variants the app can reach: a transition can happen once every variant its source writes has been reached, and its target then reaches the variants it writes. A part that may have any value (left out of `__init` or of a new state, or primed) reaches every variant inside it. The checker warns about a variant of a type inside the app's state that is never reached, and reports only the outermost one (not `Bolt` inside an unreached `Locked (Bolt | Chain)`). Parts of a source are tested one at a time and names are ignored, so a variant may be counted as reached when the app can't really get there, but never the other way around.
 

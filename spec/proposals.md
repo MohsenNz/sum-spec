@@ -87,29 +87,19 @@ is equality. An atomic with a base (`Port = __int`) is described under
 "Primitive types" in `spec-v1.md`. An atomic takes no annotations: a type
 that needs `@default` or `@range` is a newtype of it.
 
-## Operations on primitive types
+## Checking `@default` and `@range`
 
 Version impact: additive.
 
-Builds on the primitive types of v1 (`__int`, `__float`, `__text`), which
-today only say what kind of value a type holds. This gives their values
-literals and operations, and is step 3 of the guards plan in `TODO.md`.
+Builds on the primitive types and the comparisons of v1 (see "Primitive
+types" and "Comparing values" in `spec-v1.md`), and on the annotations
+above. A newtype over an atomic carries the annotations, since an atomic
+takes none:
 
-- Literals: integer (`15`), decimal (`1.5`), string (`"abc"`).
-- Ordering on `__int` and `__float`; equality on `__text`.
-- A newtype over a primitive inherits its operations, compared only with
-  itself or with a literal. `Meters <= Seconds` stays a type error, which
-  keeps the units apart:
+    __atomics { Port = __int  Meters = __float }
 
-      __atomics { Port = __int  Meters = __float }
-
-      PortSetting = Port    @default 14550 @range 1..65535
-      SprayHeight = Meters  @default 3 @range 1..10
-
-- Opaque atomics (`Timestamp`, `Latitude`) stay in `__atomics`, with
-  equality only.
-- A `__float` is a number that may have a fractional part; the target
-  picks the representation, so a spec promises no exactness.
+    PortSetting = Port    @default 14550 @range 1..65535
+    SprayHeight = Meters  @default 3 @range 1..10
 
 The checker can then verify that a `@default` is a literal of the type,
 that `@range low..high` has `low <= high`, and that the default lies
@@ -147,47 +137,37 @@ Version impact: additive.
 
 Version impact: additive.
 
-Guards on patterns are in v1 (see "Guards" in `spec-v1.md`): a `//`
-condition after the source, built from patterns with `not`, `and` and
-`or`. This adds conditions on values, which is step 3 of the guards plan in
-`TODO.md`. In EFSM terms, a transition is `event [guard] / update`; here
-the guard may read the values the source and the input name:
+Guards on patterns and comparisons of values are in v1 (see "Guards" and
+"Comparing values" in `spec-v1.md`). What is left:
 
-    telemetryLostEvent Seconds#a :: Feed.Live // a >= 3 -> Feed.Stale
+- **Membership**, `e in ms`: a named value is an element of a named list
+  value. It needs the element type of a list value, and a rule for what is
+  compared when the list holds products (`EdgeMargins` holds `Edge *
+  EdgeInset`, and `Edge` is only a part of an element).
 
-It builds on "Operations on primitive types": the checker needs typed
-literals and known operations to check `a >= 3`.
+      edgeMarginReset ... EdgePick.Selected(Edge#e) * EdgeMargins#ms
+        // e in ms
+        -> ...
 
-A guard stays a predicate, not a `Bool` value. `not`, `and` and `or`
-combine predicates, and a `Bool` member is tested by pattern
-(`flag matches True`), so `Bool` stays an ordinary sum (see "Prelude").
-
-New predicates: comparison (`== != < <= > >=`), membership (`e in ms`),
-`matches` (does a named value match a pattern), literals, and named
-constants such as `BatteryLowThreshold`. Open: arithmetic, calls like
-`further(p, b)`, and whether guards share the predicate language of the
-dependent type below.
-
-Checker rules, in addition to those of v1:
-
-- every name in a guard is bound by `#x` in the input or on the source
-  side; a name bound only on the target side (it sets a value, see
-  "Named values") is an error, since it does not exist yet when the guard
-  is evaluated
-- both sides of a comparison have the same type; ordering needs a numeric
-  type
+- **`matches`**, `x matches P`: does a named value match a pattern. A
+  source pattern already says it for the part it names, so it is only
+  needed to test a value after it has been named elsewhere.
+- **Named constants**, such as `BatteryLowThreshold`: a type holding a
+  value by `@default`, usable as a side of a comparison. It needs
+  annotations.
+- **Arithmetic and calls**, such as `a + 1` or `further(p, b)`, and
+  whether guards share the predicate language of the dependent type
+  below.
+- Whether a failed guard also shows the control disabled. `@unless` stays
+  for the UI ("disabled, with a reason"); a guard is part of the
+  transition's meaning.
 
 What it would replace in a real spec (`temp.sumspec`, Parvaz Agro), where
-data conditions are encoded as enum states or `@after`:
+conditions are still encoded as enum states or `@after`:
 
     -- a derived enum becomes a threshold; the sticky latch stays a state
     batteryLowEvent ... Feed.Live * BatteryCharge#c
       // c <= BatteryLowThreshold
-      -> ...
-
-    -- the thresholds a source cannot say
-    startMission ... AircraftStatus(GPSFix#g) * BatteryCharge#c
-      // g >= Fix3D and c > BatteryLowThreshold
       -> ...
 
     -- `@after TelemetryAge 60` becomes part of the transition
@@ -195,25 +175,8 @@ data conditions are encoded as enum states or `@after`:
       // a >= 60
       -> AircraftLink.Disconnected
 
-    -- completion and continuing split by the data
-    groundMeasuredEvent ... Mission(RouteProgress#p) * FPhase.Spraying
-      // p == 100
-      -> ... FPhase.Returning.Finished
-
-    -- says what a comment now only admits ("spec cannot say it")
-    edgeMarginReset ... EdgePick.Selected(Edge#e) * EdgeMargins#ms
-      // e in ms
-      -> ...
-
-    saveDevice ... DeviceForm(LinkKind#k * Host#h)
-      // k != Tcp or h != Unset
-      -> ...
-
 Gains: fewer copies of a transition (`linkLossEvent` has five), fewer
 derived-state enums, and rules that were comments become checkable.
-`@unless` stays for the UI ("disabled, with a reason"); a guard is part of
-the transition's meaning. Open: whether a failed guard also shows the
-control disabled.
 
 ### From `@unless`
 

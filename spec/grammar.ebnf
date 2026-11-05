@@ -117,10 +117,20 @@ predicate     = conjunction , { "or" , conjunction } ;
 
 conjunction   = negation , { "and" , negation } ;
 
-negation      = "not"
-              , negation
+negation      = "not" , negation
               | "(" , predicate , ")"
+              | comparison
               | type_pattern ;
+
+(* A comparison of two values (see "Comparing values" in spec-v1.md). A
+   path is a variant, Type.Variant. A path with no CMP after it is a
+   type_pattern, not an operand:
+     c <= 15        g >= GPSFix.Fix3D        n != "main"                *)
+comparison    = operand , CMP , operand ;
+
+operand       = LOWER | literal | path ;
+
+literal       = INTEGER | DECIMAL | STRING ;
 
 shared        = path , [ element_key ] ;
 
@@ -175,6 +185,15 @@ digit         = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
    the file) and is skipped like whitespace. *)
 (* A version is one token: no spaces around the ".". *)
 VERSION       = digit , { digit } , "." , digit , { digit } ;
+
+(* A number or a string. The "-" touches the digits ("--" still starts a
+   comment), and a decimal has digits after the dot. A string has no
+   escapes: no quote or line break inside. *)
+INTEGER       = [ "-" ] , digit , { digit } ;
+DECIMAL       = [ "-" ] , digit , { digit } , "." , digit , { digit } ;
+STRING        = '"' , { character - ( '"' | newline ) } , '"' ;
+
+CMP           = "==" | "!=" | "<=" | ">=" | "<" | ">" ;
 
 (* A naming is one token: no space between "#" and the name. *)
 NAMING        = "#" , LOWER ;
@@ -255,6 +274,17 @@ character     = ? any Unicode character ? ;
      binds no value (the grammar has no naming, prime or lowercase name
      there), may use a name the transition binds, and is not a list. See
      "Guards" in spec-v1.md;
+   - a comparison has two sides of one type, or a value and a literal or
+     variant that fits it. A name is a value the transition binds, and
+     its type resolves through newtypes to an atomic with a base
+     (__int, __float, __text), to a sum without payloads (an
+     enumeration, ordered by its variants, first smallest), or to an
+     atomic with no base. An integer literal fits an __int or a
+     __float, a decimal only a __float, a string only a __text, and a
+     variant a value of its sum. < <= > >= need a number or an
+     enumeration; == and != also take text and an atomic with no base
+     (name against name). "not", "and" and "or" are not value names in
+     a guard. See "Comparing values" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
      the target side, outside a new state (a variant the source doesn't
      fix, as Plan in Page -> Page.Plan(PMode')). See "Source and target"
@@ -293,6 +323,7 @@ character     = ? any Unicode character ? ;
    - two transitions of one event, on the same type, whose sources can
      match the same state (no part of them picks different variants) and
      whose guards can hold in the same state (a guard is compared by the
-     variants it requires and forbids).
+     variants it requires and forbids, and by the comparisons of a name
+     with a literal or variant).
 
    Not in v1 (see proposals.md): "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

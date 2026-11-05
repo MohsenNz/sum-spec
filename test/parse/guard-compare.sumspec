@@ -1,0 +1,15 @@
+-- Comparisons in guards: operators, literals, variants, and/or/not.
+__atomics { Percent = __float  Count = __int  Name = __text }
+__events { demo more }
+
+__init :: App
+
+App = Percent * Count * Name * Gps
+Gps = NoFix | Fix3D
+
+demo
+  :: App => Percent#c * Count#k * Name#n * Gps#g // c < 1.5 and k >= -2 or n != "a b" and not (g == Gps.Fix3D or Gps.NoFix <= g) and k > 0 -> Percent'
+
+more
+  :: App => Count#k * Name#n // k == 3 and n == "x" -> Count'
+  :: App => Count#k // 7 <= k or k > -0.5 and Gps.NoFix == Gps.Fix3D -> Count'

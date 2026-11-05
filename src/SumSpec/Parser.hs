@@ -184,20 +184,54 @@ predicate = operands GuardOr conjunction "or"
 conjunction :: Parser Guard
 conjunction = operands GuardAnd negation "and"
 
--- negation = "not" , negation | "(" , predicate , ")" | type_pattern ;
+-- negation = "not" , negation | "(" , predicate , ")" | comparison
+--          | type_pattern ;
 negation :: Parser Guard
 negation =
   choice
     [ GuardNot <$> (keyword "not" *> negation)
     , parens predicate
-    , GuardPattern <$> typePattern
+    , comparisonOrPattern
     ]
+
+-- comparison = operand , CMP , operand ;
+-- operand = LOWER | literal | path ;
+--
+-- A comparison starting with a name or a literal is known from its first
+-- token. One starting with a path is a pattern unless an operator follows
+-- the bare path, which is then a variant.
+comparisonOrPattern :: Parser Guard
+comparisonOrPattern =
+  choice
+    [ comparisonFrom (uncurry OperandLiteral <$> literal)
+    , comparisonFrom (OperandName <$> valueName)
+    , do
+        p <- typePattern
+        case p of
+          PatternPath names [] ->
+            optional compareOp >>= \case
+              Nothing -> pure (GuardPattern p)
+              Just op -> GuardCompare op (OperandVariant names) <$> operand
+          _ -> pure (GuardPattern p)
+    ]
+  where
+    literal = numberLiteral <|> stringLiteral
+    comparisonFrom left = (\l op r -> GuardCompare op l r) <$> left <*> compareOp <*> operand
+
+operand :: Parser Operand
+operand =
+  choice
+    [ uncurry OperandLiteral <$> (numberLiteral <|> stringLiteral)
+    , OperandName <$> valueName
+    , OperandVariant <$> path
+    ]
+    <?> "a value, a literal or a variant"
 
 -- One operand, or two or more joined by a word, as one guard.
 operands :: (NonEmpty Guard -> Guard) -> Parser Guard -> Text -> Parser Guard
-operands join operand word = do
-  first <- operand
-  rest <- many (keyword word *> operand)
+operands join item word = do
+  first <- item
+  rest <- many (keyword word *> item)
   pure $ case rest of
     [] -> first
     _ -> join (first :| rest)

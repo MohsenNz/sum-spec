@@ -14,6 +14,9 @@ module SumSpec.Lexer
   , lowerName
   , valueName
   , naming
+  , numberLiteral
+  , stringLiteral
+  , compareOp
   , versionNumber
   , parens
   , brackets
@@ -24,10 +27,10 @@ import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
-import SumSpec.Syntax (Name (..))
+import SumSpec.Syntax (CompareOp (..), Literal (..), Name (..))
 import SumSpec.Version (LanguageVersion (..))
 import Text.Megaparsec
-import Text.Megaparsec.Char (char, space1)
+import Text.Megaparsec.Char (char, digitChar, space1)
 import Text.Megaparsec.Char.Lexer qualified as L
 
 type Parser = Parsec Void Text
@@ -88,6 +91,42 @@ versionNumber :: Parser LanguageVersion
 versionNumber =
   lexeme (LanguageVersion <$> L.decimal <* char '.' <*> L.decimal)
     <?> "version number such as 1.0"
+
+-- | An integer (@15@, @-1@) or a decimal (@1.5@): the @-@ touches the digits,
+-- and a decimal has digits after the dot.
+numberLiteral :: Parser (SourcePos, Literal)
+numberLiteral = lexeme $ do
+  pos <- getSourcePos
+  sign <- maybe "" T.singleton <$> optional (try (char '-' <* lookAhead digitChar))
+  whole <- takeWhile1P (Just "digit") isDigit
+  fraction <- optional (try (char '.' *> takeWhile1P (Just "digit") isDigit))
+  pure . (,) pos $ case fraction of
+    Nothing -> LitInt (read (T.unpack (sign <> whole)))
+    Just digits -> LitDecimal (sign <> whole <> "." <> digits)
+
+-- | @"text"@: no escapes, so no quote or line break inside.
+stringLiteral :: Parser (SourcePos, Literal)
+stringLiteral = lexeme $ do
+  pos <- getSourcePos
+  _ <- char '"'
+  text <- takeWhileP Nothing (\c -> c /= '"' && c /= '\n')
+  _ <- char '"' <?> "closing quote"
+  pure (pos, LitText text)
+
+-- | @==@, @!=@, @<=@, @>=@, @<@ or @>@, longest first.
+compareOp :: Parser CompareOp
+compareOp =
+  lexeme
+    ( choice
+        [ OpLe <$ chunk "<="
+        , OpGe <$ chunk ">="
+        , OpEq <$ chunk "=="
+        , OpNe <$ chunk "!="
+        , OpLt <$ char '<'
+        , OpGt <$ char '>'
+        ]
+    )
+    <?> "comparison operator"
 
 parens, brackets, braces :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")

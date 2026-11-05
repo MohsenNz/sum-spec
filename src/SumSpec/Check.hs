@@ -11,14 +11,14 @@ module SumSpec.Check
   , renderCheckErrors
   ) where
 
-import Data.Char (isSpace)
+import Data.Char (digitToInt, isSpace)
 import Data.Containers.ListUtils (nubOrdOn)
-import Data.List (find, sortOn)
+import Data.List (elemIndex, find, nub, sortOn)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe (fromMaybe, isJust, mapMaybe)
+import Data.Maybe (fromMaybe, isJust, isNothing, mapMaybe, maybeToList)
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
@@ -60,7 +60,7 @@ checkSpec file source spec =
       , checkListPlaces typeDefs (map snd inits) transitions
       , warnListElements env root transitions
       , warnReachability env typeDefs (map snd (take 1 inits)) transitions
-      , warnOverlaps transitions
+      , warnOverlaps env transitions
       , warnSuffixSpaces
           source
           (inputs <> concat [[from, to] | Flat _ _ from to _ <- transitions])
@@ -110,14 +110,16 @@ renderCheckErrors source = unlines . map render
 -- | The declared atomics and the defined types. A type defined twice keeps
 -- its first definition; the second is reported as an error.
 data Env = Env
-  { envAtomics :: Set Text
+  { envAtomics :: Map Text (Maybe Primitive)
+  -- ^ The atomics, with the base of each.
   , envTypes :: Map Text TypeExpr
   }
 
 mkEnv :: Spec -> [TypeDef] -> Env
 mkEnv spec defs =
   Env
-    { envAtomics = Set.fromList (map (nameText . atomicName) (specAtomics spec))
+    { envAtomics =
+        Map.fromList [(nameText (atomicName a), atomicBase a) | a <- specAtomics spec]
     , envTypes =
         Map.fromListWith
           (\_ first -> first)
@@ -126,7 +128,7 @@ mkEnv spec defs =
 
 isKnownType :: Env -> Text -> Bool
 isKnownType env name =
-  Set.member name (envAtomics env) || Map.member name (envTypes env)
+  Map.member name (envAtomics env) || Map.member name (envTypes env)
 
 -- ---------- Headers and the initial state ----------
 
@@ -210,7 +212,7 @@ checkTypeDefs env defs =
   ]
     <> [ errorAt n (nameText n <> " is declared in __atomics and also defined")
        | TypeDef n _ <- defs
-       , Set.member (nameText n) (envAtomics env)
+       , Map.member (nameText n) (envAtomics env)
        ]
     <> concatMap (checkTypeExpr env . typeDefBody) defs
     <> mapMaybe (newtypeCycle env) (firsts (nameText . typeDefName) defs)
@@ -273,6 +275,7 @@ flatten (Event n input transitions) =
 expandGuard :: [Shared] -> Guard -> Guard
 expandGuard paths = \case
   GuardPattern p -> GuardPattern (expand paths (p :| []))
+  g@(GuardCompare {}) -> g
   GuardNot g -> GuardNot (expandGuard paths g)
   GuardAnd gs -> GuardAnd (fmap (expandGuard paths) gs)
   GuardOr gs -> GuardOr (fmap (expandGuard paths) gs)
@@ -651,7 +654,7 @@ typeNode :: Env -> Text -> Maybe Node
 typeNode env name = case Map.lookup name (envTypes env) of
   Just body -> Just (Node name (Just body))
   Nothing
-    | Set.member name (envAtomics env) -> Just (Node name Nothing)
+    | Map.member name (envAtomics env) -> Just (Node name Nothing)
     | otherwise -> Nothing
 
 -- | The names a transition gives, with the type of each.
@@ -1237,8 +1240,8 @@ variantNames defs =
 -- on different parts, so they aren't compared. Names are ignored, so two
 -- element paths are taken to pick the same element. Warns once per
 -- transition, naming the first one it overlaps.
-warnOverlaps :: [Flat] -> [CheckError]
-warnOverlaps transitions =
+warnOverlaps :: Env -> [Flat] -> [CheckError]
+warnOverlaps env transitions =
   [ warningAt (patternHead from) $
       nameText n
         <> ": this transition and the one on line "
@@ -1254,11 +1257,11 @@ warnOverlaps transitions =
   ]
   where
     indexed = zip [0 :: Int ..] transitions
-    overlaps (Flat n _ from _ g) (Flat m _ other _ h) =
+    overlaps t@(Flat n _ from _ g) u@(Flat m _ other _ h) =
       nameText n == nameText m
         && patternKey from == patternKey other
         && not (excludes (variantsOf from) (variantsOf other))
-        && guardsMayHold g h
+        && guardsMayHold env (transitionNameMap t, g) (transitionNameMap u, h)
     variantsOf = positionsOf
 
 -- | The variant positions a pattern writes, with an element's key left out:
@@ -1282,59 +1285,211 @@ excludes a b =
     ]
 
 -- | A guard in disjunctive form is a list of clauses, one of which must
--- hold. A clause holds in a state that has all the variants it requires
--- and matches none of the patterns it forbids (each given by the variants
--- it fixes).
-data Clause = Clause (Set Position) [Set Position]
+-- hold. A clause holds in a state that has all the variants it requires,
+-- matches none of the patterns it forbids (each given by the variants it
+-- fixes), and satisfies its comparisons.
+data Clause = Clause (Set Position) [Set Position] [Constraint]
 
-guardClauses :: Guard -> [Clause]
-guardClauses = positive
+-- | A comparison of a named value with a literal or a variant, kept to tell
+-- whether two guards can hold together. A value is told apart by its name
+-- and its type: two transitions of one event that use the same name with
+-- the same type are taken to mean the same value.
+data Constraint = Constraint (Text, Text) Domain CompareOp Value
+
+-- | Whether a value has a next one (an integer, a variant) or lies in a
+-- continuum.
+data Domain = Discrete | Dense
+  deriving stock (Eq)
+
+data Value = VNum Rational | VText Text | VIdx Int
+  deriving stock (Eq, Ord)
+
+guardClauses :: Env -> Names -> Guard -> [Clause]
+guardClauses env names = positive
   where
     positive = \case
-      GuardPattern p -> [Clause (positionsOf p) []]
+      GuardPattern p -> [Clause (positionsOf p) [] []]
+      GuardCompare op l r -> [Clause Set.empty [] (constraint op l r)]
       GuardNot g -> negative g
       GuardAnd gs -> foldr1 bothClauses (map positive (NE.toList gs))
       GuardOr gs -> concatMap positive (NE.toList gs)
-    -- The clauses of @not g@, by De Morgan.
+    -- The clauses of @not g@, by De Morgan. The negation of a comparison is
+    -- the opposite comparison.
     negative = \case
-      GuardPattern p -> [Clause Set.empty [positionsOf p]]
+      GuardPattern p -> [Clause Set.empty [positionsOf p] []]
+      GuardCompare op l r -> [Clause Set.empty [] (constraint (negateOp op) l r)]
       GuardNot g -> positive g
       GuardAnd gs -> concatMap negative (NE.toList gs)
       GuardOr gs -> foldr1 bothClauses (map negative (NE.toList gs))
+    constraint op l r = maybeToList (comparisonConstraint env names op l r)
 
 -- | The clauses of @a and b@ from those of @a@ and of @b@.
 bothClauses :: [Clause] -> [Clause] -> [Clause]
-bothClauses xs ys = [Clause (p <> q) (n <> m) | Clause p n <- xs, Clause q m <- ys]
+bothClauses xs ys =
+  [Clause (p <> q) (n <> m) (c <> d) | Clause p n c <- xs, Clause q m d <- ys]
+
+negateOp :: CompareOp -> CompareOp
+negateOp = \case
+  OpEq -> OpNe
+  OpNe -> OpEq
+  OpLt -> OpGe
+  OpLe -> OpGt
+  OpGt -> OpLe
+  OpGe -> OpLt
+
+-- | The comparison with its sides swapped: @3 < c@ is @c > 3@.
+swapOp :: CompareOp -> CompareOp
+swapOp = \case
+  OpLt -> OpGt
+  OpLe -> OpGe
+  OpGt -> OpLt
+  OpGe -> OpLe
+  op -> op
+
+-- | A comparison of a named value with a literal or a variant, as a
+-- constraint on that value. Anything else (two names, two literals) is
+-- unknown, so it may hold.
+comparisonConstraint
+  :: Env -> Names -> CompareOp -> Operand -> Operand -> Maybe Constraint
+comparisonConstraint env names op l r = case (l, r) of
+  (OperandName n, other) -> build n op other
+  (other, OperandName n) -> build n (swapOp op) other
+  _ -> Nothing
+  where
+    build n o other = do
+      key <- Map.lookup (nameText n) names
+      (domain, value) <- operandValue env (kindOf env key) other
+      pure (Constraint (nameText n, key) domain o value)
+
+-- | The value a literal or a variant stands for, when it fits the kind of
+-- the value it is compared with.
+operandValue :: Env -> Kind -> Operand -> Maybe (Domain, Value)
+operandValue env kind = \case
+  OperandLiteral _ (LitInt i) -> case kind of
+    KInt -> Just (Discrete, VNum (fromInteger i))
+    KFloat -> Just (Dense, VNum (fromInteger i))
+    _ -> Nothing
+  OperandLiteral _ (LitDecimal t) -> case kind of
+    KFloat -> Just (Dense, VNum (decimalValue t))
+    _ -> Nothing
+  OperandLiteral _ (LitText t) -> case kind of
+    KText -> Just (Discrete, VText t)
+    _ -> Nothing
+  OperandVariant (h :| [v])
+    | KEnum <- kind
+    , Just (TypeSum variants) <- Map.lookup (nameText h) (envTypes env)
+    , Just i <- elemIndex (nameText v) (map (nameText . variantName) variants) ->
+        Just (Discrete, VIdx i)
+  _ -> Nothing
+
+-- | The exact value of a decimal literal such as @-1.25@.
+decimalValue :: Text -> Rational
+decimalValue text =
+  sign
+    * (fromInteger (digits whole) + fromInteger (digits fraction) / 10 ^ T.length fraction)
+  where
+    (sign, unsigned) = case T.uncons text of
+      Just ('-', rest) -> (-1, rest)
+      _ -> (1, text)
+    (whole, dotted) = T.breakOn "." unsigned
+    fraction = T.drop 1 dotted
+    digits = T.foldl' (\acc c -> acc * 10 + toInteger (digitToInt c)) 0
+
+-- | Whether the comparisons can all hold. For each value, the bounds must
+-- leave room (strict bounds on integers and variants tighten by one), an
+-- equality must lie inside them and differ from every inequality, and two
+-- equalities must agree.
+consistent :: [Constraint] -> Bool
+consistent cs = all holds (Map.elems grouped)
+  where
+    grouped = Map.fromListWith (<>) [(k, [c]) | c@(Constraint k _ _ _) <- cs]
+    holds group = case eqs of
+      [v] -> inRange v && v `notElem` nes
+      _ : _ : _ -> False
+      [] -> not emptyRange && not (excluded group)
+      where
+        discrete = or [d == Discrete | Constraint _ d _ _ <- group]
+        bounds = [tighten discrete op v | Constraint _ _ op v <- group, op `notElem` [OpEq, OpNe]]
+        los = [(v, op == OpGt) | (op, v) <- bounds, op `elem` [OpGt, OpGe]]
+        his = [(v, op == OpLt) | (op, v) <- bounds, op `elem` [OpLt, OpLe]]
+        eqs = nub [v | Constraint _ _ OpEq v <- group]
+        nes = [v | Constraint _ _ OpNe v <- group]
+        inRange v =
+          all (\(l, strict) -> if strict then v > l else v >= l) los
+            && all (\(h, strict) -> if strict then v < h else v <= h) his
+        emptyRange = case (strongestLow los, strongestHigh his) of
+          (Just (l, sl), Just (h, sh)) -> l > h || (l == h && (sl || sh))
+          _ -> False
+        excluded _ = case (strongestLow los, strongestHigh his) of
+          (Just (l, _), Just (h, _))
+            | discrete ->
+                let vs = between l h
+                in  not (null vs)
+                      && length (take (length nes + 1) vs) <= length nes
+                      && all (`elem` nes) vs
+          _ -> False
+    -- The strongest lower bound is the largest, and the strongest upper
+    -- bound the smallest; at a tie, a strict bound wins.
+    strongestLow = strongest (>)
+    strongestHigh = strongest (<)
+    strongest beats bs = case bs of
+      [] -> Nothing
+      _ ->
+        Just
+          . foldr1
+            ( \(a, sa) (b, sb) -> if beats a b then (a, sa) else if beats b a then (b, sb) else (a, sa || sb)
+            )
+          $ bs
+    -- A strict bound on a discrete value is the next value, non-strict.
+    tighten discrete op v
+      | discrete, OpGt <- op = (OpGe, step 1 v)
+      | discrete, OpLt <- op = (OpLe, step (-1) v)
+      | otherwise = (op, v)
+    step n = \case
+      VNum r -> VNum (r + n)
+      VIdx i -> VIdx (i + round n)
+      v -> v
+    between a b = case (a, b) of
+      (VNum l, VNum h) -> map (VNum . fromInteger) [ceiling l .. floor h]
+      (VIdx l, VIdx h) -> map VIdx [l .. h]
+      _ -> []
 
 -- | Whether two guards can hold in one state. No guard always holds. Two
 -- clauses can hold together unless the variants they require pick
--- different variants of one place, or one forbids a pattern whose variants
--- the other already requires. It does not notice that several forbidden
--- patterns together can cover every variant of a place, so it may find an
--- overlap that is not one.
-guardsMayHold :: Maybe Guard -> Maybe Guard -> Bool
-guardsMayHold g h =
-  or
-    [ not (excludes p p) && all (not . (`Set.isSubsetOf` p)) n
-    | Clause p n <- bothClauses (clauses g) (clauses h)
-    ]
+-- different variants of one place, one forbids a pattern whose variants
+-- the other already requires, or their comparisons leave no value. It
+-- does not notice that several forbidden patterns together can cover every
+-- variant of a place, so it may find an overlap that is not one.
+guardsMayHold :: Env -> (Names, Maybe Guard) -> (Names, Maybe Guard) -> Bool
+guardsMayHold env (names1, g) (names2, h) =
+  any satisfiable (bothClauses (clausesOf names1 g) (clausesOf names2 h))
   where
-    clauses = maybe [Clause Set.empty []] guardClauses
+    clausesOf names = maybe [Clause Set.empty [] []] (guardClauses env names)
+    satisfiable (Clause p n cs) =
+      not (excludes p p) && all (not . (`Set.isSubsetOf` p)) n && consistent cs
 
 -- ---------- Guards ----------
+
+-- | The names a transition can use: the ones its input and its source
+-- bind, with the type of each.
+transitionNameMap :: Flat -> Names
+transitionNameMap (Flat _ input from _ _) =
+  Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from]
 
 -- | A guard is read where the source is, so each pattern in it (already
 -- expanded with the shared paths, see 'expandGuard') describes the same
 -- part of the state as the source: it is headed by the source's type.
--- It may use a name the transition binds (an element path @Files[p]@),
--- but binds none. Apart from that it is checked like any pattern. See
--- "Guards" in spec-v1.md.
+-- It may use a name the transition binds (an element path @Files[p]@, a
+-- value in a comparison), but binds none. A comparison needs two values of
+-- one type, or a value and a literal or variant that fit it. Apart from
+-- that it is checked like any pattern. See "Guards" in spec-v1.md.
 checkGuards :: Env -> [Flat] -> [CheckError]
 checkGuards env transitions =
   concat
     [ concatMap (atom names from) (guardPatterns g)
-    | Flat _ input from _ (Just g) <- transitions
-    , let names = Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from]
+        <> concat [checkComparison env names op l r | (op, l, r) <- guardComparisons g]
+    | t@(Flat _ _ from _ (Just g)) <- transitions
+    , let names = transitionNameMap t
     ]
   where
     atom names from = \case
@@ -1359,9 +1514,169 @@ checkGuards env transitions =
 guardPatterns :: Guard -> [Pattern]
 guardPatterns = \case
   GuardPattern p -> [p]
+  GuardCompare {} -> []
   GuardNot g -> guardPatterns g
   GuardAnd gs -> concatMap guardPatterns (NE.toList gs)
   GuardOr gs -> concatMap guardPatterns (NE.toList gs)
+
+guardComparisons :: Guard -> [(CompareOp, Operand, Operand)]
+guardComparisons = \case
+  GuardPattern _ -> []
+  GuardCompare op l r -> [(op, l, r)]
+  GuardNot g -> guardComparisons g
+  GuardAnd gs -> concatMap guardComparisons (NE.toList gs)
+  GuardOr gs -> concatMap guardComparisons (NE.toList gs)
+
+-- | What a value is, as far as a comparison goes. A type resolves through
+-- newtypes to an atomic with a base, to a sum without payloads (an
+-- enumeration, ordered by the order of its variants), to an atomic with no
+-- base (equality only), or to something that can't be compared.
+data Kind = KInt | KFloat | KText | KEnum | KOpaque | KOther
+  deriving stock (Eq)
+
+kindOf :: Env -> Text -> Kind
+kindOf env = go Set.empty
+  where
+    go seen name
+      | name `Set.member` seen = KOther
+      | Just base <- Map.lookup name (envAtomics env) = case base of
+          Nothing -> KOpaque
+          Just PrimInt -> KInt
+          Just PrimFloat -> KFloat
+          Just PrimText -> KText
+      | otherwise = case Map.lookup name (envTypes env) of
+          Just (TypeTerm (TermName next)) -> go (Set.insert name seen) (nameText next)
+          Just (TypeSum variants) | all (isNothing . variantPayload) variants -> KEnum
+          _ -> KOther
+
+describeKind :: Kind -> Text
+describeKind = \case
+  KInt -> "an __int"
+  KFloat -> "a __float"
+  KText -> "a __text"
+  KEnum -> "an enumeration"
+  KOpaque -> "an atomic with no base"
+  KOther -> "neither a number, text nor an enumeration"
+
+-- | One side of a comparison, resolved.
+data CmpSide = CmpSide
+  { sideAt :: SourcePos
+  , sideText :: Text
+  -- ^ As written, for messages.
+  , sideType :: Maybe Text
+  -- ^ The type of a value or of a variant; a literal has none.
+  , sideKind :: SideKind
+  }
+
+data SideKind = OfType Kind | LiteralInt | LiteralDecimal | LiteralText
+
+resolveSide :: Env -> Names -> Operand -> Either [CheckError] CmpSide
+resolveSide env names = \case
+  OperandName n -> case Map.lookup (nameText n) names of
+    Nothing -> Left [unknownName n]
+    Just key -> Right (CmpSide (namePos n) (nameText n) (Just key) (OfType (kindOf env key)))
+  OperandLiteral pos lit -> Right $ case lit of
+    LitInt i -> CmpSide pos (T.pack (show i)) Nothing LiteralInt
+    LitDecimal t -> CmpSide pos t Nothing LiteralDecimal
+    LitText t -> CmpSide pos ("\"" <> t <> "\"") Nothing LiteralText
+  OperandVariant (h :| rest) -> case (Map.lookup (nameText h) (envTypes env), rest) of
+    (Just (TypeSum variants), [v])
+      | any (isJust . variantPayload) variants ->
+          Left
+            [ errorAt
+                h
+                (nameText h <> " has variants with a payload, so its variants can't be compared")
+            ]
+      | nameText v `notElem` map (nameText . variantName) variants ->
+          Left [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
+      | otherwise ->
+          Right
+            ( CmpSide
+                (namePos h)
+                (nameText h <> "." <> nameText v)
+                (Just (nameText h))
+                (OfType KEnum)
+            )
+    _
+      | not (isKnownType env (nameText h)) -> Left [unknownType h]
+      | otherwise ->
+          Left
+            [ errorAt h $
+                "a variant to compare is written Type.Variant, where Type is a sum without payloads; "
+                  <> nameText h
+                  <> " is not"
+            ]
+
+-- | A comparison of two values of one type, or of a value and a literal or
+-- variant that fits it. The ordering operators need numbers or an
+-- enumeration; @==@ and @!=@ also take text and atomics.
+checkComparison :: Env -> Names -> CompareOp -> Operand -> Operand -> [CheckError]
+checkComparison env names op l r =
+  case (resolveSide env names l, resolveSide env names r) of
+    (Left e1, Left e2) -> e1 <> e2
+    (Left e, _) -> e
+    (_, Left e) -> e
+    (Right a, Right b) -> case relate a b of
+      [] -> concatMap order [a, b]
+      errors -> errors
+  where
+    ordering = op `elem` [OpLt, OpLe, OpGt, OpGe]
+    relate a b = case (sideType a, sideType b) of
+      (Just ta, Just tb)
+        | ta /= tb ->
+            [ errorAtPos (sideAt b) $
+                "cannot compare "
+                  <> sideText a
+                  <> " (a "
+                  <> ta
+                  <> ") with "
+                  <> sideText b
+                  <> " (a "
+                  <> tb
+                  <> "); they are different types"
+            ]
+      _ -> fits a b <> fits b a
+    -- A literal fits a value whose kind has that kind of literal.
+    fits typed lit = case (sideKind typed, sideKind lit) of
+      (OfType k, LiteralInt) | k `notElem` [KInt, KFloat] -> mismatch typed lit "the integer"
+      (OfType k, LiteralDecimal) | k /= KFloat -> mismatch typed lit "the decimal"
+      (OfType k, LiteralText) | k /= KText -> mismatch typed lit "the text"
+      (LiteralText, LiteralInt) -> literals typed lit
+      (LiteralText, LiteralDecimal) -> literals typed lit
+      (LiteralInt, LiteralText) -> literals typed lit
+      (LiteralDecimal, LiteralText) -> literals typed lit
+      _ -> []
+    mismatch typed lit what =
+      [ errorAtPos (sideAt lit) $
+          describeSide typed
+            <> ", so it can't be compared with "
+            <> what
+            <> " "
+            <> sideText lit
+      ]
+    literals a b =
+      [errorAtPos (sideAt b) ("cannot compare " <> sideText a <> " with " <> sideText b)]
+    order side = case sideKind side of
+      OfType k
+        | ordering
+        , k `notElem` [KInt, KFloat, KEnum] ->
+            [ errorAtPos (sideAt side) $
+                "ordering needs a number or an enumeration, but " <> describeSide side
+            ]
+        | k == KOther ->
+            [ errorAtPos (sideAt side) $
+                describeSide side <> ", which can't be compared"
+            ]
+      LiteralText
+        | ordering ->
+            [ errorAtPos
+                (sideAt side)
+                "ordering needs a number or an enumeration, but this is text"
+            ]
+      _ -> []
+    describeSide side = case (sideType side, sideKind side) of
+      (Just ty, OfType k) -> sideText side <> " is a " <> ty <> " (" <> describeKind k <> ")"
+      _ -> sideText side
 
 -- ---------- Helpers ----------
 

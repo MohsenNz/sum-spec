@@ -1,0 +1,10 @@
+-- A malformed comparison.
+__atomics { A }
+__events { go }
+
+__init :: App
+
+App = Page * A
+Page = Home | Plan
+
+go :: Page.Home // x > 1. -> Page.Plan

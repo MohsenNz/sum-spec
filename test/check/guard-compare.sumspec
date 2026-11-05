@@ -1,0 +1,24 @@
+-- Comparisons in guards: numbers, text, enumerations, atomics, newtypes.
+__atomics {
+  Percent = __float
+  Port = __int
+  Name = __text
+  Tag
+}
+__events { drain open label fix same }
+
+__init :: App
+
+App = Percent * Port * Name * Tag * Count * Gps
+Count = Port
+Gps = NoFix | Fix2D | Fix3D | DGPS | RTKFix
+
+drain :: App => Percent#c // c <= 15 -> Percent'
+
+open :: App => Port#p // p == 80 or p >= 8000 and p != 8080 -> Port'
+
+label Name#n :: App => Name#m // n == "main" and m != "x" -> Name'
+
+fix :: App => Gps#g * Count#k // g >= Gps.Fix3D and Gps.Fix2D < g and k > -1 and 0 < k -> Gps'
+
+same Tag#a :: App => Tag#b // a == b -> Tag'

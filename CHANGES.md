@@ -19,7 +19,14 @@ release" in `VERSIONING.md`).
   binds no value, but may use a name the transition binds. The overlap
   warning for transitions of one event now also reads
   guards: two transitions with guards that exclude each other do not
-  overlap. Comparisons and values in guards come later.
+  overlap, and so do comparisons of a name with a literal or variant
+  (`c < 15` and `c >= 15`).
+- Comparisons in guards: `== != < <= > >=` between a name the
+  transition binds, a literal (integer `15`, decimal `1.5`, string
+  `"abc"`) and a variant (`GPSFix.Fix3D`). Two values compare only if
+  they have the same type; `< <= > >=` need an `__int`, a `__float` or a
+  sum without payloads, which is ordered by its variants, first smallest.
+  `==` and `!=` also take `__text` and an atomic with no base.
 - Primitive types: `__int`, `__float` and `__text` are the built-in base
   types. An atomic gets one as its base in `__atomics`
   (`Port = __int`, `Name = __text`); a bare atomic (`Timestamp`) stays

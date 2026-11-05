@@ -1,0 +1,19 @@
+-- Comparisons that can both hold, and one transition without a guard.
+__atomics { Percent = __float  Count = __int }
+__events { drain tight mixed }
+
+__init :: App
+
+App = Percent * Count
+
+drain
+  :: App => Percent#c // c <= 15 -> Percent'
+  :: App => Percent#c // c >= 15 -> Percent'
+
+tight
+  :: App => Percent#c // c < 20 -> Percent'
+  :: App => Percent#c // c > 10 -> Percent'
+
+mixed
+  :: App => Count#n // n < 20 -> Count'
+  :: App => Count -> Count'

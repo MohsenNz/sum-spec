@@ -1,0 +1,33 @@
+-- Comparisons that exclude each other: no overlap warning.
+__atomics { Percent = __float  Count = __int }
+__events { drain level step fix gap pick }
+
+__init :: App
+
+App = Percent * Count * Gps
+Gps = NoFix | Fix2D | Fix3D | DGPS
+
+drain
+  :: App => Percent#c // c < 15 -> Percent'
+  :: App => Percent#c // c >= 15 -> Percent'
+
+gap
+  :: App => Percent#c // c < 10 or c > 20 -> Percent'
+  :: App => Percent#c // c >= 10 and c <= 20 -> Percent'
+
+level
+  :: App => Count#p // p == 100 -> Count'
+  :: App => Count#p // p < 100 -> Count'
+
+step
+  :: App => Count#n // n > 4 -> Count'
+  :: App => Count#n // n < 5 -> Count'
+
+pick
+  :: App => Count#n // n == 1 -> Count'
+  :: App => Count#n // n == 2 -> Count'
+  :: App => Count#n // not (n == 1 or n == 2) -> Count'
+
+fix
+  :: App => Gps#g // g >= Gps.Fix3D -> Gps'
+  :: App => Gps#g // g < Gps.Fix3D -> Gps'

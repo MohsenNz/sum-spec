@@ -19,6 +19,10 @@ module SumSpec.Syntax
   , Event (..)
   , Transition (..)
   , Guard (..)
+  , CompareOp (..)
+  , compareWord
+  , Operand (..)
+  , Literal (..)
   , Shared (..)
   , Pattern (..)
   , Name (..)
@@ -137,9 +141,42 @@ data Guard
   = -- | The current state matches this pattern. The checker requires it to
     -- be headed by the root type.
     GuardPattern Pattern
+  | -- | @left op right@: a comparison of two values. See 'Operand'.
+    GuardCompare CompareOp Operand Operand
   | GuardNot Guard
   | GuardAnd (NonEmpty Guard)
   | GuardOr (NonEmpty Guard)
+  deriving stock (Eq, Show)
+
+data CompareOp = OpEq | OpNe | OpLt | OpLe | OpGt | OpGe
+  deriving stock (Eq, Show)
+
+-- | How a comparison operator is written.
+compareWord :: CompareOp -> Text
+compareWord = \case
+  OpEq -> "=="
+  OpNe -> "!="
+  OpLt -> "<"
+  OpLe -> "<="
+  OpGt -> ">"
+  OpGe -> ">="
+
+-- | One side of a comparison.
+data Operand
+  = -- | @x@: a value named in the input or on the source side.
+    OperandName Name
+  | -- | A literal, with the position it starts at.
+    OperandLiteral SourcePos Literal
+  | -- | @Type.Variant@: a variant of a sum without payloads.
+    OperandVariant (NonEmpty Name)
+  deriving stock (Eq, Show)
+
+data Literal
+  = LitInt Integer
+  | -- | A decimal, as written (@1.50@ stays @1.50@).
+    LitDecimal Text
+  | -- | A string, without the quotes.
+    LitText Text
   deriving stock (Eq, Show)
 
 -- | @P =>@ or @L[x] =>@: a path, with an optional element key, that both

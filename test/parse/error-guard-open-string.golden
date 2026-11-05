@@ -1,0 +1,6 @@
+test/parse/error-guard-open-string.sumspec:10:42:
+   |
+10 | go :: Page.Home // x == "abc -> Page.Plan
+   |                                          ^
+unexpected newline
+expecting closing quote

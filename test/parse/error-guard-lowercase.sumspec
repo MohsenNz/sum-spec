@@ -1,4 +1,4 @@
--- A guard names no value yet, so a lowercase name is not a condition.
+-- A name alone is not a condition: it needs a comparison.
 __atomics { A }
 __events { go }
 

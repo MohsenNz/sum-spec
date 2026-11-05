@@ -1,6 +1,6 @@
-test/parse/error-guard-lowercase.sumspec:10:20:
+test/parse/error-guard-lowercase.sumspec:10:22:
    |
 10 | go :: Page.Home // x -> Page.Plan
-   |                    ^^^
-unexpected "x -"
-expecting "not", '(', '[', or type or variant name
+   |                      ^^
+unexpected "->"
+expecting comparison operator

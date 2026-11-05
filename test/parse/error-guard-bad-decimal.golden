@@ -1,0 +1,6 @@
+test/parse/error-guard-bad-decimal.sumspec:10:25:
+   |
+10 | go :: Page.Home // x > 1. -> Page.Plan
+   |                         ^^
+unexpected ". "
+expecting "->", "and", "or", or digit

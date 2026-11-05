@@ -3,4 +3,4 @@ test/parse/error-guard-empty.sumspec:10:20:
 10 | go :: Page.Home // -> Page.Plan
    |                    ^^^
 unexpected "-> "
-expecting "not", '(', '[', or type or variant name
+expecting "not", '"', '(', '[', digit, type or variant name, or value name
