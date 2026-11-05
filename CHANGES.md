@@ -10,6 +10,16 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- Guards: `// condition` after a transition's source and before `->`.
+  The condition is built from patterns with `not`, `and`, `or` and
+  parentheses (`not` binds tightest). A guard is read where the source
+  is: after a shared path (`App =>`) its patterns are arguments of that
+  path, and without one they describe the source's own type, so a guard
+  sees as much of the state as the source does, and `=>` widens it. It
+  binds no value, but may use a name the transition binds. The overlap
+  warning for transitions of one event now also reads
+  guards: two transitions with guards that exclude each other do not
+  overlap. Comparisons and values in guards come later.
 - Primitive types: `__int`, `__float` and `__text` are the built-in base
   types. An atomic gets one as its base in `__atomics`
   (`Port = __int`, `Name = __text`); a bare atomic (`Timestamp`) stays

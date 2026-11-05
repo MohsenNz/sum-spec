@@ -42,10 +42,11 @@ renderDefinition = \case
         (map renderTransition (NE.toList transitions))
     where
       heading = nameText name <> maybe "" ((" " <>) . renderPattern) input <> " "
-      renderTransition (Transition paths from to) =
+      renderTransition (Transition paths from guard to) =
         ":: "
           <> T.concat [renderShared p <> " => " | p <- paths]
           <> renderSide from
+          <> maybe "" ((" // " <>) . renderGuard) guard
           <> " -> "
           <> renderSide to
       renderSide = T.intercalate " * " . map renderPattern . NE.toList
@@ -53,6 +54,21 @@ renderDefinition = \case
         T.intercalate "." (map nameText (NE.toList names))
           <> maybe "" (\k -> "[" <> nameText k <> "]") key
   DefInit _ p -> "__init :: " <> renderPattern p
+
+-- | A guard with the fewest parentheses its precedence allows: @not@ binds
+-- tighter than @and@, and @and@ tighter than @or@.
+renderGuard :: Guard -> Text
+renderGuard = \case
+  GuardOr operands -> T.intercalate " or " (map renderGuard (NE.toList operands))
+  guard -> renderConjunct guard
+  where
+    renderConjunct = \case
+      GuardAnd operands -> T.intercalate " and " (map renderNegated (NE.toList operands))
+      guard -> renderNegated guard
+    renderNegated = \case
+      GuardNot inner -> "not " <> renderNegated inner
+      GuardPattern p -> renderPattern p
+      guard -> "(" <> renderGuard guard <> ")"
 
 renderTypeExpr :: TypeExpr -> Text
 renderTypeExpr = \case

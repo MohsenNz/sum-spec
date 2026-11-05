@@ -1,0 +1,30 @@
+test/check/error-guards.sumspec:15:27:
+   |
+15 | wider :: Page.Home // not Link.Off -> Page.Plan
+   |                           ^
+a guard describes the same part of the state as the source, so it starts with Page, not Link; to look at a wider part, start the transition with a shared path that holds both, as P => ...
+
+test/check/error-guards.sumspec:16:38:
+   |
+16 | element :: App => Page.Home // Files[i](Kind.Text) -> Page.Plan
+   |                                      ^
+unknown name i; name a value with #i in the input or on the source side
+
+test/check/error-guards.sumspec:17:23:
+   |
+17 | list :: Page.Home // [File] -> Page.Plan
+   |                       ^
+a guard describes a state, not a list type; write the name of the list's type
+
+test/check/error-guards.sumspec:18:32:
+   |
+18 | unknown :: App => Page.Home // Missing -> Page.Plan
+   |                                ^
+Missing is not a factor of App (Page * Link * Files * A)
+
+test/check/error-guards.sumspec:19:39:
+   |
+19 | arguments :: App => Page.Home // Page.Home(A) -> Page.Devices
+   |                                       ^
+Page.Home takes no arguments
+

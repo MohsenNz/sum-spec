@@ -125,7 +125,7 @@ the source and the target, says how a value changes, like an EFSM's
 
     deleteTodo TodoId#id
       :: Screen.WithTodos(Todos#ts)
-      // __remove ts[id]
+      ~> __remove ts[id]
       -> Screen.WithTodos(ToggleAll' * Footer')
 
 - An action works on a named value from the source (`ts`). `ts[id]` is

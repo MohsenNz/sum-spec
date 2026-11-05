@@ -1,0 +1,12 @@
+test/check/warning-guard-overlaps.sumspec:13:6:
+   |
+13 |   :: App => Page.Home // Page.Home -> Page.Devices
+   |      ^
+warning: go: this transition and the one on line 12 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
+
+test/check/warning-guard-overlaps.sumspec:17:6:
+   |
+17 |   :: App => Page.Plan -> Page.Devices
+   |      ^
+warning: leave: this transition and the one on line 16 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
+

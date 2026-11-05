@@ -1,0 +1,17 @@
+-- A guard on a list element sees the element's other parts, and may use a
+-- name the transition binds.
+__atomics { Id }
+__events { stage drop }
+
+__init :: App(Page.Home)
+
+App = Page * Files
+Page = Home | Plan
+Files = [File by Id]
+File = Id * Kind * Flag
+Kind = Text | Binary
+Flag = On | Off
+
+stage Id#p :: Files[p] => Kind.Text // Flag.On -> Kind.Binary
+
+drop Id#p :: App => Page.Home // Files[p](Kind.Text) -> Page.Plan

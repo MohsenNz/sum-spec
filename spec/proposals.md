@@ -147,32 +147,28 @@ Version impact: additive.
 
 Version impact: additive.
 
-v1 guards by equality only: a name used on the source side (`P#x`) must
-equal the named value (see "Named values" in `spec-v1.md`). This extends
-it to a condition over the named values, after `//`. In EFSM terms, a
-transition is `event [guard] / update`. The guard goes right after the
-source side, before `->`: it is a condition on the source and the input,
-not on the target. It covers the whole source side, a shared path
-included:
+Guards on patterns are in v1 (see "Guards" in `spec-v1.md`): a `//`
+condition after the source, built from patterns with `not`, `and` and
+`or`. This adds conditions on values, which is step 3 of the guards plan in
+`TODO.md`. In EFSM terms, a transition is `event [guard] / update`; here
+the guard may read the values the source and the input name:
 
     telemetryLostEvent Seconds#a :: Feed.Live // a >= 3 -> Feed.Stale
-
-A long source puts the guard on its own line, still before `->`.
 
 It builds on "Operations on primitive types": the checker needs typed
 literals and known operations to check `a >= 3`.
 
-A guard is a predicate, not a `Bool` value. `&&`, `||` and `!` combine
-predicates, and a `Bool` member is tested by pattern (`flag matches True`),
-so `Bool` stays an ordinary sum (see "Prelude").
+A guard stays a predicate, not a `Bool` value. `not`, `and` and `or`
+combine predicates, and a `Bool` member is tested by pattern
+(`flag matches True`), so `Bool` stays an ordinary sum (see "Prelude").
 
-Predicates: comparison (`== != < <= > >=`), `&&`, `||`, `!`, membership
-(`e in ms`), `matches` (does a state match a pattern), literals, and named
+New predicates: comparison (`== != < <= > >=`), membership (`e in ms`),
+`matches` (does a named value match a pattern), literals, and named
 constants such as `BatteryLowThreshold`. Open: arithmetic, calls like
 `further(p, b)`, and whether guards share the predicate language of the
-dependent type above.
+dependent type below.
 
-Checker rules:
+Checker rules, in addition to those of v1:
 
 - every name in a guard is bound by `#x` in the input or on the source
   side; a name bound only on the target side (it sets a value, see
@@ -180,22 +176,18 @@ Checker rules:
   is evaluated
 - both sides of a comparison have the same type; ordering needs a numeric
   type
-- two transitions of one event from the same source have disjoint
-  guards, or the checker warns (like the dead transition warning)
 
 What it would replace in a real spec (`temp.sumspec`, Parvaz Agro), where
-data conditions are encoded as enum states, `@unless` or `@after`:
+data conditions are encoded as enum states or `@after`:
 
     -- a derived enum becomes a threshold; the sticky latch stays a state
     batteryLowEvent ... Feed.Live * BatteryCharge#c
       // c <= BatteryLowThreshold
       -> ...
 
-    -- one guard in place of the `@unless` block repeated on startMission,
-    -- resumeMission and retryArming
-    startMission ... AircraftStatus(ArmState.Disarmed * GPSFix#g)
-                     * BatteryCharge#c
-      // g >= Fix3D && c > BatteryLowThreshold
+    -- the thresholds a source cannot say
+    startMission ... AircraftStatus(GPSFix#g) * BatteryCharge#c
+      // g >= Fix3D and c > BatteryLowThreshold
       -> ...
 
     -- `@after TelemetryAge 60` becomes part of the transition
@@ -214,7 +206,7 @@ data conditions are encoded as enum states, `@unless` or `@after`:
       -> ...
 
     saveDevice ... DeviceForm(LinkKind#k * Host#h)
-      // k != Tcp || h != Unset
+      // k != Tcp or h != Unset
       -> ...
 
 Gains: fewer copies of a transition (`linkLossEvent` has five), fewer
@@ -226,7 +218,8 @@ control disabled.
 ### From `@unless`
 
 `@unless P` means "available only while the state does not match `P`",
-which is the guard `!(s matches P)`. Three cases:
+which is the guard `not P`, with `P` written from the root type. Three
+cases:
 
 - A single path on a sum is the complementary variants, as a plain
   positive pattern on the source. No guard is needed, and this is the
@@ -237,7 +230,7 @@ which is the guard `!(s matches P)`. Three cases:
       @unless ...BatteryReserve.Low          =>  BatteryReserve.Enough
       @unless ...GPSFix(NoFix | Fix2D)       =>  GPSFix(Fix3D | DGPS | RTKFix)
 
-  So a data guard is not needed where a variant pattern says it:
+  So a guard is not needed where a variant pattern says it:
 
       goToAircraft
         :: App
@@ -245,20 +238,17 @@ which is the guard `!(s matches P)`. Three cases:
         -> Page.Plan(PMode.ManualAircraft)
 
 - Several `@unless` lines are an AND: each forbids one thing, so the
-  transition needs all of them false (`!a && !b`), or all the positive
-  patterns at once. The six lines of `startMission` collapse into its
-  source.
-- A compound `@unless (X * Y)` is `!(X && Y)`, which is `!X || !Y`. A
-  source pattern cannot say "or" across two parts of the state, so it
-  needs a guard, or two transitions:
+  transition needs all of them false (`not a and not b`), or all the
+  positive patterns at once. The six lines of `startMission` collapse
+  into its source.
+- A compound `@unless (X * Y)` is `not (X and Y)`, which is
+  `not X or not Y`. A source pattern cannot say "or" across two parts of
+  the state, so it needs a guard, or two transitions:
 
-      pagePlanBackToHome :: App#app => Page.Plan
-        // !(app matches Page.Plan(PMode.ManualAircraft)
-              * AircraftLink.Connected(...ArmState.Armed))
+      pagePlanBackToHome :: App => Page.Plan
+        // not ( Page.Plan(PMode.ManualAircraft)
+               and AircraftLink.Connected(Aircraft(AircraftStatus(ArmState.Armed))) )
         -> Page.Home
-
-  `!matches` is not a separate operator: it is `!` applied to `matches`.
-  There is no `__`-prefixed operator, since `__` marks header blocks.
 
 The "reason" text is lost in the conversion: a guard only blocks. So
 `@unless` stays where the UI must say why a control is disabled; the

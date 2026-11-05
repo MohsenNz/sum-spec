@@ -1,0 +1,20 @@
+-- Guards: a condition on the part of the state the source describes.
+__atomics { A }
+__events { go back stop }
+
+__init :: App(Page.Home)
+
+App = Page * Link
+Page = Home | Plan Mode | Devices
+Mode = Map | Plot
+Link = Off | On Quality
+Quality = Good | Bad
+
+go
+  :: App => Page.Home // not Link.Off -> Page.Plan
+
+back
+  :: App => Page.Plan // Link.On and not Page.Plan(Mode.Plot) -> Page.Home
+  :: App => Page.Plan // Link.Off or Link.On(Quality.Bad) -> Page.Devices
+
+stop :: Page.Home // not (Page.Plan or Page.Devices and Page.Home) -> Page.Devices

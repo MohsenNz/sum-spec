@@ -1,0 +1,10 @@
+-- A guard needs a condition after //.
+__atomics { A }
+__events { go }
+
+__init :: App
+
+App = Page * A
+Page = Home | Plan
+
+go :: Page.Home // -> Page.Plan

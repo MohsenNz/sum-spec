@@ -1,0 +1,19 @@
+-- Guards that break the rules.
+__atomics { A }
+__events { wider element list unknown arguments }
+
+__init :: App(Page.Home)
+
+App = Page * Link * Files * A
+Page = Home | Plan | Devices
+Link = Off | On
+Files = [File by Id]
+File = Id * Kind
+Id = A
+Kind = Text | Binary
+
+wider :: Page.Home // not Link.Off -> Page.Plan
+element :: App => Page.Home // Files[i](Kind.Text) -> Page.Plan
+list :: Page.Home // [File] -> Page.Plan
+unknown :: App => Page.Home // Missing -> Page.Plan
+arguments :: App => Page.Home // Page.Home(A) -> Page.Devices

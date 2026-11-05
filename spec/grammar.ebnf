@@ -101,8 +101,26 @@ event_def     = LOWER , [ input ] , transition , { transition } ;
    A shared path and a pattern start alike (path, element_key); the
    "=>" after it tells them apart.                                      *)
 transition    = "::" , ( shared , "=>" , { shared , "=>" } , arguments ,
-                         "->" , arguments
-                       | pattern , "->" , pattern ) ;
+                         [ guard ] , "->" , arguments
+                       | pattern , [ guard ] , "->" , pattern ) ;
+
+(* A guard is a condition on the current state, after the source and
+   before "->": the transition applies only while it holds (see "Guards"
+   in spec-v1.md). It is read where the source is: after "P =>", its
+   patterns are arguments of the innermost shared path, like the source's.
+   Its words are words only here, like "by":
+     back :: App => Page.Plan // not Link.Off -> Page.Home
+   "not" binds tighter than "and", and "and" tighter than "or". *)
+guard         = "//" , predicate ;
+
+predicate     = conjunction , { "or" , conjunction } ;
+
+conjunction   = negation , { "and" , negation } ;
+
+negation      = "not"
+              , negation
+              | "(" , predicate , ")"
+              | type_pattern ;
 
 shared        = path , [ element_key ] ;
 
@@ -231,6 +249,12 @@ character     = ? any Unicode character ? ;
    - the source and target of a transition are headed by the same type
      (an element path L[x] by its list type L). See "Arguments in state
      patterns" in spec-v1.md;
+   - a pattern in a guard is checked as if it were written in the source,
+     with the shared paths around it: it describes the same type as the
+     source, so with no shared path it is headed by the source's type. It
+     binds no value (the grammar has no naming, prime or lowercase name
+     there), may use a name the transition binds, and is not a list. See
+     "Guards" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
      the target side, outside a new state (a variant the source doesn't
      fix, as Plan in Page -> Page.Plan(PMode')). See "Source and target"
@@ -267,6 +291,8 @@ character     = ? any Unicode character ? ;
    - a transition that can never happen: its source writes a variant
      that is never reached, or its type is one no state holds;
    - two transitions of one event, on the same type, whose sources can
-     match the same state (no part of them picks different variants).
+     match the same state (no part of them picks different variants) and
+     whose guards can hold in the same state (a guard is compared by the
+     variants it requires and forbids).
 
    Not in v1 (see proposals.md): "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

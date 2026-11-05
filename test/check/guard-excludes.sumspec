@@ -1,0 +1,18 @@
+-- Guards that exclude each other: no overlap warning.
+__atomics { A }
+__events { go leave }
+
+__init :: App(Page.Home)
+
+App = Page * Link * A
+Page = Home | Plan | Devices
+Link = Off | On
+
+go
+  :: App => Page.Home // Link.On -> Page.Plan
+  :: App => Page.Home // not Link.On -> Page.Devices
+
+leave
+  :: App => Page.Plan // Link.On and Page.Plan -> Page.Home
+  :: App => Page.Plan // Link.Off -> Page.Devices
+  :: App => Page.Plan // not (Link.On or Link.Off) -> Page.Home

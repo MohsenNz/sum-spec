@@ -56,13 +56,14 @@ checkSpec file source spec =
       , checkTypeDefs env typeDefs
       , checkEvents env spec events
       , checkTransitions env transitions
+      , checkGuards env transitions
       , checkListPlaces typeDefs (map snd inits) transitions
       , warnListElements env root transitions
       , warnReachability env typeDefs (map snd (take 1 inits)) transitions
       , warnOverlaps transitions
       , warnSuffixSpaces
           source
-          (inputs <> concat [[from, to] | Flat _ _ from to <- transitions])
+          (inputs <> concat [[from, to] | Flat _ _ from to _ <- transitions])
       ]
   where
     position pos = (unPos (sourceLine pos), unPos (sourceColumn pos))
@@ -258,13 +259,23 @@ newtypeCycle env (TypeDef start _) = go [nameText start] (nameText start)
 
 -- | One transition with its event's name and input (then its source and
 -- target): what most checks look at.
-data Flat = Flat Name (Maybe Pattern) Pattern Pattern
+data Flat = Flat Name (Maybe Pattern) Pattern Pattern (Maybe Guard)
 
 flatten :: Event -> [Flat]
 flatten (Event n input transitions) =
-  [ Flat n input (expand paths from) (expand paths to)
-  | Transition paths from to <- NE.toList transitions
+  [ Flat n input (expand paths from) (expand paths to) (expandGuard paths <$> guard)
+  | Transition paths from guard to <- NE.toList transitions
   ]
+
+-- | A guard reads where the source's arguments go, so each pattern in it
+-- gets the shared paths around it, as the source does: after @App =>@,
+-- @Link.Off@ is @App(Link.Off)@.
+expandGuard :: [Shared] -> Guard -> Guard
+expandGuard paths = \case
+  GuardPattern p -> GuardPattern (expand paths (p :| []))
+  GuardNot g -> GuardNot (expandGuard paths g)
+  GuardAnd gs -> GuardAnd (fmap (expandGuard paths) gs)
+  GuardOr gs -> GuardOr (fmap (expandGuard paths) gs)
 
 -- | A side of a transition as one pattern: its shared paths put back
 -- around it (@S1 => S2 => a * b@ is @S1(S2(a * b))@).
@@ -318,7 +329,7 @@ checkEvents env spec events =
 checkTransitions :: Env -> [Flat] -> [CheckError]
 checkTransitions env = concatMap checkTransition
   where
-    checkTransition (Flat _ input from to) =
+    checkTransition (Flat _ input from to _) =
       checkPrimes Source from
         <> checkPrimes Target to
         <> checkNamings input from to
@@ -494,7 +505,7 @@ checkListPlaces defs inits transitions =
     <> concatMap patternLists inits
     <> concat
       [ concatMap patternLists (maybe [] pure i <> [from, to])
-      | Flat _ i from to <- transitions
+      | Flat _ i from to _ <- transitions
       ]
   where
     report term = errorAt (termName term)
@@ -932,7 +943,7 @@ listPlaces env root =
 warnListElements :: Env -> Maybe Text -> [Flat] -> [CheckError]
 warnListElements env root transitions =
   [ warningAt h (nameText n <> " " <> message)
-  | Flat n _ from _ <- transitions
+  | Flat n _ from _ _ <- transitions
   , PatternPath (h :| _) args <- [bare from]
   , Just message <- [firstJust (map (problem (nameText h) args) (placesOf (nameText h)))]
   ]
@@ -1140,10 +1151,10 @@ reachable env initial transitions = go (reach env Map.empty Nothing AnyValue ini
     go found =
       let found' = found <> foldMap fire [t | t <- transitions, enabled found t]
       in  if found' == found then found else go found'
-    enabled (labels, live) (Flat _ _ from _) =
+    enabled (labels, live) (Flat _ _ from _ _) =
       patternKey from `Set.member` live
         && sourceVariants env from `Set.isSubsetOf` labels
-    fire (Flat _ input from to) =
+    fire (Flat _ input from to _) =
       reach
         env
         (Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from])
@@ -1186,7 +1197,7 @@ warnReachability env defs inits transitions = case inits of
           dead =
             [ warningAt (patternHead from) $
                 nameText n <> ": this transition can never happen: " <> reason
-            | Flat n _ from _ <- transitions
+            | Flat n _ from _ _ <- transitions
             , Just reason <- [whyDead live (sourceVariants env from `Set.difference` found) from]
             ]
         in
@@ -1233,28 +1244,124 @@ warnOverlaps transitions =
         <> ": this transition and the one on line "
         <> lineOf (patternHead earlierFrom)
         <> " can apply to the same state, and which one happens isn't said; "
-        <> "give their sources different variants"
-  | (i, t@(Flat n _ from _)) <- indexed
-  , Just (Flat _ _ earlierFrom _) <- [find (overlaps t) [e | (j, e) <- indexed, j < i]]
+        <> ( if isJust guard || isJust earlierGuard
+               then "make their sources or guards exclude each other"
+               else "give their sources different variants"
+           )
+  | (i, t@(Flat n _ from _ guard)) <- indexed
+  , Just (Flat _ _ earlierFrom _ earlierGuard) <-
+      [find (overlaps t) [e | (j, e) <- indexed, j < i]]
   ]
   where
     indexed = zip [0 :: Int ..] transitions
-    overlaps (Flat n _ from _) (Flat m _ other _) =
+    overlaps (Flat n _ from _ g) (Flat m _ other _ h) =
       nameText n == nameText m
         && patternKey from == patternKey other
         && not (excludes (variantsOf from) (variantsOf other))
-    variantsOf = Set.map (map dropKey) . fixedVariants
+        && guardsMayHold g h
+    variantsOf = positionsOf
+
+-- | The variant positions a pattern writes, with an element's key left out:
+-- two element paths are taken to pick the same element.
+positionsOf :: Pattern -> Set Position
+positionsOf = Set.map (map dropKey) . fixedVariants
+  where
     dropKey segment = T.takeWhile (/= '[') segment
-    -- Two variants at the same place differ: their positions share all
-    -- but the last segment.
-    excludes a b =
-      or
-        [ init pa == init pb && last pa /= last pb
-        | pa <- Set.toList a
-        , pb <- Set.toList b
-        , not (null pa)
-        , not (null pb)
+
+-- | Two sets of variant positions exclude each other when a variant of one
+-- and a variant of the other are at the same place and differ: their
+-- positions share all but the last segment.
+excludes :: Set Position -> Set Position -> Bool
+excludes a b =
+  or
+    [ init pa == init pb && last pa /= last pb
+    | pa <- Set.toList a
+    , pb <- Set.toList b
+    , not (null pa)
+    , not (null pb)
+    ]
+
+-- | A guard in disjunctive form is a list of clauses, one of which must
+-- hold. A clause holds in a state that has all the variants it requires
+-- and matches none of the patterns it forbids (each given by the variants
+-- it fixes).
+data Clause = Clause (Set Position) [Set Position]
+
+guardClauses :: Guard -> [Clause]
+guardClauses = positive
+  where
+    positive = \case
+      GuardPattern p -> [Clause (positionsOf p) []]
+      GuardNot g -> negative g
+      GuardAnd gs -> foldr1 bothClauses (map positive (NE.toList gs))
+      GuardOr gs -> concatMap positive (NE.toList gs)
+    -- The clauses of @not g@, by De Morgan.
+    negative = \case
+      GuardPattern p -> [Clause Set.empty [positionsOf p]]
+      GuardNot g -> positive g
+      GuardAnd gs -> concatMap negative (NE.toList gs)
+      GuardOr gs -> foldr1 bothClauses (map negative (NE.toList gs))
+
+-- | The clauses of @a and b@ from those of @a@ and of @b@.
+bothClauses :: [Clause] -> [Clause] -> [Clause]
+bothClauses xs ys = [Clause (p <> q) (n <> m) | Clause p n <- xs, Clause q m <- ys]
+
+-- | Whether two guards can hold in one state. No guard always holds. Two
+-- clauses can hold together unless the variants they require pick
+-- different variants of one place, or one forbids a pattern whose variants
+-- the other already requires. It does not notice that several forbidden
+-- patterns together can cover every variant of a place, so it may find an
+-- overlap that is not one.
+guardsMayHold :: Maybe Guard -> Maybe Guard -> Bool
+guardsMayHold g h =
+  or
+    [ not (excludes p p) && all (not . (`Set.isSubsetOf` p)) n
+    | Clause p n <- bothClauses (clauses g) (clauses h)
+    ]
+  where
+    clauses = maybe [Clause Set.empty []] guardClauses
+
+-- ---------- Guards ----------
+
+-- | A guard is read where the source is, so each pattern in it (already
+-- expanded with the shared paths, see 'expandGuard') describes the same
+-- part of the state as the source: it is headed by the source's type.
+-- It may use a name the transition binds (an element path @Files[p]@),
+-- but binds none. Apart from that it is checked like any pattern. See
+-- "Guards" in spec-v1.md.
+checkGuards :: Env -> [Flat] -> [CheckError]
+checkGuards env transitions =
+  concat
+    [ concatMap (atom names from) (guardPatterns g)
+    | Flat _ input from _ (Just g) <- transitions
+    , let names = Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from]
+    ]
+  where
+    atom names from = \case
+      PatternList term _ ->
+        [ errorAt (termName term) $
+            "a guard describes a state, not a list type; write the name of the list's type"
         ]
+      p
+        | isKnownType env (patternKey p)
+        , isKnownType env (patternKey from)
+        , patternKey p /= patternKey from ->
+            [ errorAt (patternHead p) $
+                "a guard describes the same part of the state as the source, so it starts with "
+                  <> patternKey from
+                  <> ", not "
+                  <> patternKey p
+                  <> "; to look at a wider part, start the transition with a shared path "
+                  <> "that holds both, as P => ..."
+            ]
+        | otherwise -> checkPattern env names p
+
+guardPatterns :: Guard -> [Pattern]
+guardPatterns = \case
+  GuardPattern p -> [p]
+  GuardNot g -> guardPatterns g
+  GuardAnd gs -> concatMap guardPatterns (NE.toList gs)
+  GuardOr gs -> concatMap guardPatterns (NE.toList gs)
 
 -- ---------- Helpers ----------
 

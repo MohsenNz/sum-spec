@@ -1,0 +1,17 @@
+-- Guards that can both hold, and one transition without a guard.
+__atomics { A }
+__events { go leave }
+
+__init :: App(Page.Home)
+
+App = Page * Link * A
+Page = Home | Plan | Devices
+Link = Off | On
+
+go
+  :: App => Page.Home // Link.On -> Page.Plan
+  :: App => Page.Home // Page.Home -> Page.Devices
+
+leave
+  :: App => Page.Plan // Link.On -> Page.Home
+  :: App => Page.Plan -> Page.Devices

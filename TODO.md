@@ -33,11 +33,10 @@ examples, the golden tests and `CHANGES.md` together.
 - [x] 1. Primitive types: `__int`, `__float`, `__text` as the base of an
       atomic in `__atomics` (`Port = __int`). Types only: the atomic is
       still a leaf. No literals or operations yet.
-- [ ] 2. Guards with pattern predicates only: a `//` clause before `->`;
-      a bare pattern means "the source matches it"; `not`, `and`, `or`;
-      a guard names only values bound on the source side or in the
-      input; warn when guards of one event's transitions overlap.
-      Needs no primitives.
+- [x] 2. Guards with pattern predicates only: a `//` clause before `->`;
+      read where the source is (after `P =>`, its patterns are arguments
+      of `P`); `not`, `and`, `or`; binds no value; the overlap warning
+      reads guards. Needs no primitives.
 - [ ] 3. Guards with comparisons and literals: `== != < <= > >=`, `in`,
       integer, decimal and string literals typed by `__int`, `__float`
       and `__text`; a newtype inherits its base's operations, so

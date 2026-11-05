@@ -252,6 +252,30 @@ Where a prime may go:
 
 `Missions'` says that a list changed, not how (added, removed, edited).
 
+### Guards
+
+A guard is a condition on the current state, written after the source. The transition applies only while the guard holds:
+
+```
+goToAircraft :: App
+             => Page.Home // not AircraftLink.Disconnected
+             -> Page.Plan(PMode.ManualAircraft)
+```
+
+- A guard starts with `//` and is built from patterns with `not`, `and`, `or` and parentheses. `not` binds tighter than `and`, and `and` tighter than `or`. These are words only here; elsewhere they are ordinary lowercase names.
+- A guard is read where the source is. After a shared path (`App =>`), a pattern in the guard is an argument of the innermost shared path, written like the source's arguments: `not AircraftLink.Disconnected` above is `not App(AircraftLink.Disconnected)`. Without a shared path, a pattern in the guard describes the same type as the source (`Page.Home // not Page.Plan`).
+- So a local transition sees only its own part of the state. To look at a wider part, start the transition with a shared path that holds both: `App => ...`. To look at the other parts of one list element, start it with the element path: `Files[p] => Kind.Text // Flag.On -> Kind.Binary`.
+- A guard is a condition on the source, not the target. It binds no value: no `#x`, no prime and no lowercase name. A pattern in it may use a name the transition binds in its input or source, as an element path does: `drop Id#p :: App => Page.Home // Files[p](Kind.Text) -> Page.Plan`.
+- A condition that is one variant of a sum is often better written in the source as a positive pattern. `not AircraftLink.Disconnected` is the same as `AircraftLink.Connected` there. Use a guard for what a source cannot say: a negation across several parts (`not (A and B)`), or an `or` across them.
+
+```
+-- The second source says the same as the guard in the first.
+a :: App => Page.Home // not Link.Off -> Page.Plan
+b :: App => Page.Home * Link.On -> Page.Plan
+```
+
+Conditions on values (`Count > 0`) are not in this version.
+
 ### Several transitions for one event
 
 An event may apply from more than one state, reaching a different
@@ -531,6 +555,8 @@ press :: App(Mode.Off * Level.Low) -> App(Mode.On)
 ```
 
 The check reads only variants: two sources that differ only in a named value (`Todos[a]`, `Todos[b]`) are taken to overlap.
+
+A guard can separate two transitions whose sources overlap. They do not overlap when their guards can never hold in the same state: one requires a variant and the other forbids it (`// Link.On` and `// not Link.On`), or they require different variants of one part. The check does not notice that several forbidden patterns together can cover every variant of a part, so it may warn about guards that really do exclude each other; write one of them as a positive pattern then.
 
 From `__init`, the type checker finds the variants the app can reach: a transition can happen once every variant its source writes has been reached, and its target then reaches the variants it writes. A part that may have any value (left out of `__init` or of a new state, or primed) reaches every variant inside it. The checker warns about a variant of a type inside the app's state that is never reached, and reports only the outermost one (not `Bolt` inside an unreached `Locked (Bolt | Chain)`). Parts of a source are tested one at a time and names are ignored, so a variant may be counted as reached when the app can't really get there, but never the other way around.
 

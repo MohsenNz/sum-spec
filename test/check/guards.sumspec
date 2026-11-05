@@ -1,0 +1,20 @@
+-- Guards read where the source is: after a shared path they look at its
+-- parts, and without one only at the source's own type.
+__atomics { A }
+__events { go back stop }
+
+__init :: App(Page.Home)
+
+App = Page * Link * A
+Page = Home | Plan Mode | Devices
+Mode = Map | Plot
+Link = Off | On Quality
+Quality = Good | Bad
+
+go :: App => Page.Home // not Link.Off -> Page.Plan
+
+back
+  :: App => Page.Plan // Link.On and not Page.Plan(Mode.Plot) -> Page.Home
+  :: App => Page.Plan // Link.Off -> Page.Devices
+
+stop :: Page.Plan // not Page.Plan(Mode.Plot) -> Page.Home

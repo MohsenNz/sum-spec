@@ -18,6 +18,7 @@ module SumSpec.Syntax
   , TypeTerm (..)
   , Event (..)
   , Transition (..)
+  , Guard (..)
   , Shared (..)
   , Pattern (..)
   , Name (..)
@@ -122,9 +123,23 @@ data Transition = Transition
   , transitionFrom :: NonEmpty Pattern
   -- ^ The source. Without a shared path it is one pattern; after one,
   -- it is the arguments of the innermost shared path.
+  , transitionGuard :: Maybe Guard
+  -- ^ The condition after @//@, before @->@: the transition applies only
+  -- while it holds.
   , transitionTo :: NonEmpty Pattern
   -- ^ The target, written like the source.
   }
+  deriving stock (Eq, Show)
+
+-- | A condition on the current state, built from patterns. An 'And' or an
+-- 'Or' has at least two operands.
+data Guard
+  = -- | The current state matches this pattern. The checker requires it to
+    -- be headed by the root type.
+    GuardPattern Pattern
+  | GuardNot Guard
+  | GuardAnd (NonEmpty Guard)
+  | GuardOr (NonEmpty Guard)
   deriving stock (Eq, Show)
 
 -- | @P =>@ or @L[x] =>@: a path, with an optional element key, that both

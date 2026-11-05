@@ -170,7 +170,37 @@ transition = do
   _ <- symbol "::"
   paths <- many (try (shared <* symbol "=>"))
   let side = if null paths then (:| []) <$> pattern else arguments
-  Transition paths <$> side <*> (symbol "->" *> side)
+  Transition paths <$> side <*> optional guard <*> (symbol "->" *> side)
+
+-- guard = "//" , predicate ;
+guard :: Parser Guard
+guard = symbol "//" *> predicate
+
+-- predicate = conjunction , { "or" , conjunction } ;
+predicate :: Parser Guard
+predicate = operands GuardOr conjunction "or"
+
+-- conjunction = negation , { "and" , negation } ;
+conjunction :: Parser Guard
+conjunction = operands GuardAnd negation "and"
+
+-- negation = "not" , negation | "(" , predicate , ")" | type_pattern ;
+negation :: Parser Guard
+negation =
+  choice
+    [ GuardNot <$> (keyword "not" *> negation)
+    , parens predicate
+    , GuardPattern <$> typePattern
+    ]
+
+-- One operand, or two or more joined by a word, as one guard.
+operands :: (NonEmpty Guard -> Guard) -> Parser Guard -> Text -> Parser Guard
+operands join operand word = do
+  first <- operand
+  rest <- many (keyword word *> operand)
+  pure $ case rest of
+    [] -> first
+    _ -> join (first :| rest)
 
 -- shared = path , [ element_key ] ;
 shared :: Parser Shared

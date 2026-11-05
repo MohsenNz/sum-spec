@@ -1,0 +1,6 @@
+test/parse/error-guard-dangling-not.sumspec:10:24:
+   |
+10 | go :: Page.Home // not -> Page.Plan
+   |                        ^^^
+unexpected "-> "
+expecting "not", '(', '[', or type or variant name
