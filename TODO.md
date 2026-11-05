@@ -41,7 +41,7 @@ examples, the golden tests and `CHANGES.md` together.
       names, integer, decimal and string literals, and variants of sums
       without payloads (ordered by declaration); a newtype inherits its
       base's operations, so `Meters` and `Seconds` still don't compare.
-      `in`, `matches` and named constants moved to "Later".
+      `in` and named constants moved to "Later".
 - [ ] 4. (Optional, later) Prelude: an embedded `.sumspec` with
       `Bool = True | False`, `Int = __int`, `Float = __float` and
       `Text = __text`; a definition of the same name in the user's spec
@@ -60,6 +60,7 @@ update before any code:
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
 - [ ] Several events with one transition (`g, h :: Y -> Z`).
 - [ ] `<-` shorthand.
-- [ ] In guards: `in` (membership of a named list's element),
-      `matches` (a named value against a pattern), named constants
-      (`BatteryLowThreshold`, which need `@default`), arithmetic.
+- [ ] Named constants (`BatteryLowThreshold = BatteryCharge(15)`, a
+      value in a definition, no annotation; see `spec/proposals.md`).
+- [ ] Membership in guards (`i in ids`; see `spec/proposals.md`).
+- [ ] Arithmetic in guards.

@@ -107,6 +107,102 @@ inside the range. Today these are opaque tokens. `Percent` (`0..100`) and
 `Degrees` (`0..360`) would be `__float` newtypes with a `@range` instead
 of atomics with a comment.
 
+## Named constants
+
+Version impact: additive.
+
+A named constant is a fixed value with a name, defined once and used in a
+guard in place of a literal. The value is written in the definition, with
+the type it has:
+
+    BatteryLowThreshold = BatteryCharge(15)
+    MinimumFix          = GPSFix.Fix3D
+
+    batteryLow ... BatteryCharge#c // c <= BatteryLowThreshold -> ...
+    start      ... GPSFix#g        // g >= MinimumFix         -> ...
+
+Why: a threshold written in five guards changes in one place; the name says
+what the number is (`BatteryLowThreshold`, not `15`); and the constant has a
+type, so `c <= BatteryLowThreshold` needs `c` to be a `BatteryCharge`, as a
+literal's unit is not.
+
+It needs no annotation. The draft `temp.sumspec` gives the value with
+`@default 15`, which mixes "starts as" (an initial value) with "is always".
+Here `@default` stays documentation, and a value is a definition:
+
+- **The body** of a definition is a value: a type name with one literal in
+  parentheses (`BatteryCharge(15)`, `Name("main")`), or a variant of a sum
+  without payloads (`GPSFix.Fix3D`). Today a body is a type, and `T = A(1)`
+  and `T = A.B` are syntax errors, so no spec changes meaning.
+- **The type of a constant** is the type it names. The literal is checked
+  like a literal in a comparison: `15` fits a `__float` or an `__int`, a
+  decimal only a `__float`, a string only a `__text`.
+- **A constant is a value, not a type.** It is a side of a comparison
+  (a single uppercase name where a variant path goes), and nowhere else:
+  not a factor of a product, not a payload, not the head of a pattern. The
+  checker rejects those uses, so the app cannot hold a constant as state.
+- Names are shared with types: a constant and a type can't have the same
+  name.
+
+Open:
+
+- **Literal patterns.** `BatteryCharge(15)` is also a natural pattern for
+  "the value is 15", usable in a source (`Count(0)`) or in `__init`, where a
+  part's starting value is left open today. A constant is then a named
+  pattern. Left for later.
+- **Constants of constants**, `Low = BatteryLowThreshold`, and arithmetic on
+  them.
+
+## Membership in guards
+
+Version impact: additive.
+
+`x in ys` holds when the value `x` is an element of the list value `ys`.
+It is a condition like a comparison, and `not`, `and`, `or` combine it with
+the others. `in` is a word only in a guard, like `not`.
+
+    Ids = [Id]
+
+    select   Id#i :: App => Ids#ids // not (i in ids) -> Ids'
+    unselect Id#i :: App => Ids#ids // i in ids       -> Ids'
+
+Both sides are values the transition binds (`Id#i` in the input, `Ids#ids`
+on the source side), so a guard still binds nothing.
+
+Rules:
+
+- The right side is a name whose type is a list type (`Ids = [Id]`,
+  `Todos = [Todo by TodoId]`).
+- The left side is a name of the list's element type, or a literal that
+  fits it. The element type is one that `==` compares: a number, text, an
+  enumeration or an atomic.
+- For a keyed list, `[T by K]`, the left side has the key type `K`, and
+  `k in ts` holds when an element has that key. A source can already say
+  that an element exists (`Todos[k]`, see "Element paths" in
+  `spec-v1.md`); `not (k in ts)` says that it does not, which a pattern
+  cannot.
+- A list of products has no whole-element value to compare with. Key it by
+  the part that identifies an element (`EdgeMargins = [EdgeMargin by
+  Edge]`), and `e in ms` tests the key.
+
+What it would replace in a real spec (`temp.sumspec`, Parvaz Agro), where a
+comment now only admits it ("disabled for an edge with no EdgeMargin; spec
+cannot say it"):
+
+    edgeMarginReset ... EdgePick.Selected(Edge#e) * EdgeMargins#ms
+      // e in ms
+      -> ...
+
+Open:
+
+- The overlap warning: the checker should take the same `x in ys` as true in
+  one guard and false in the other (`i in ids` and `not (i in ids)`) to
+  exclude each other. Any other membership may hold.
+- Whether the left side may be a literal, and a form for "some element
+  satisfies a comparison", which this does not give.
+- Whether a list value can be named at all where it sits inside a list of
+  lists.
+
 ## Prelude
 
 Version impact: additive.
@@ -140,24 +236,12 @@ Version impact: additive.
 Guards on patterns and comparisons of values are in v1 (see "Guards" and
 "Comparing values" in `spec-v1.md`). What is left:
 
-- **Membership**, `e in ms`: a named value is an element of a named list
-  value. It needs the element type of a list value, and a rule for what is
-  compared when the list holds products (`EdgeMargins` holds `Edge *
-  EdgeInset`, and `Edge` is only a part of an element).
-
-      edgeMarginReset ... EdgePick.Selected(Edge#e) * EdgeMargins#ms
-        // e in ms
-        -> ...
-
-- **`matches`**, `x matches P`: does a named value match a pattern. A
-  source pattern already says it for the part it names, so it is only
-  needed to test a value after it has been named elsewhere.
-- **Named constants**, such as `BatteryLowThreshold`: a type holding a
-  value by `@default`, usable as a side of a comparison. It needs
-  annotations.
+- **Membership**, `x in ys`: see "Membership in guards" above.
+- **Named constants**, such as `BatteryLowThreshold`: see "Named constants"
+  above.
 - **Arithmetic and calls**, such as `a + 1` or `further(p, b)`, and
   whether guards share the predicate language of the dependent type
-  below.
+  above.
 - Whether a failed guard also shows the control disabled. `@unless` stays
   for the UI ("disabled, with a reason"); a guard is part of the
   transition's meaning.
