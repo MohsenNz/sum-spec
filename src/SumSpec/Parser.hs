@@ -57,14 +57,25 @@ versionHeader = do
       | otherwise = renderVersion defaultVersion <> " to " <> renderVersion latestVersion
 
 -- headers = atomics_block , events_block | events_block , atomics_block ;
-headers :: Parser ([Name], [Name])
+headers :: Parser ([Atomic], [Name])
 headers = atomicsFirst <|> eventsFirst
   where
     atomicsFirst = (,) <$> atomicsBlock <*> eventsBlock
     eventsFirst = flip (,) <$> eventsBlock <*> atomicsBlock
 
-atomicsBlock :: Parser [Name]
-atomicsBlock = symbol "__atomics" *> braces (many upperName)
+-- atomics_block = "__atomics" , "{" , { atomic } , "}" ;
+atomicsBlock :: Parser [Atomic]
+atomicsBlock = symbol "__atomics" *> braces (many atomic)
+
+-- atomic = UPPER , [ "=" , primitive ] ;
+atomic :: Parser Atomic
+atomic = Atomic <$> upperName <*> optional (equals *> primitive)
+
+-- primitive = "__int" | "__float" | "__text" ;
+primitive :: Parser Primitive
+primitive =
+  choice [p <$ keyword (primitiveWord p) | p <- [minBound .. maxBound]]
+    <?> "a primitive type (__int, __float or __text)"
 
 eventsBlock :: Parser [Name]
 eventsBlock = symbol "__events" *> braces (many lowerName)

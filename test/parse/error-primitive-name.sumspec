@@ -1,0 +1,9 @@
+-- Only __int, __float and __text are primitives.
+__atomics { A  Port = __integer }
+__events { go }
+
+__init :: App
+
+App = Port * A
+
+go :: A -> A

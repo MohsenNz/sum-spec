@@ -16,7 +16,17 @@ version_header = "__version" , VERSION ;
 headers       = atomics_block , events_block
               | events_block , atomics_block ;
 
-atomics_block = "__atomics" , "{" , { UPPER } , "}" ;
+atomics_block = "__atomics" , "{" , { atomic } , "}" ;
+
+(* An atomic is a type with no members. Bare, it is opaque: each target
+   supplies it. With a base it is a number or text of a known kind. Either
+   way it is a leaf (it takes no arguments), and it takes no annotations:
+   a type that needs more is a newtype of it.
+     __atomics { Timestamp  Port = __int  Ratio = __float  Name = __text } *)
+atomic        = UPPER , [ "=" , primitive ] ;
+
+primitive     = "__int" | "__float" | "__text" ;
+
 events_block  = "__events" , "{" , { LOWER } , "}" ;
 
 definition    = init_state

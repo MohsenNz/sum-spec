@@ -116,7 +116,7 @@ data Env = Env
 mkEnv :: Spec -> [TypeDef] -> Env
 mkEnv spec defs =
   Env
-    { envAtomics = Set.fromList (map nameText (specAtomics spec))
+    { envAtomics = Set.fromList (map (nameText . atomicName) (specAtomics spec))
     , envTypes =
         Map.fromListWith
           (\_ first -> first)
@@ -132,7 +132,7 @@ isKnownType env name =
 checkHeaders :: Spec -> [CheckError]
 checkHeaders spec =
   [ errorAt n (nameText n <> " is listed twice in __atomics")
-  | (n, _) <- repeats nameText (specAtomics spec)
+  | (n, _) <- repeats nameText (map atomicName (specAtomics spec))
   ]
     <> [ errorAt n (nameText n <> " is listed twice in __events")
        | (n, _) <- repeats nameText (specEvents spec)

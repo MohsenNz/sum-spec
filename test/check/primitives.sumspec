@@ -1,0 +1,19 @@
+-- An atomic with a base is a leaf: an event input, a key, a factor, and
+-- the base of a newtype.
+__atomics {
+  Stamp
+  Port = __int
+  Id = __int
+  Name = __text
+}
+__events { open rename }
+
+__init :: App
+
+App = Port * Names
+Count = Port
+Entry = Id * Name
+Names = [Entry by Id]
+
+open Port :: App -> App
+rename Id#i :: App => Names[i] -> Names[i]

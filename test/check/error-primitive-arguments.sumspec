@@ -1,0 +1,9 @@
+-- An atomic with a base takes no arguments.
+__atomics { A  Port = __int }
+__events { go }
+
+__init :: App
+
+App = Port * A
+
+go :: Port(A) -> Port

@@ -1,0 +1,6 @@
+test/parse/error-primitive-name.sumspec:2:23:
+  |
+2 | __atomics { A  Port = __integer }
+  |                       ^^^^^^^
+unexpected "__integ"
+expecting a primitive type (__int, __float or __text)

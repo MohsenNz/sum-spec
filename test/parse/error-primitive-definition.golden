@@ -1,0 +1,6 @@
+test/parse/error-primitive-definition.sumspec:8:8:
+  |
+8 | Port = __int
+  |        ^
+unexpected '_'
+expecting '[' or type or variant name

@@ -121,6 +121,23 @@ T  = At * Timestamp
 
 Loop is not allowed (`A = B`, `B = A` is invalid).
 
+### Primitive types
+
+`__int`, `__float` and `__text` are the built-in base types: a whole number, a number that may have a fractional part, and a piece of text. A type gets one as its base in `__atomics`:
+
+```
+__atomics {
+  Timestamp         -- opaque: each target supplies it
+  Port  = __int
+  Ratio = __float
+  Name  = __text
+}
+```
+
+- Each atomic is its own type: `Port = __int` and `Count = __int` are different types.
+- A primitive says what kind of value a type holds. The target picks the representation (a `__float` may be a double or a decimal). Literals and the operations on these values come with guards.
+- A bare atomic (`Timestamp`) has no base: the notation does not decompose it, and each target supplies it.
+
 ### Inline payloads and paths
 
 A variant's payload may be an inline product or an inline sum, nested to any depth:

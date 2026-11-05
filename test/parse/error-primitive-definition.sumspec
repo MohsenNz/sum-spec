@@ -1,0 +1,10 @@
+-- A primitive is only the base of an atomic, not a definition.
+__atomics { A }
+__events { go }
+
+__init :: App
+
+App = Port * A
+Port = __int
+
+go :: A -> A

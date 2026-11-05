@@ -14,8 +14,8 @@
 __version 1.0
 
 __atomics {
-  Text
-  Count
+  Text = __text  -- what the user types
+  Count = __int  -- how many todos
   TodoId
 }
 

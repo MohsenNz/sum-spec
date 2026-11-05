@@ -1,0 +1,19 @@
+-- The three primitive types, as the base of an atomic.
+__atomics {
+  Stamp
+  Port = __int
+  Ratio = __float
+  Id = __int
+  Name = __text
+}
+__events { open set }
+
+__init :: App
+
+App = Port * Ratio * Name * Items
+Count = Port
+Item = Id * Name
+Items = [Item by Id]
+
+open :: App -> App
+set Port :: App -> App

@@ -1,3 +1,6 @@
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | The abstract syntax of SumSpec v1 (see spec/grammar.ebnf).
 --
 -- The AST is what the parser produces and the type checker consumes.
@@ -8,6 +11,9 @@ module SumSpec.Syntax
   , Definition (..)
   , TypeDef (..)
   , TypeExpr (..)
+  , Atomic (..)
+  , Primitive (..)
+  , primitiveWord
   , Variant (..)
   , TypeTerm (..)
   , Event (..)
@@ -28,8 +34,8 @@ data Spec = Spec
   { specVersion :: Maybe LanguageVersion
   -- ^ The version in @__version 1.0@; 'Nothing' without a header, which
   -- means 'SumSpec.Version.defaultVersion'.
-  , specAtomics :: [Name]
-  -- ^ Names declared in @__atomics { ... }@.
+  , specAtomics :: [Atomic]
+  -- ^ Types declared in @__atomics { ... }@.
   , specEvents :: [Name]
   -- ^ Names declared in @__events { ... }@.
   , specDefinitions :: [Definition]
@@ -60,6 +66,26 @@ data TypeExpr
   | -- | A single term: a newtype (@T = A@) or a list (@T = [A]@).
     TypeTerm TypeTerm
   deriving stock (Eq, Show)
+
+-- | A type declared in @__atomics@: a leaf with no members. @Port = __int@
+-- gives it a base, the kind of value it holds; a bare name is opaque and
+-- each target supplies it.
+data Atomic = Atomic
+  { atomicName :: Name
+  , atomicBase :: Maybe Primitive
+  }
+  deriving stock (Eq, Show)
+
+-- | The built-in base types, written @__int@, @__float@ and @__text@.
+data Primitive = PrimInt | PrimFloat | PrimText
+  deriving stock (Bounded, Enum, Eq, Show)
+
+-- | How a primitive is written in a spec.
+primitiveWord :: Primitive -> Text
+primitiveWord = \case
+  PrimInt -> "__int"
+  PrimFloat -> "__float"
+  PrimText -> "__text"
 
 -- | @V@ or @V payload@. A payload written in parentheses is any type
 -- expression; a bare payload is a 'TypeTerm'.

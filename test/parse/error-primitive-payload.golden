@@ -1,0 +1,6 @@
+test/parse/error-primitive-payload.sumspec:8:21:
+  |
+8 | Page = Home | Pick (__int)
+  |                     ^
+unexpected '_'
+expecting '[' or type or variant name

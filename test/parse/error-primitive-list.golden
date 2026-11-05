@@ -1,0 +1,6 @@
+test/parse/error-primitive-list.sumspec:8:9:
+  |
+8 | Many = [__int]
+  |         ^
+unexpected '_'
+expecting '[' or type or variant name

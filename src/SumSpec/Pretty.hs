@@ -19,14 +19,18 @@ renderSpec :: Spec -> Text
 renderSpec (Spec version atomics events defs) =
   T.unlines $
     maybe [] (\v -> ["__version " <> T.pack (renderVersion v), ""]) version
-      <> block "__atomics" atomics
+      <> block "__atomics" (map renderAtomic atomics)
       <> [""]
-      <> block "__events" events
+      <> block "__events" (map nameText events)
       <> [""]
       <> map renderDefinition defs
   where
     block keyword names =
-      [keyword <> " {"] <> map (("  " <>) . nameText) names <> ["}"]
+      [keyword <> " {"] <> map ("  " <>) names <> ["}"]
+
+renderAtomic :: Atomic -> Text
+renderAtomic (Atomic name base) =
+  nameText name <> maybe "" ((" = " <>) . primitiveWord) base
 
 renderDefinition :: Definition -> Text
 renderDefinition = \case

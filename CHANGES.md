@@ -10,6 +10,14 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- Primitive types: `__int`, `__float` and `__text` are the built-in base
+  types. An atomic gets one as its base in `__atomics`
+  (`Port = __int`, `Name = __text`); a bare atomic (`Timestamp`) stays
+  opaque. It is still a leaf: it takes no arguments, and can be an
+  event's input or a list's key type. A primitive is written only there,
+  and an atomic takes no annotations (a type that needs more is a newtype
+  of it). Literals and operations come with guards. `example/todomvc`
+  gives `Count` and `Text` a base this way.
 - Shared path: `=>` writes a path both sides of a transition share
   once, `Files[p] => FileState.Staged -> FileState.Modified` for
   `Files[p](FileState.Staged) -> Files[p](FileState.Modified)`. A

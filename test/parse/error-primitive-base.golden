@@ -1,0 +1,6 @@
+test/parse/error-primitive-base.sumspec:2:23:
+  |
+2 | __atomics { A  Port = A }
+  |                       ^^^^
+unexpected "A }<newline>__e"
+expecting a primitive type (__int, __float or __text)

@@ -1,0 +1,10 @@
+-- A primitive is not a list element.
+__atomics { A }
+__events { go }
+
+__init :: App
+
+App = Many * A
+Many = [__int]
+
+go :: A -> A

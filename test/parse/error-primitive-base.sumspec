@@ -1,0 +1,9 @@
+-- The base of an atomic is a primitive, not another type.
+__atomics { A  Port = A }
+__events { go }
+
+__init :: App
+
+App = Port * A
+
+go :: A -> A

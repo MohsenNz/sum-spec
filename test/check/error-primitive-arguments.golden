@@ -1,0 +1,6 @@
+test/check/error-primitive-arguments.sumspec:9:7:
+  |
+9 | go :: Port(A) -> Port
+  |       ^
+Port takes no arguments
+
