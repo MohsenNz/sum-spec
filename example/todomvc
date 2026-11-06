@@ -10,6 +10,9 @@
 -- list holds. An event on one todo takes a TodoId, and picks the todo
 -- with an element path, written once for both sides with =>
 -- (Todos[id] => Completion.Active -> Completion.Completed).
+--
+-- A guard (// ...) restricts a transition by a condition on the state.
+-- Here, a todo with an empty title is not added.
 
 __version 1.0
 
@@ -92,11 +95,13 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
 
 addTodo
   :: App
-  => Screen.NoTodos * NewTodo.Typing
+  => Screen.NoTodos * NewTodo.Typing(Text#t)
+  // t != ""
   -> Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank
 
   :: App
-  => Screen.WithTodos * NewTodo.Typing
+  => Screen.WithTodos * NewTodo.Typing(Text#t)
+  // t != ""
   -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank
 
 toggleTodo TodoId#id 
