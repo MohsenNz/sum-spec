@@ -1706,6 +1706,7 @@ checkGuards :: Env -> [Flat] -> [CheckError]
 checkGuards env transitions =
   concat
     [ concatMap (atom names from) (guardPatterns g)
+        <> concatMap (checkPrimes Source) (guardPatterns g)
         <> [ errorAt n $
                "a guard binds no value, so #"
                  <> nameText n

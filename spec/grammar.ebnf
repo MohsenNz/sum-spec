@@ -298,9 +298,9 @@ character     = ? any Unicode character ? ;
      with the shared paths around it: it describes the same type as the
      source, so with no shared path it is headed by the source's type. It
      binds no value (the grammar has no naming, prime or lowercase name
-     at its top, and a naming in its arguments is an error), may use a
-     name the transition binds, and is not a list. See "Guards" in
-     spec-v1.md;
+     at its top, and a naming or a prime in its arguments is an error),
+     may use a name the transition binds, and is not a list. See "Guards"
+     in spec-v1.md;
    - a comparison has two sides of one type, or a value and a literal or
      variant that fits it. A name is a value the transition binds, and
      its type resolves through newtypes to an atomic with a base

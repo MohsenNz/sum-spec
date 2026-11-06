@@ -34,3 +34,9 @@ test/check/error-guards.sumspec:20:49:
    |                                                 ^
 a guard binds no value, so #k names nothing; name the value in the input or on the source side
 
+test/check/error-guards.sumspec:21:49:
+   |
+21 | primed Id#i :: App => Page.Home // Files[i](Kind') -> Page.Plan
+   |                                                 ^
+a prime (') marks a new value, so it can only be on the target side
+
