@@ -60,10 +60,10 @@ Rules:
 
 Open, after 3: effects outside the transition's type. `toggleTodo`
 changes a `Completion`, but `ItemsLeft` and `ToggleAll` must change too,
-and a local transition can't reach them. Preferred: declare them as
-derived values (see 3), so no transition updates them. Otherwise, a
-transition that changes parts outside its type is written from an
-ancestor that holds them.
+and a local transition can't reach them. Derived values (see 3) were
+the preferred answer but were replaced; now a transition that changes
+parts outside its type is written from an ancestor that holds them, and
+sets them with a literal or an arithmetic expression (gap 7).
 
 ## 2. Guards on data
 
@@ -85,7 +85,8 @@ To decide:
 ## 3. Updates say what changes, not how
 
 Status: Part A (named values) decided (see "Named values" in
-`spec-v1.md`); Parts B and C open.
+`spec-v1.md`); Part B replaced by arithmetic in targets (see gap 7);
+Part C open.
 
 `Todos'` says the todos get a new value. It doesn't say a todo was added,
 removed or edited, or how `ItemsLeft'` relates to `Todos'`. An EFSM's
@@ -107,8 +108,12 @@ or on the source side; `x` uses it. On the source side a name is an
 equality guard, on the target side it sets the value. Newtypes are
 strict: `EditText(Text#e)` then `Title(e)`.
 
-**Part B, derived values (open).** A part computed from others, which
-transitions read but never write:
+**Part B, derived values (replaced).** Replaced by arithmetic in targets
+(`Count(c + 1)`, see gap 7 and `literal-patterns.md`, question 13): a
+change is written in the transition where it happens, not in the type
+definition. The text below is kept as the design that was not chosen.
+
+A part computed from others, which transitions read but never write:
 
     ItemsLeft = Count := count Todos where Todo(Completion.Active)
     ToggleAll = NotAllDone | AllDone
@@ -145,13 +150,10 @@ the source and the target, says how a value changes, like an EFSM's
 
 The action doesn't make the second transition of `deleteTodo` (to
 `Screen.NoTodos` when the last todo goes) or `ToggleAll'` and `Footer'`
-go away; those follow from the list through derived values (Part B).
+go away; with Part B replaced, the transition writes them (gap 7).
 
-Open questions for B and C:
+Open questions for C (the questions about derivations went with Part B):
 
-- Derivations on the type definition, or in a `__derived { }` block; the
-  keywords (`:=`, `if`, `else`, `are`, `where`).
-- How a derivation finds its sources (the nearest product holding both).
 - Fresh keys: with a keyed list (`Todos = [Todo by TodoId]`),
   the key belongs to the list, so `__add` can make it. To decide:
   whether the new key can be named, for a target that uses it.
@@ -245,7 +247,8 @@ Still open:
 
 ## 7. Values inside a new state
 
-Status: open.
+Status: decided in part (see `literal-patterns.md`, questions 5 and 13);
+not in v1 yet.
 
 Inside a new state, a part that's left out may have any value:
 
@@ -254,11 +257,25 @@ Inside a new state, a part that's left out may have any value:
 `Missions` may be anything here. An EFSM assigns every variable on every
 transition.
 
-To decide:
+Decision:
 
-- Whether a new state must give every part (a variant, a primed part, or
-  a default), or whether "any value" stays and is written explicitly.
-- Whether types can declare a default value (empty list, a variant)
-  used when a new state leaves a part out. This ties in with 6: the
-  `__init` pattern is a new state too, so a part it leaves out may have
-  any value.
+- **"Any value" stays.** A new state need not give every part, and a part
+  it leaves out is unspecified. The same holds for `__init`, which is a
+  new state too (gap 6).
+- **No defaults on types.** The language does not depend on annotations
+  (`@default` is not type-checked), and types declare no default value.
+  Where a value matters, the transition writes it.
+- **A literal in a target sets the value**, as a constant that fits its
+  type: `Footer(ItemsLeft(1))`. It only narrows "any value" to one value,
+  as a variant in a target already does. It also works in `__init`
+  (`Count(0)`).
+- **Computed values are arithmetic in the target**, `Count(c + 1)`, over
+  names the transition binds. This replaces derived values (gap 3,
+  Part B): the change is written where it happens, not in the type
+  definition. Cost: an invariant such as "ItemsLeft is the number of
+  active todos" lives in the transitions and the checker can't verify it.
+
+Still open:
+
+- Whether the checker warns about a part a new state leaves out when
+  nothing later sets it.

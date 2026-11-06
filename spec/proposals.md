@@ -107,16 +107,96 @@ inside the range. Today these are opaque tokens. `Percent` (`0..100`) and
 `Degrees` (`0..360`) would be `__float` newtypes with a `@range` instead
 of atomics with a comment.
 
-## Named constants
+## Literal patterns and named constants
 
 Version impact: additive.
+
+A literal pattern says "the value is this literal": `Type(literal)`. A
+named constant gives one a name, defined once. The decisions behind both
+are in `literal-patterns.md`.
+
+    Count(0)    Meters(1.5)    Name("main")
+
+    BatteryLowThreshold = BatteryCharge(15)
+    MinimumFix          = GPSFix.Fix3D
+
+Two steps, so the first can ship before the checker learns to order
+literal patterns:
+
+1. **Constants as comparison sides.** The definition form, and a constant
+   as a side of a guard comparison.
+2. **Literal patterns everywhere**, and a constant as a pattern.
+
+### Literal patterns
+
+Syntax:
+
+- Only the form `Type(literal)`. A bare `0` is not a pattern.
+- A literal is an integer (`15`, `-1`), a decimal (`1.5`) or a string
+  (`"abc"`), as in "Comparing values" in `spec-v1.md`.
+- A payload pattern starts with an uppercase type name, and a literal
+  with a digit, `-` or `"`, so the first token after `(` tells them apart.
+  `A(1)` is a syntax error today, so no spec changes meaning.
+- A literal is not the payload of a variant directly: write
+  `NewTodo.Typing(Text("hi"))`, not `NewTodo.Typing("hi")`.
+- No alternation (`Count(0 | 1)`), no range (`Count(0..9)`), and no
+  binding (`Count(0)#c`): the value is known. Use two transitions or a
+  guard, or write the literal where the value is needed.
+
+Types: the head type resolves through newtypes to a base, and the
+literal must fit that base (the table in "Comparing values"). The same
+check applies to the literal in a constant's definition:
+
+| The head type resolves to | Literal that fits |
+|---|---|
+| `__int` | integer |
+| `__float` | integer, decimal |
+| `__text` | string |
+| a sum without payloads | none (use the variant) |
+| an atomic with no base | none |
+| a product, a list, a sum with payloads | none |
+
+Two types with the same base stay different: `Meters(3)` is not
+`Seconds(3)`. Equality is by value, so `Meters(3)` and `Meters(3.0)` are
+the same.
+
+Where it may appear (step 2):
+
+- a source, a pattern in a guard, and an `__init` (`Count(0)`);
+- an input head: `setSpeed Speed(0) :: Moving -> Stopped` applies only
+  for that input;
+- an element key: `Slots[Slot(0)]` is the element with that key (only a
+  key type with a base takes a literal);
+- a target, as a constant. It sets the value (`Footer(ItemsLeft(1))`)
+  and must fit the type. It only narrows "any value" to one value, as a
+  variant in a target does. A part left out of a new state stays
+  unspecified (see gap 7 in `efsm-gaps.md`).
+
+The checker orders patterns as it does variants. A literal behaves like
+a variant of an unbounded sum of its type:
+
+- equal literals are the same pattern; different literals of one type
+  are disjoint, so two transitions of one event that differ only in a
+  literal source or a literal input do not overlap;
+- a literal is inside its bare type, so `Count(0)` against `Count`
+  overlaps, as a variant against its sum does;
+- literals of different types never relate.
+
+A literal pattern and a guard `c == 0` say the same; both stay, with no
+lint. Reachability treats a literal as its bare type. Tracking values
+(per type, a finite set of literals or "any"; a warning only when a
+source literal is never given to the type) is a later step that needs
+the literals in targets and arithmetic in targets.
+
+The printer keeps the literal's spelling. A code generator tests exact
+equality for every type: integers, strings character by character with
+no normalization, and floats with the target's own float equality.
+
+### Named constants
 
 A named constant is a fixed value with a name, defined once and used in a
 guard in place of a literal. The value is written in the definition, with
 the type it has:
-
-    BatteryLowThreshold = BatteryCharge(15)
-    MinimumFix          = GPSFix.Fix3D
 
     batteryLow ... BatteryCharge#c // c <= BatteryLowThreshold -> ...
     start      ... GPSFix#g        // g >= MinimumFix         -> ...
@@ -135,23 +215,113 @@ Here `@default` stays documentation, and a value is a definition:
   without payloads (`GPSFix.Fix3D`). Today a body is a type, and `T = A(1)`
   and `T = A.B` are syntax errors, so no spec changes meaning.
 - **The type of a constant** is the type it names. The literal is checked
-  like a literal in a comparison: `15` fits a `__float` or an `__int`, a
-  decimal only a `__float`, a string only a `__text`.
+  like a literal in a comparison (the table above).
 - **A constant is a value, not a type.** It is a side of a comparison
-  (a single uppercase name where a variant path goes), and nowhere else:
-  not a factor of a product, not a payload, not the head of a pattern. The
-  checker rejects those uses, so the app cannot hold a constant as state.
+  (a single uppercase name where a variant path goes). It is not a factor
+  of a product, a payload, or a type in a definition, and the checker
+  rejects those uses, so the app cannot hold a constant as state.
+- **A constant is a pattern** (step 2): `Zero = Count(0)` is a pattern
+  equal to `Count(0)`, and `MinimumFix = GPSFix.Fix3D` one equal to that
+  variant. As a pattern head it takes no arguments, and it may appear
+  where the literal pattern may. In step 1 the checker rejects it there.
 - Names are shared with types: a constant and a type can't have the same
   name.
+- **Constants of constants** (`Low = BatteryLowThreshold`) are out.
+
+A constant is also an operand of an arithmetic expression (see
+"Arithmetic in targets").
 
 Open:
 
-- **Literal patterns.** `BatteryCharge(15)` is also a natural pattern for
-  "the value is 15", usable in a source (`Count(0)`) or in `__init`, where a
-  part's starting value is left open today. A constant is then a named
-  pattern. Left for later.
-- **Constants of constants**, `Low = BatteryLowThreshold`, and arithmetic on
-  them.
+- Bare binding, `Attempts(#n)`: see "Bare binding".
+
+## Arithmetic in targets
+
+Version impact: additive.
+
+A target may compute a value from the values the transition binds:
+`Attempts(n + 1)`. It replaces derived values (Part B in `efsm-gaps.md`,
+gap 3): the change is written in the transition where it happens, not
+in the type definition. Builds on named values (see "Named values" in
+`spec-v1.md`) and on "Literal patterns and named constants", whose literal in a target is
+the simplest case.
+
+    __atomics { Int = __int }
+
+    Attempts = Int
+
+    retry   :: App => Link.Failed * Attempts(Int#n)
+                    -> Link.Connecting * Attempts(n + 1)
+
+    connect :: App => Link.Connecting
+                    -> Link.Up * Attempts(0)
+
+An expression is built from:
+
+- names the transition binds (`#n` in the input or the source);
+- literals, and named constants (`Count(c + Step)`);
+- `+`, `-`, `*`, and parentheses.
+
+No division (zero, integer or float?), no function calls, no text
+operations.
+
+Types:
+
+- Operands have the same type. A literal fits as in "Comparing values",
+  so `n + 1` is an `Int`, and `Meters + Seconds` is an error even though
+  both are `__float`. The result has the operands' type.
+- It applies to `__int` and `__float`, and to newtypes of them. Not to
+  text, to an enumeration, or to an atomic with no base.
+- Overflow and rounding are the target's own; the spec promises nothing.
+
+Where an expression goes. Two forms, because a name can be bound to the
+inner value or to the whole type:
+
+| Source | Type of the name | Target that uses it |
+|---|---|---|
+| `Attempts(Int#n)` | `Int`, the wrapped type | `Attempts(n + 1)` |
+| `Attempts#attm` | `Attempts`, the whole type | `(attm + 1)` |
+
+- `Head(expr)`: `expr` has the type `Head` wraps, the same rule as
+  `Title(e)` with `e : Text`. A name bound to the whole type does not fit
+  here (`Attempts(attm + 1)` is an error).
+- A parenthesized expression stands where its type is expected, as a
+  payload (`Link.Failed(attm + 1)`) or as a factor of a product
+  (`Link.Connecting * (attm + 1)`). The checker finds the place by the
+  type, and rejects it if two places in the state could take it.
+- An expression made only of literals has no type to find, so it needs a
+  head: `Attempts(1 + 1)`. A plain literal is a literal pattern
+  (`Attempts(0)`).
+
+Parsing:
+
+- After `(`, an uppercase name starts a pattern; a lowercase name, a
+  literal, `-` or `(` starts an expression.
+- `*` is a product in types and multiplication in expressions. A factor
+  that is an expression is parenthesized, and `*` means multiplication
+  only inside the parentheses: `Link.Up * (a * 2)` is a product of two
+  factors, the second `a * 2`. `Link.Up * a * 2` is an error.
+- A bare name as a whole payload (`Typing(t)`) is already a value.
+
+One expression language for targets and guards. Guards compare names
+today (`c <= 15`); with it a side may be an expression
+(`c + 1 <= max`). That is "Arithmetic in guards" in `TODO.md`.
+
+Gains: no derived-value syntax in type definitions; a counter and its
+reset read in two lines (`retry` and `connect` above); the transition
+says what changes.
+
+Cost: the checker cannot verify an invariant such as "ItemsLeft is the
+number of active todos"; it lives in the transitions, one delta in each.
+For reachability, an arithmetic expression makes the type's value "any"
+(see "Literal patterns and named constants").
+
+Open:
+
+- Division, and `min`/`max`, if a spec needs them.
+- Whether an expression is allowed in an `__init` (no names are bound
+  there, so only literals and constants, which "Literal patterns and named
+  constants" already covers).
 
 ## Membership in guards
 
@@ -237,9 +407,10 @@ Guards on patterns and comparisons of values are in v1 (see "Guards" and
 "Comparing values" in `spec-v1.md`). What is left:
 
 - **Membership**, `x in ys`: see "Membership in guards" above.
-- **Named constants**, such as `BatteryLowThreshold`: see "Named constants"
+- **Named constants**, such as `BatteryLowThreshold`: see "Literal patterns and named constants"
   above.
-- **Arithmetic and calls**, such as `a + 1` or `further(p, b)`, and
+- **Arithmetic and calls**, such as `a + 1` (see "Arithmetic in
+  targets", which defines the expression language) or `further(p, b)`, and
   whether guards share the predicate language of the dependent type
   above.
 - Whether a failed guard also shows the control disabled. `@unless` stays
@@ -329,3 +500,51 @@ Version impact: additive.
 
 `L[x]#t` names the element, with the element type (`Todo`), not the
 list type. Not allowed yet.
+
+## Bare binding `(#n)`
+
+Version impact: additive.
+
+`Head(#n)` binds the one value inside `Head` to the name `n`, without
+naming its type. Today the type is written: `Head(Type#n)`.
+
+    Attempts = Int
+
+    retry :: App => Link.Failed * Attempts(#n)
+                 -> Link.Connecting * Attempts(n + 1)
+
+`Attempts(#n)` is `Attempts(Int#n)`, so `n` has the type `Int`, the type
+`Attempts` wraps. It builds on named values (see "Named values" in
+`spec-v1.md`).
+
+Rules:
+
+- Allowed where the parentheses hold exactly one thing:
+  - a newtype: `Attempts(#n)` binds the wrapped value;
+  - a variant whose payload is one type: `NewTodo.Typing(#t)` is
+    `NewTodo.Typing(Text#t)`.
+- An error where they hold several parts or no single value: a product
+  (`Footer(#f)`), a variant whose payload is a product
+  (`WithTodos(#x)`), a sum or a list head. The checker asks for explicit
+  parts.
+- A newtype of a newtype binds the next value, not the innermost: with
+  `A = B` and `B = Int`, `A(#n)` gives `n : B`. To get the `Int`, write
+  `A(B(#n))`.
+- `#` right after `(` starts no other form (a pattern starts with a type
+  name), so one token of lookahead decides.
+- The bound name is used as any named value: in a guard, or in a target
+  (`Attempts(n + 1)`, see `literal-patterns.md`, question 13).
+
+The three ways to fill the same parentheses:
+
+| Form | Meaning |
+|---|---|
+| `Attempts(0)` | the value is 0 (a literal pattern) |
+| `Attempts(#n)` | bind the value |
+| `Attempts(n + 1)` | set the value (a target expression) |
+
+Gain: the inner type is not repeated, and a spec still reads if
+`Attempts` later wraps another type.
+
+Cost: the source no longer shows the type of `n`. A reader looks at the
+definition, and a wrong use is caught only by the checker.
