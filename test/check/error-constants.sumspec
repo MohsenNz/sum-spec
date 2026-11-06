@@ -1,0 +1,50 @@
+-- Constants that break the rules.
+__atomics {
+  Percent = __float
+  Count = __int
+  Name = __text
+  Tag
+  Taken = __int
+}
+__events { go compare input arg dotted }
+
+__init :: App
+
+App = Percent * Count * Name * Gps * Box
+Box = Percent * Count
+Shape = Circle Percent | Square
+Gps = NoFix | Fix3D
+
+Decimal = Count(1.5)
+Text = Percent("a")
+Number = Name(3)
+Opaque = Tag(1)
+Enum = Gps(1)
+Unknown = Missing(1)
+Product = Box(1)
+BadVariant = Gps.Missing
+PayloadVariant = Shape.Square
+NotASum = Count.Zero
+UnknownSum = Missing.Zero
+Twice = Count(1)
+Twice = Count(2)
+Gps = Count(3)
+Taken = Count(4)
+Cycle = Count(1)
+Alias = Cycle
+Fine = Count(7)
+
+Wrapped = Fine
+Factor = Percent * Fine
+Payload = Wrap Fine | Other
+Boxed = Percent * Cycle
+
+go :: Fine -> Fine
+compare :: App => Count#k // k > Cycle and Cycle == Fine -> Count'
+
+Listed = [Fine]
+Keyed = [Count by Fine]
+
+input Fine :: Count -> Count'
+arg :: App(Fine) -> App(Count')
+dotted :: App => Count#k // k == Fine.Foo -> Count'

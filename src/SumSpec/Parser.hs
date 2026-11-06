@@ -8,7 +8,7 @@ module SumSpec.Parser
   , renderParseError
   ) where
 
-import Control.Monad (unless)
+import Control.Monad (unless, void)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text)
 import Data.Void (Void)
@@ -86,6 +86,7 @@ definition =
   choice
     [ uncurry DefInit <$> initState
     , DefEvent <$> eventDef
+    , DefConst <$> constDef
     , DefType <$> typeDef
     ]
 
@@ -96,6 +97,29 @@ initState = do
   keyword "__init"
   _ <- symbol "::"
   (,) (Name pos "__init") <$> pattern
+
+-- const_def = UPPER , "=" , UPPER , ( "(" , literal , ")" | "." , UPPER ) ;
+--
+-- A constant starts like a type definition. A "." after the second name,
+-- or a "(" that isn't followed by a type, tells them apart, and from
+-- there the parser is committed, so an error inside a constant is
+-- reported as one. A payload in parentheses starts with a type name or
+-- "[", never with a literal.
+constDef :: Parser ConstDef
+constDef = do
+  name <- try (upperName <* equals <* lookAhead constStart)
+  ConstDef name <$> upperName <*> constValue
+  where
+    constStart =
+      upperName
+        *> ( void (symbol ".")
+               <|> void (symbol "(" *> notFollowedBy (void upperName <|> void (symbol "[")))
+           )
+    constValue =
+      choice
+        [ uncurry ConstLiteral <$> parens (numberLiteral <|> stringLiteral)
+        , ConstVariant <$> (symbol "." *> upperName)
+        ]
 
 typeDef :: Parser TypeDef
 typeDef = TypeDef <$> upperName <* equals <*> typeExpr

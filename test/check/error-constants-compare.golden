@@ -1,0 +1,72 @@
+test/check/error-constants-compare.sumspec:16:14:
+   |
+16 | Marker = Tag(1)
+   |              ^
+Tag is an atomic with no base, so 1 doesn't fit it
+
+test/check/error-constants-compare.sumspec:17:7:
+   |
+17 | Bad = Missing(1)
+   |       ^
+unknown type Missing; declare it in __atomics or define it
+
+test/check/error-constants-compare.sumspec:19:34:
+   |
+19 | units :: App => Percent#p // p < Delay -> Percent'
+   |                                  ^
+cannot compare p (a Percent) with Delay (a Seconds); they are different types
+
+test/check/error-constants-compare.sumspec:20:32:
+   |
+20 | kind :: App => Count#k // k == Low -> Count'
+   |                                ^
+cannot compare k (a Count) with Low (a Percent); they are different types
+
+test/check/error-constants-compare.sumspec:21:31:
+   |
+21 | text :: App => Name#n // n == Low -> Name'
+   |                               ^
+cannot compare n (a Name) with Low (a Percent); they are different types
+
+test/check/error-constants-compare.sumspec:22:29:
+   |
+22 | ordtext :: App => Name#n // n < Main -> Name'
+   |                             ^
+ordering needs a number or an enumeration, but n is a Name (a __text)
+
+test/check/error-constants-compare.sumspec:22:33:
+   |
+22 | ordtext :: App => Name#n // n < Main -> Name'
+   |                                 ^
+ordering needs a number or an enumeration, but Main is a Name (a __text)
+
+test/check/error-constants-compare.sumspec:23:32:
+   |
+23 | ordtag :: App => Tag#t // t == Gps.Fix3D -> Tag'
+   |                                ^
+cannot compare t (a Tag) with Gps.Fix3D (a Gps); they are different types
+
+test/check/error-constants-compare.sumspec:24:25:
+   |
+24 | lone :: App => Gps#g // Fix -> Gps'
+   |                         ^
+Fix is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants-compare.sumspec:25:51:
+   |
+25 | broken :: App => Percent#p // p < Bad and Off2 == Fix -> Percent'
+   |                                                   ^
+cannot compare Off2 (a Other) with Fix (a Gps); they are different types
+
+test/check/error-constants-compare.sumspec:29:14:
+   |
+29 | BadVariant = Shape.Square
+   |              ^
+Shape has variants with a payload, so its variants can't be compared
+
+test/check/error-constants-compare.sumspec:30:18:
+   |
+30 | BadProduct = App(1)
+   |                  ^
+App is neither a number, text nor an enumeration, so 1 doesn't fit it
+

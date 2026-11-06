@@ -1,0 +1,11 @@
+-- A constant with nothing in the parentheses.
+__atomics { Count = __int }
+__events { go }
+
+__init :: App
+
+App = Count
+
+Low = Count()
+
+go :: App => Count -> Count'

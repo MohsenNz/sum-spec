@@ -1,0 +1,9 @@
+-- A constant is not a type, so it can't be the initial state.
+__atomics { Count = __int }
+__events { go }
+
+__init :: Fine
+
+Fine = Count(7)
+
+go :: Count -> Count'

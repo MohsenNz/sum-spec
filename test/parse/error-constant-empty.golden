@@ -1,0 +1,6 @@
+test/parse/error-constant-empty.sumspec:9:13:
+  |
+9 | Low = Count()
+  |             ^
+unexpected ')'
+expecting '"', '-', or digit

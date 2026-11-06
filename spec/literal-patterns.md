@@ -2,11 +2,10 @@
 
 A literal pattern says "the value is this literal": `Count(0)`,
 `Name("main")`. It would be usable where a pattern is, and a named
-constant is a name for one (see "Literal patterns and named constants"
-in `proposals.md`).
+constant is a name for one (see "Named constants" in `spec-v1.md`).
 
 Answer each question under its **Answer:** line. The result is written
-into `proposals.md` as "Literal patterns and named constants" (question
+into `proposals.md` as "Literal patterns" (question
 13, arithmetic in targets, is the separate proposal "Arithmetic in
 targets"). This file is the record of the decisions. `Leaning` is only a
 starting point.
@@ -183,9 +182,8 @@ a constant mean here (`Low = Zero`)?
   `GPSFix.Fix3D`. It takes no arguments, and the rules for where a
   literal pattern may appear (question 5) apply to it.
 - Constants of constants stay out.
-- The proposal is one text with two steps: constants as comparison sides
-  first, then literal patterns everywhere, including a constant in
-  pattern position.
+- Named constants are in v1 as comparison sides. Allowing a constant in
+  pattern position comes after literal patterns exist.
 
 ## 11. Printing and round trip
 

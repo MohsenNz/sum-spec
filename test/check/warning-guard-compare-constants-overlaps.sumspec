@@ -1,0 +1,19 @@
+-- Comparisons with constants that can both hold.
+__atomics { Percent = __float  Count = __int }
+__events { drain tight }
+
+__init :: App
+
+App = Percent * Count
+
+Low = Percent(15)
+Twenty = Percent(20)
+Ten = Percent(10)
+
+drain
+  :: App => Percent#c // c <= Low -> Percent'
+  :: App => Percent#c // c >= 15 -> Percent'
+
+tight
+  :: App => Percent#c // c < Twenty -> Percent'
+  :: App => Percent#c // c > Ten -> Percent'

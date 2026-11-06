@@ -1,0 +1,16 @@
+-- Named constants: a literal of a type, or a variant of a sum.
+__atomics { Percent = __float  Count = __int  Name = __text }
+__events { go }
+
+__init :: App
+
+App = Percent * Count * Name * Gps
+Gps = NoFix | Fix3D
+
+LowCharge = Percent(15)
+Half = Percent( 0.5 )
+Below = Count(-1)
+Main   =   Name("main")
+Fix = Gps.Fix3D
+
+go :: App => Percent#c * Gps#g // c <= LowCharge and Fix <= g and Below < 0 -> Percent'

@@ -1,0 +1,31 @@
+-- Named constants: used on either side of a comparison, with and, or, not.
+__atomics {
+  Percent = __float
+  Port = __int
+  Name = __text
+  Tag
+}
+__events { drain open label fix mixed }
+
+__init :: App
+
+App = Percent * Port * Name * Tag * Gps
+Gps = NoFix | Fix2D | Fix3D | DGPS | RTKFix
+
+LowCharge = Percent(15)
+Half = Percent(0.5)
+Whole = Percent(100)
+Mavlink = Port(14550)
+Neg = Port(-1)
+Main = Name("main")
+MinFix = Gps.Fix3D
+
+drain :: App => Percent#c // c <= LowCharge and Half < c -> Percent'
+
+open :: App => Port#p // p == Mavlink or Neg >= p and p != 80 -> Port'
+
+label Name#n :: App => Name#m // n == Main and m != Main -> Name'
+
+fix :: App => Gps#g // g >= MinFix and not (MinFix == g) -> Gps'
+
+mixed :: App => Percent#c * Gps#g // c < Whole and g > Gps.NoFix and 15 < c -> Percent'

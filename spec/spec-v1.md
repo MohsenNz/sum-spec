@@ -286,7 +286,7 @@ startMission :: App
              -> ...
 ```
 
-- A side is a **name** (`c`: a value bound with `#c` in the input or source), a **literal**, or a **variant** of a sum without payloads (`GPSFix.Fix3D`).
+- A side is a **name** (`c`: a value bound with `#c` in the input or source), a **literal**, a **variant** of a sum without payloads (`GPSFix.Fix3D`), or a **constant** (`BatteryLowThreshold`, see "Named constants").
 - A literal is an integer (`15`, `-1`), a decimal (`1.5`) or a string (`"abc"`, no escapes, no quote or line break inside). A `-` touches its digits.
 - The type of a name resolves through newtypes: to an atomic with a base (`__int`, `__float`, `__text`), to a sum without payloads (an enumeration), or to an atomic with no base. Nothing else compares (a product, a list, a sum with payloads): test it with a pattern.
 - Two values compare only if they have the same type: `Meters` and `Seconds` do not, though both are `__float`. A name compares with a literal or a variant that fits it:
@@ -300,8 +300,26 @@ startMission :: App
   | an atomic with no base | none (name against name only) | `==` `!=` |
 
 - A sum without payloads is **ordered by the order of its variants, the first being the smallest**: with `GPSFix = NoFix | Fix2D | Fix3D | DGPS | RTKFix`, `g >= GPSFix.Fix3D` holds for `Fix3D`, `DGPS` and `RTKFix`. Reordering its variants changes what a guard means, so keep the order meaningful once a guard compares it.
+- A variant has the type of its sum, so a newtype of that sum doesn't compare with it directly. Name the base value inside the newtype instead: with `Primary = GPSFix`, write `Primary(GPSFix#g) // g >= GPSFix.Fix3D`.
 - `not`, `and` and `or` can't be value names in a guard.
 - A comparison reads the values the transition binds; it binds none. A guard still only restricts.
+
+#### Named constants
+
+A named constant is a fixed value with a name, defined once and used in a guard in place of a literal. Its definition gives the value, with the type it has:
+
+```
+BatteryLowThreshold = BatteryCharge(15)
+MinimumFix          = GPSFix.Fix3D
+
+batteryLow :: App => Battery(BatteryCharge#c) // c <= BatteryLowThreshold -> ...
+start      :: App => GPSFix#g                 // g >= MinimumFix         -> ...
+```
+
+- A constant is a value, not a type. It is a side of a comparison, either side, and nothing else: not a factor of a product, a payload, an input, a list element or a pattern. Write a test that needs the value as a guard (`// c == BatteryLowThreshold`).
+- A constant of a constant (`Low = BatteryLowThreshold`) is not allowed: that is a newtype of a constant, and a constant is not a type.
+
+The overlap warning reads a constant as the literal or variant it stands for: `c < Low` and `c >= 15` exclude each other when `Low` is `Percent(15)`.
 
 ### Several transitions for one event
 

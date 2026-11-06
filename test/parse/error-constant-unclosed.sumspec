@@ -1,0 +1,11 @@
+-- A constant whose literal is not closed.
+__atomics { Count = __int }
+__events { go }
+
+__init :: App
+
+App = Count
+
+Low = Count(15
+
+go :: App => Count -> Count'

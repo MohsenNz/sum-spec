@@ -43,7 +43,9 @@ examples, the golden tests and `CHANGES.md` together.
       names, integer, decimal and string literals, and variants of sums
       without payloads (ordered by declaration); a newtype inherits its
       base's operations, so `Meters` and `Seconds` still don't compare.
-      `in` and named constants moved to "Later".
+      `in` moved to "Later".
+- [x] 3b. Named constants: `BatteryLowThreshold = BatteryCharge(15)` as
+      a side of a comparison.
 - [ ] 4. (Optional, later) Prelude: an embedded `.sumspec` with
       `Bool = True | False`, `Int = __int`, `Float = __float` and
       `Text = __text`; a definition of the same name in the user's spec
@@ -62,27 +64,24 @@ update before any code:
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
 - [ ] Several events with one transition (`g, h :: Y -> Z`).
 - [ ] `<-` shorthand.
-- [ ] Literal patterns and named constants (one proposal in
-      `spec/proposals.md`; decisions in `spec/literal-patterns.md`).
+- [x] Named constants (`BatteryLowThreshold = BatteryCharge(15)`): in
+      v1 as comparison sides in guards (see "Named constants" in
+      `spec/spec-v1.md`).
+- [ ] Literal patterns (`Count(0)`, `Name("main")`; proposal in
+      `spec/proposals.md`, decisions in `spec/literal-patterns.md`).
   - [x] Answer the 13 open questions in `spec/literal-patterns.md`.
-  - [x] Write the proposals "Literal patterns and named constants" and
-        "Arithmetic in targets" (version impact: additive).
-  - [ ] Step 1, constants as comparison sides:
-    - [ ] Grammar: the definition `T = A(literal)` and `T = A.B`.
-    - [ ] Checker: the literal fits the type; the variant is of a sum
-          without payloads; a constant is only a comparison side; names
-          are shared with types; the overlap warning reads a constant.
-    - [ ] Tests (parse, round trip, check), an example in `example/`,
-          `spec-v1.md` and `CHANGES.md`.
-  - [ ] Step 2, literal patterns everywhere:
-    - [ ] Grammar: a literal inside a type pattern; keep `A(1)` apart
-          from a payload pattern.
-    - [ ] Checker: the literal fits the type; relate a literal pattern
-          to `Count` (superset) and to another literal (disjoint or
-          equal) in the overlap and shadowing analysis; input heads.
-    - [ ] Allow a constant in pattern position.
-    - [ ] Tests (parse, round trip, check, overlap warnings), an
-          example in `example/`, `spec-v1.md` and `CHANGES.md`.
+  - [x] Write the proposals "Literal patterns" and "Arithmetic in
+        targets" (version impact: additive).
+  - [ ] Grammar: a literal inside a type pattern; keep `A(1)` apart
+        from a payload pattern.
+  - [ ] Checker: the literal fits the type; relate a literal pattern
+        to `Count` (superset) and to another literal (disjoint or
+        equal) in the overlap and shadowing analysis; input heads.
+        (Idea: read a literal pattern in a test as a bound name plus
+        `== literal`, to reuse the comparison machinery.)
+  - [ ] Allow a named constant in pattern position.
+  - [ ] Tests (parse, round trip, check, overlap warnings), an
+        example in `example/`, `spec-v1.md` and `CHANGES.md`.
   - [ ] Later: value reachability (see question 8): per type, a finite
         set of literals or "any"; a warning only when a source literal
         is never given to the type. Needs literals and arithmetic in

@@ -1,0 +1,12 @@
+-- A constant variant with no variant name.
+__atomics { Count = __int }
+__events { go }
+
+__init :: App
+
+App = Gps * Count
+Gps = NoFix | Fix3D
+
+Fix = Gps.
+
+go :: App => Count -> Count'

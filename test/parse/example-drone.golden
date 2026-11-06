@@ -8,6 +8,7 @@ __atomics {
   FailureReason
   Point
   Settings
+  BatteryCharge = __float
 }
 
 __events {
@@ -24,10 +25,11 @@ __events {
   flightFailed
   landed
   dismissFailure
+  batteryChanged
 }
 
 __init :: App(Page.Home)
-App = Page * Settings
+App = Page * Settings * BatteryCharge
 Page = Home | Plan (PMode * Missions) | Devices
 PMode = JustMap | Plot (PlotOrigin * Plot) | Flight Flight | ShowMission (List (Empty | NonEmpty MissionSummaries) | Selected Mission)
 Flight = Arming | Flying | Failed FailureReason
@@ -51,6 +53,7 @@ Ring = Partial Points | Closeable Points | Enclosed Points
 Path = Partial Point | Total Points
 Points = [Point]
 Spot = Point
+MinTakeoffCharge = BatteryCharge(20)
 goToPlan :: Page.Home -> Page.Plan(PMode.JustMap * Missions)
 goToDevices :: Page.Home -> Page.Devices
 planBackToHome :: Page.Plan(PMode.JustMap * Missions) -> Page.Home
@@ -61,8 +64,9 @@ showMission :: Page.Plan => PMode.JustMap * Missions -> PMode.ShowMission.List *
 selectMission :: Page.Plan => PMode.ShowMission.List.NonEmpty -> PMode.ShowMission.Selected
 editMission :: Page.Plan => PMode.ShowMission.Selected(Mission(Plot#p)) -> PMode.Plot(PlotOrigin.Editing * p)
 startFlight :: Page.Plan => PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed))) -> PMode.Flight(Flight.Arming)
-takeOff :: Flight.Arming -> Flight.Flying
+takeOff :: App => Page.Plan(PMode.Flight(Flight.Arming)) * BatteryCharge#c // c >= MinTakeoffCharge -> Page.Plan(PMode.Flight(Flight.Flying))
 flightFailed FailureReason#r :: Flight.Arming -> Flight.Failed(r)
                              :: Flight.Flying -> Flight.Failed(r)
 landed :: Page.Plan => PMode.Flight(Flight.Flying) -> PMode.JustMap * Missions'
 dismissFailure :: Page.Plan => PMode.Flight(Flight.Failed) -> PMode.JustMap
+batteryChanged :: App => BatteryCharge -> BatteryCharge'

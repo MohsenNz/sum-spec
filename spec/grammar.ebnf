@@ -31,6 +31,7 @@ events_block  = "__events" , "{" , { LOWER } , "}" ;
 
 definition    = init_state
               | type_def
+              | const_def
               | event_def ;
 
 (* The initial state: a state pattern for the root, the type of every
@@ -42,6 +43,14 @@ init_state    = "__init" , "::" , pattern ;
 (* ---------- Type definitions ---------- *)
 
 type_def      = UPPER , "=" , type_expr ;
+
+(* A named constant: a fixed value with a name, used as a side of a
+   comparison in a guard (see "Named constants" in spec-v1.md). The
+   value is a literal of a type, or a variant of a sum:
+     BatteryLowThreshold = BatteryCharge(15)
+     MinimumFix          = GPSFix.Fix3D                                 *)
+const_def     = UPPER , "=" , UPPER , ( "(" , literal , ")"
+                                      | "." , UPPER ) ;
 
 (* A single type_term is a newtype:      MissionName = Text
    A list is a list type:                Missions    = [Mission]
@@ -123,9 +132,10 @@ negation      = "not" , negation
               | type_pattern ;
 
 (* A comparison of two values (see "Comparing values" in spec-v1.md). A
-   path is a variant, Type.Variant. A path with no CMP after it is a
-   type_pattern, not an operand:
-     c <= 15        g >= GPSFix.Fix3D        n != "main"                *)
+   path is a variant, Type.Variant, or a single name, a named constant.
+   A path with no CMP after it is a type_pattern, not an operand:
+     c <= 15        g >= GPSFix.Fix3D        n != "main"
+     c <= BatteryLowThreshold                                           *)
 comparison    = operand , CMP , operand ;
 
 operand       = LOWER | literal | path ;
@@ -220,6 +230,11 @@ character     = ? any Unicode character ? ;
    starts a new type_def and is never a payload or a variant. A parser
    checks this with one extra token of lookahead (LL(2) at this point).
 
+   Constant or type: after "UPPER = UPPER", a "." or a "(" that is not
+   followed by a type name or "[" starts a const_def; anything else is a
+   type_def. A payload in parentheses starts with a type, never with a
+   literal.
+
    Shared path: at the start of a transition, a shared path and a
    pattern begin with the same path and element_key; a parser reads
    them and then decides by whether "=>" follows. Everywhere else the
@@ -241,6 +256,14 @@ character     = ? any Unicode character ? ;
    - every type name used in a definition or pattern is an atomic or a
      defined type;
    - no type is both atomic and defined, and no type is defined twice;
+   - a named constant has a known type, and its literal fits it (an
+     integer an __int or a __float, a decimal only a __float, a string
+     only a __text) or its variant is one of a sum without payloads. A
+     constant shares its name space with the types: it can't have the
+     name of a type, an atomic or another constant. A constant is a
+     value, not a type: it is only a side of a comparison, never a
+     factor, a payload, a pattern, an input or a list element. See
+     "Named constants" in spec-v1.md;
    - no name is listed twice in __atomics or in __events;
    - every event is listed in __events, and every name in __events has
      at least one transition;
@@ -284,7 +307,8 @@ character     = ? any Unicode character ? ;
      variant a value of its sum. < <= > >= need a number or an
      enumeration; == and != also take text and an atomic with no base
      (name against name). "not", "and" and "or" are not value names in
-     a guard. See "Comparing values" in spec-v1.md;
+     a guard. A constant stands for its value, with the type it names.
+     See "Comparing values" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
      the target side, outside a new state (a variant the source doesn't
      fix, as Plan in Page -> Page.Plan(PMode')). See "Source and target"

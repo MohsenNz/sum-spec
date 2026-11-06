@@ -1,0 +1,6 @@
+test/parse/error-constant-dangling-dot.sumspec:12:1:
+   |
+12 | go :: App => Count -> Count'
+   | ^
+unexpected 'g'
+expecting type or variant name

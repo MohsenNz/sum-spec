@@ -7,6 +7,7 @@
 -- Parsing the output gives the same AST again, apart from positions.
 module SumSpec.Pretty
   ( renderSpec
+  , renderLiteral
   ) where
 
 import Data.List.NonEmpty qualified as NE
@@ -35,6 +36,10 @@ renderAtomic (Atomic name base) =
 renderDefinition :: Definition -> Text
 renderDefinition = \case
   DefType (TypeDef name body) -> nameText name <> " = " <> renderTypeExpr body
+  DefConst (ConstDef name ty value) ->
+    nameText name <> " = " <> nameText ty <> case value of
+      ConstLiteral _ lit -> "(" <> renderLiteral lit <> ")"
+      ConstVariant v -> "." <> nameText v
   DefEvent (Event name input transitions) ->
     heading
       <> T.intercalate
@@ -74,10 +79,14 @@ renderGuard = \case
 renderOperand :: Operand -> Text
 renderOperand = \case
   OperandName name -> nameText name
-  OperandLiteral _ (LitInt n) -> T.pack (show n)
-  OperandLiteral _ (LitDecimal text) -> text
-  OperandLiteral _ (LitText text) -> "\"" <> text <> "\""
+  OperandLiteral _ lit -> renderLiteral lit
   OperandVariant names -> T.intercalate "." (map nameText (NE.toList names))
+
+renderLiteral :: Literal -> Text
+renderLiteral = \case
+  LitInt n -> T.pack (show n)
+  LitDecimal text -> text
+  LitText text -> "\"" <> text <> "\""
 
 renderTypeExpr :: TypeExpr -> Text
 renderTypeExpr = \case

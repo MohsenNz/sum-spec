@@ -1,0 +1,156 @@
+test/check/error-constants.sumspec:18:17:
+   |
+18 | Decimal = Count(1.5)
+   |                 ^
+Count is an __int, so 1.5 doesn't fit it
+
+test/check/error-constants.sumspec:19:16:
+   |
+19 | Text = Percent("a")
+   |                ^
+Percent is a __float, so "a" doesn't fit it
+
+test/check/error-constants.sumspec:20:15:
+   |
+20 | Number = Name(3)
+   |               ^
+Name is a __text, so 3 doesn't fit it
+
+test/check/error-constants.sumspec:21:14:
+   |
+21 | Opaque = Tag(1)
+   |              ^
+Tag is an atomic with no base, so 1 doesn't fit it
+
+test/check/error-constants.sumspec:22:12:
+   |
+22 | Enum = Gps(1)
+   |            ^
+Gps is an enumeration, so 1 doesn't fit it
+
+test/check/error-constants.sumspec:23:11:
+   |
+23 | Unknown = Missing(1)
+   |           ^
+unknown type Missing; declare it in __atomics or define it
+
+test/check/error-constants.sumspec:24:15:
+   |
+24 | Product = Box(1)
+   |               ^
+Box is neither a number, text nor an enumeration, so 1 doesn't fit it
+
+test/check/error-constants.sumspec:25:18:
+   |
+25 | BadVariant = Gps.Missing
+   |                  ^
+Missing is not a variant of Gps
+
+test/check/error-constants.sumspec:26:18:
+   |
+26 | PayloadVariant = Shape.Square
+   |                  ^
+Shape has variants with a payload, so its variants can't be compared
+
+test/check/error-constants.sumspec:27:11:
+   |
+27 | NotASum = Count.Zero
+   |           ^
+a constant variant is written Type.Variant, where Type is a sum without payloads; Count is not
+
+test/check/error-constants.sumspec:28:14:
+   |
+28 | UnknownSum = Missing.Zero
+   |              ^
+unknown type Missing; declare it in __atomics or define it
+
+test/check/error-constants.sumspec:30:1:
+   |
+30 | Twice = Count(2)
+   | ^
+Twice is defined twice (first on line 29)
+
+test/check/error-constants.sumspec:31:1:
+   |
+31 | Gps = Count(3)
+   | ^
+Gps is defined as a type and as a constant
+
+test/check/error-constants.sumspec:32:1:
+   |
+32 | Taken = Count(4)
+   | ^
+Taken is declared in __atomics and also defined as a constant
+
+test/check/error-constants.sumspec:34:9:
+   |
+34 | Alias = Cycle
+   |         ^
+Cycle is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:37:11:
+   |
+37 | Wrapped = Fine
+   |           ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:38:20:
+   |
+38 | Factor = Percent * Fine
+   |                    ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:39:16:
+   |
+39 | Payload = Wrap Fine | Other
+   |                ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:40:19:
+   |
+40 | Boxed = Percent * Cycle
+   |                   ^
+Cycle is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:42:7:
+   |
+42 | go :: Fine -> Fine
+   |       ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:42:15:
+   |
+42 | go :: Fine -> Fine
+   |               ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:45:11:
+   |
+45 | Listed = [Fine]
+   |           ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:46:19:
+   |
+46 | Keyed = [Count by Fine]
+   |                   ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:48:7:
+   |
+48 | input Fine :: Count -> Count'
+   |       ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:49:12:
+   |
+49 | arg :: App(Fine) -> App(Count')
+   |            ^
+Fine is a constant, not a type; it can only be compared in a guard
+
+test/check/error-constants.sumspec:50:34:
+   |
+50 | dotted :: App => Count#k // k == Fine.Foo -> Count'
+   |                                  ^
+Fine is a constant, so it has no variants
+

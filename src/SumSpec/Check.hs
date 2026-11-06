@@ -23,6 +23,7 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
+import SumSpec.Pretty (renderLiteral)
 import SumSpec.Syntax
 import Text.Megaparsec (SourcePos (..), initialPos, mkPos, sourcePosPretty, unPos)
 
@@ -54,6 +55,7 @@ checkSpec file source spec =
       [ checkHeaders spec
       , checkInit file env inits
       , checkTypeDefs env typeDefs
+      , checkConsts env consts
       , checkEvents env spec events
       , checkTransitions env transitions
       , checkGuards env transitions
@@ -71,6 +73,7 @@ checkSpec file source spec =
     -- twice; it is reported once.
     key e = (position (errorPos e), errorSeverity e == Error, errorMessage e)
     typeDefs = [d | DefType d <- specDefinitions spec]
+    consts = [c | DefConst c <- specDefinitions spec]
     events = [e | DefEvent e <- specDefinitions spec]
     transitions = concatMap flatten events
     inputs = mapMaybe eventInput events
@@ -79,7 +82,7 @@ checkSpec file source spec =
     root = case inits of
       (_, p) : _ | isKnownType env (patternKey p) -> Just (patternKey p)
       _ -> Nothing
-    env = mkEnv spec typeDefs
+    env = mkEnv spec typeDefs consts
 
 -- | Renders errors like parse errors: position, source line, caret and
 -- message, with a blank line between errors.
@@ -107,16 +110,20 @@ renderCheckErrors source = unlines . map render
 
 -- ---------- Environment ----------
 
--- | The declared atomics and the defined types. A type defined twice keeps
--- its first definition; the second is reported as an error.
+-- | The declared atomics, the defined types and the named constants. A type
+-- or a constant defined twice keeps its first definition; the second is
+-- reported as an error.
 data Env = Env
   { envAtomics :: Map Text (Maybe Primitive)
   -- ^ The atomics, with the base of each.
   , envTypes :: Map Text TypeExpr
+  , envConsts :: Map Text ConstDef
+  -- ^ The named constants. They share their names with the types but are
+  -- not types: 'isKnownType' does not see them.
   }
 
-mkEnv :: Spec -> [TypeDef] -> Env
-mkEnv spec defs =
+mkEnv :: Spec -> [TypeDef] -> [ConstDef] -> Env
+mkEnv spec defs consts =
   Env
     { envAtomics =
         Map.fromList [(nameText (atomicName a), atomicBase a) | a <- specAtomics spec]
@@ -124,6 +131,10 @@ mkEnv spec defs =
         Map.fromListWith
           (\_ first -> first)
           [(nameText (typeDefName d), typeDefBody d) | d <- defs]
+    , envConsts =
+        Map.fromListWith
+          (\_ first -> first)
+          [(nameText (constName c), c) | c <- consts]
     }
 
 isKnownType :: Env -> Text -> Bool
@@ -217,6 +228,51 @@ checkTypeDefs env defs =
     <> concatMap (checkTypeExpr env . typeDefBody) defs
     <> mapMaybe (newtypeCycle env) (firsts (nameText . typeDefName) defs)
 
+-- | Named constants: each name is new, its type is known, and its value
+-- fits that type.
+checkConsts :: Env -> [ConstDef] -> [CheckError]
+checkConsts env consts =
+  [ errorAt n (nameText n <> " is defined twice (first on line " <> lineOf first <> ")")
+  | (ConstDef n _ _, ConstDef first _ _) <- repeats (nameText . constName) consts
+  ]
+    <> concatMap clash (firsts (nameText . constName) consts)
+    <> concatMap checkValue consts
+  where
+    clash c
+      | Map.member (nameText n) (envTypes env) =
+          [errorAt n (nameText n <> " is defined as a type and as a constant")]
+      | Map.member (nameText n) (envAtomics env) =
+          [ errorAt n (nameText n <> " is declared in __atomics and also defined as a constant")
+          ]
+      | otherwise = []
+      where
+        n = constName c
+    checkValue (ConstDef _ ty value)
+      | not (isKnownType env (nameText ty)) = [unknownType env ty]
+      | otherwise = case value of
+          ConstLiteral pos lit
+            | literalFits (kindOf env (nameText ty)) lit -> []
+            | otherwise ->
+                [ errorAtPos pos $
+                    nameText ty
+                      <> " is "
+                      <> describeKind (kindOf env (nameText ty))
+                      <> ", so "
+                      <> renderLiteral lit
+                      <> " doesn't fit it"
+                ]
+          ConstVariant v -> case Map.lookup (nameText ty) (envTypes env) of
+            Just (TypeSum variants) -> variantRefErrors variants ty v
+            _ -> [notAnEnumeration "a constant variant" ty]
+
+-- | Whether a literal fits a value of this kind: an integer an @__int@ or a
+-- @__float@, a decimal only a @__float@, a string only a @__text@.
+literalFits :: Kind -> Literal -> Bool
+literalFits kind = \case
+  LitInt _ -> kind `elem` [KInt, KFloat]
+  LitDecimal _ -> kind == KFloat
+  LitText _ -> kind == KText
+
 checkTypeExpr :: Env -> TypeExpr -> [CheckError]
 checkTypeExpr env = \case
   TypeSum variants ->
@@ -233,7 +289,7 @@ checkTypeExpr env = \case
 
 checkTerm :: Env -> TypeTerm -> [CheckError]
 checkTerm env term =
-  [ unknownType n
+  [ unknownType env n
   | n <- termName term : termKeys term
   , not (isKnownType env (nameText n))
   ]
@@ -671,10 +727,10 @@ checkPattern env names = \case
   PatternName n -> [unknownName n | nameText n `Map.notMember` names]
   PatternList term key -> checkTerm env (TermList term key)
   PatternPath (h :| path) args -> case typeNode env (nameText h) of
-    Nothing -> [unknownType h]
+    Nothing -> [unknownType env h]
     Just node -> walk env names node h path args
   PatternElement (h :| path) key args -> case typeNode env (nameText h) of
-    Nothing -> [unknownType h]
+    Nothing -> [unknownType env h]
     Just node -> checkElement env names node h path key args
 
 -- | Follows the rest of a path from a node, then checks the arguments at
@@ -841,12 +897,15 @@ checkFactors :: Env -> Names -> Node -> [TypeTerm] -> [Pattern] -> [CheckError]
 checkFactors env names node factors args =
   [unknownName n | (a, Nothing) <- keyed, PatternName n <- [bare a]]
     <> [ errorAt (patternHead a) $
-           describeArg a key
-             <> " is not a factor of "
-             <> nodeLabel node
-             <> " ("
-             <> T.intercalate " * " (map termKey factors)
-             <> ")"
+           if Map.member key (envConsts env)
+             then constantNotType key
+             else
+               describeArg a key
+                 <> " is not a factor of "
+                 <> nodeLabel node
+                 <> " ("
+                 <> T.intercalate " * " (map termKey factors)
+                 <> ")"
        | (a, Just key) <- keyed
        , key `Map.notMember` byKey
        ]
@@ -1375,12 +1434,21 @@ operandValue env kind = \case
   OperandLiteral _ (LitText t) -> case kind of
     KText -> Just (Discrete, VText t)
     _ -> Nothing
+  OperandVariant (h :| [])
+    | Just c <- Map.lookup (nameText h) (envConsts env) ->
+        operandValue env kind (constOperand c)
   OperandVariant (h :| [v])
     | KEnum <- kind
     , Just (TypeSum variants) <- Map.lookup (nameText h) (envTypes env)
     , Just i <- elemIndex (nameText v) (map (nameText . variantName) variants) ->
         Just (Discrete, VIdx i)
   _ -> Nothing
+
+-- | The value a constant stands for, written as the operand it replaces.
+constOperand :: ConstDef -> Operand
+constOperand (ConstDef _ ty value) = case value of
+  ConstLiteral pos lit -> OperandLiteral pos lit
+  ConstVariant v -> OperandVariant (ty :| [v])
 
 -- | The exact value of a decimal literal such as @-1.25@.
 decimalValue :: Text -> Rational
@@ -1575,37 +1643,55 @@ resolveSide env names = \case
   OperandName n -> case Map.lookup (nameText n) names of
     Nothing -> Left [unknownName n]
     Just key -> Right (CmpSide (namePos n) (nameText n) (Just key) (OfType (kindOf env key)))
-  OperandLiteral pos lit -> Right $ case lit of
-    LitInt i -> CmpSide pos (T.pack (show i)) Nothing LiteralInt
-    LitDecimal t -> CmpSide pos t Nothing LiteralDecimal
-    LitText t -> CmpSide pos ("\"" <> t <> "\"") Nothing LiteralText
+  OperandLiteral pos lit -> Right $ CmpSide pos (renderLiteral lit) Nothing $ case lit of
+    LitInt _ -> LiteralInt
+    LitDecimal _ -> LiteralDecimal
+    LitText _ -> LiteralText
+  OperandVariant (h :| [])
+    | Just c <- Map.lookup (nameText h) (envConsts env) ->
+        let ty = nameText (constType c)
+        in  case kindOf env ty of
+              -- An unknown type, or one with no values to compare: the
+              -- constant's own definition reports the problem.
+              KOther -> Left []
+              kind -> Right (CmpSide (namePos h) (nameText h) (Just ty) (OfType kind))
   OperandVariant (h :| rest) -> case (Map.lookup (nameText h) (envTypes env), rest) of
-    (Just (TypeSum variants), [v])
-      | any (isJust . variantPayload) variants ->
-          Left
-            [ errorAt
-                h
-                (nameText h <> " has variants with a payload, so its variants can't be compared")
-            ]
-      | nameText v `notElem` map (nameText . variantName) variants ->
-          Left [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
-      | otherwise ->
-          Right
-            ( CmpSide
-                (namePos h)
-                (nameText h <> "." <> nameText v)
-                (Just (nameText h))
-                (OfType KEnum)
-            )
+    (Just (TypeSum variants), [v]) -> case variantRefErrors variants h v of
+      [] ->
+        Right
+          ( CmpSide
+              (namePos h)
+              (nameText h <> "." <> nameText v)
+              (Just (nameText h))
+              (OfType KEnum)
+          )
+      errors -> Left errors
     _
-      | not (isKnownType env (nameText h)) -> Left [unknownType h]
-      | otherwise ->
-          Left
-            [ errorAt h $
-                "a variant to compare is written Type.Variant, where Type is a sum without payloads; "
-                  <> nameText h
-                  <> " is not"
-            ]
+      | isKnownType env (nameText h) -> Left [notAnEnumeration "a variant to compare" h]
+      | Map.member (nameText h) (envConsts env) ->
+          Left [errorAt h (nameText h <> " is a constant, so it has no variants")]
+      | otherwise -> Left [unknownType env h]
+
+-- | The problems with @Type.Variant@ used as a value, where @Type@ is a sum:
+-- it must have no payload, and the variant must be one of its.
+variantRefErrors :: [Variant] -> Name -> Name -> [CheckError]
+variantRefErrors variants h v
+  | any (isJust . variantPayload) variants =
+      [ errorAt
+          h
+          (nameText h <> " has variants with a payload, so its variants can't be compared")
+      ]
+  | nameText v `notElem` map (nameText . variantName) variants =
+      [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
+  | otherwise = []
+
+notAnEnumeration :: Text -> Name -> CheckError
+notAnEnumeration what h =
+  errorAt h $
+    what
+      <> " is written Type.Variant, where Type is a sum without payloads; "
+      <> nameText h
+      <> " is not"
 
 -- | A comparison of two values of one type, or of a value and a literal or
 -- variant that fits it. The ordering operators need numbers or an
@@ -1689,10 +1775,16 @@ errorAtPos = CheckError Error
 warningAt :: Name -> Text -> CheckError
 warningAt = CheckError Warning . namePos
 
-unknownType :: Name -> CheckError
-unknownType n =
-  errorAt n $
-    "unknown type " <> nameText n <> "; declare it in __atomics or define it"
+unknownType :: Env -> Name -> CheckError
+unknownType env n
+  | Map.member (nameText n) (envConsts env) = errorAt n (constantNotType (nameText n))
+  | otherwise =
+      errorAt n $
+        "unknown type " <> nameText n <> "; declare it in __atomics or define it"
+
+constantNotType :: Text -> Text
+constantNotType name =
+  name <> " is a constant, not a type; it can only be compared in a guard"
 
 unknownName :: Name -> CheckError
 unknownName n =

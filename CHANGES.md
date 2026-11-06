@@ -21,6 +21,15 @@ release" in `VERSIONING.md`).
   guards: two transitions with guards that exclude each other do not
   overlap, and so do comparisons of a name with a literal or variant
   (`c < 15` and `c >= 15`).
+- Named constants: `BatteryLowThreshold = BatteryCharge(15)` or
+  `MinimumFix = GPSFix.Fix3D` defines a fixed value with a name, used as
+  either side of a comparison in a guard (`c <= BatteryLowThreshold`).
+  The body is a type with one literal in parentheses, or a variant of a
+  sum without payloads; the literal fits the type as in a comparison.
+  A constant has the type it names, so `c` must be a `BatteryCharge`.
+  It is a value, not a type: never a factor, payload, pattern, input or
+  list element. It shares its name space with the types. The overlap
+  warning reads a constant as its value.
 - Comparisons in guards: `== != < <= > >=` between a name the
   transition binds, a literal (integer `15`, decimal `1.5`, string
   `"abc"`) and a variant (`GPSFix.Fix3D`). Two values compare only if

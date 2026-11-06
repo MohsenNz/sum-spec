@@ -10,6 +10,8 @@ module SumSpec.Syntax
   ( Spec (..)
   , Definition (..)
   , TypeDef (..)
+  , ConstDef (..)
+  , ConstValue (..)
   , TypeExpr (..)
   , Atomic (..)
   , Primitive (..)
@@ -54,6 +56,8 @@ data Definition
     -- the type of every state. The name is the @__init@ keyword, for its
     -- position.
     DefInit Name Pattern
+  | -- | @T = A(15)@ or @T = A.B@: a named constant.
+    DefConst ConstDef
   deriving stock (Eq, Show)
 
 -- | @T = expr@
@@ -61,6 +65,23 @@ data TypeDef = TypeDef
   { typeDefName :: Name
   , typeDefBody :: TypeExpr
   }
+  deriving stock (Eq, Show)
+
+-- | @C = T(literal)@ or @C = T.V@: a named constant, a fixed value with a
+-- name. Its type is @T@. It is a value, not a type: a side of a
+-- comparison in a guard.
+data ConstDef = ConstDef
+  { constName :: Name
+  , constType :: Name
+  , constValue :: ConstValue
+  }
+  deriving stock (Eq, Show)
+
+data ConstValue
+  = -- | @T(15)@: a literal, with the position it starts at.
+    ConstLiteral SourcePos Literal
+  | -- | @T.V@: the variant @V@ of the sum @T@.
+    ConstVariant Name
   deriving stock (Eq, Show)
 
 data TypeExpr

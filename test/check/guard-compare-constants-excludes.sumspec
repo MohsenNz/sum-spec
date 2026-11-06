@@ -1,0 +1,43 @@
+-- Comparisons with constants exclude each other like the literals they
+-- stand for: no overlap warning.
+__atomics { Percent = __float  Count = __int  Name = __text }
+__events { drain step pick fix label wrapped }
+
+__init :: App
+
+App = Percent * Count * Name * Gps * Primary
+Gps = NoFix | Fix2D | Fix3D | DGPS
+Primary = Gps
+
+Low = Percent(15)
+Five = Count(5)
+Four = Count(4)
+One = Count(1)
+Two = Count(2)
+Main = Name("main")
+MinFix = Gps.Fix3D
+
+drain
+  :: App => Percent#c // c < Low -> Percent'
+  :: App => Percent#c // c >= 15 -> Percent'
+
+step
+  :: App => Count#n // n > Four -> Count'
+  :: App => Count#n // n < Five -> Count'
+
+pick
+  :: App => Count#n // n == One -> Count'
+  :: App => Count#n // Two == n -> Count'
+  :: App => Count#n // not (n == One or n == Two) -> Count'
+
+fix
+  :: App => Gps#g // g >= MinFix -> Gps'
+  :: App => Gps#g // g < MinFix -> Gps'
+
+label Name#n
+  :: App => Name#m // m == Main and n != Main -> Name'
+
+-- A newtype of a sum: the base value is named inside it.
+wrapped
+  :: App => Primary(Gps#g) // g >= MinFix -> Primary'
+  :: App => Primary(Gps#g) // g < MinFix -> Primary'

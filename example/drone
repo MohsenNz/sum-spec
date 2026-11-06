@@ -8,6 +8,7 @@ __atomics {
   FailureReason
   Point
   Settings
+  BatteryCharge = __float  -- percent, 0 to 100
 }
 
 __events {
@@ -20,11 +21,13 @@ __events {
   selectMission         -- The mission list may have any value here: a new state.
   editMission           -- Edits the selected mission's plot.
   startFlight           -- Flies a plot whose boundary is closed.
-  takeOff
+  takeOff               -- Only with enough battery charge: a guard on a named constant.
   flightFailed          -- An occurrence: the drone reports why the flight failed.
   landed                -- An occurrence: the drone is back on the ground. The flight is saved
                         -- as a mission, so Missions gets a new value.
   dismissFailure        -- The user closes the failure report and is back at the map.
+  batteryChanged        -- An occurrence: the drone reports its charge, so BatteryCharge gets
+                        -- a new value.
 }
 
 __init :: App(Page.Home)
@@ -32,6 +35,7 @@ __init :: App(Page.Home)
 App
   = Page
   * Settings
+  * BatteryCharge
 
 Page
   = Home
@@ -116,6 +120,9 @@ Points = [Point]
 
 Spot = Point
 
+-- A named constant: the lowest charge the drone may take off with.
+MinTakeoffCharge = BatteryCharge(20)
+
 goToPlan          :: Page.Home -> Page.Plan(PMode.JustMap * Missions)
 goToDevices       :: Page.Home -> Page.Devices
 planBackToHome    :: Page.Plan(PMode.JustMap * Missions) -> Page.Home
@@ -139,7 +146,9 @@ editMission   :: Page.Plan => PMode.ShowMission.Selected(Mission(Plot#p))
 startFlight   :: Page.Plan => PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed)))
                            -> PMode.Flight(Flight.Arming)
 
-takeOff       :: Flight.Arming -> Flight.Flying
+takeOff       :: App => Page.Plan(PMode.Flight(Flight.Arming)) * BatteryCharge#c
+                        // c >= MinTakeoffCharge
+                        -> Page.Plan(PMode.Flight(Flight.Flying))
 
 flightFailed FailureReason#r :: Flight.Arming -> Flight.Failed(r)
                              :: Flight.Flying -> Flight.Failed(r)
@@ -149,3 +158,5 @@ landed         :: Page.Plan => PMode.Flight(Flight.Flying)
 
 dismissFailure :: Page.Plan => PMode.Flight(Flight.Failed)
                             -> PMode.JustMap
+
+batteryChanged :: App => BatteryCharge -> BatteryCharge'

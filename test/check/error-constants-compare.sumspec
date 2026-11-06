@@ -1,0 +1,32 @@
+-- Comparisons with constants that break the rules.
+__atomics { Percent = __float  Seconds = __float  Count = __int  Name = __text  Tag }
+__events { units kind text ordtext ordtag lone broken cascade }
+
+__init :: App
+
+App = Percent * Seconds * Count * Name * Tag * Gps
+Gps = NoFix | Fix3D
+Other = Off | On
+
+Low = Percent(15)
+Delay = Seconds(15)
+Main = Name("main")
+Fix = Gps.Fix3D
+Off2 = Other.On
+Marker = Tag(1)
+Bad = Missing(1)
+
+units :: App => Percent#p // p < Delay -> Percent'
+kind :: App => Count#k // k == Low -> Count'
+text :: App => Name#n // n == Low -> Name'
+ordtext :: App => Name#n // n < Main -> Name'
+ordtag :: App => Tag#t // t == Gps.Fix3D -> Tag'
+lone :: App => Gps#g // Fix -> Gps'
+broken :: App => Percent#p // p < Bad and Off2 == Fix -> Percent'
+
+-- A constant with no value to compare is reported once, at its definition.
+Shape = Circle Percent | Square
+BadVariant = Shape.Square
+BadProduct = App(1)
+
+cascade :: App => Percent#p // BadVariant == BadVariant or BadProduct == BadProduct -> Percent'

@@ -107,27 +107,15 @@ inside the range. Today these are opaque tokens. `Percent` (`0..100`) and
 `Degrees` (`0..360`) would be `__float` newtypes with a `@range` instead
 of atomics with a comment.
 
-## Literal patterns and named constants
+## Literal patterns
 
 Version impact: additive.
 
-A literal pattern says "the value is this literal": `Type(literal)`. A
-named constant gives one a name, defined once. The decisions behind both
+A literal pattern says "the value is this literal": `Type(literal)`. It
+is a pattern, so it goes where a pattern goes. The decisions behind it
 are in `literal-patterns.md`.
 
     Count(0)    Meters(1.5)    Name("main")
-
-    BatteryLowThreshold = BatteryCharge(15)
-    MinimumFix          = GPSFix.Fix3D
-
-Two steps, so the first can ship before the checker learns to order
-literal patterns:
-
-1. **Constants as comparison sides.** The definition form, and a constant
-   as a side of a guard comparison.
-2. **Literal patterns everywhere**, and a constant as a pattern.
-
-### Literal patterns
 
 Syntax:
 
@@ -144,8 +132,7 @@ Syntax:
   guard, or write the literal where the value is needed.
 
 Types: the head type resolves through newtypes to a base, and the
-literal must fit that base (the table in "Comparing values"). The same
-check applies to the literal in a constant's definition:
+literal must fit that base (the table in "Comparing values"):
 
 | The head type resolves to | Literal that fits |
 |---|---|
@@ -160,7 +147,7 @@ Two types with the same base stay different: `Meters(3)` is not
 `Seconds(3)`. Equality is by value, so `Meters(3)` and `Meters(3.0)` are
 the same.
 
-Where it may appear (step 2):
+Where it may appear:
 
 - a source, a pattern in a guard, and an `__init` (`Count(0)`);
 - an input head: `setSpeed Speed(0) :: Moving -> Stopped` applies only
@@ -192,47 +179,16 @@ The printer keeps the literal's spelling. A code generator tests exact
 equality for every type: integers, strings character by character with
 no normalization, and floats with the target's own float equality.
 
-### Named constants
-
-A named constant is a fixed value with a name, defined once and used in a
-guard in place of a literal. The value is written in the definition, with
-the type it has:
-
-    batteryLow ... BatteryCharge#c // c <= BatteryLowThreshold -> ...
-    start      ... GPSFix#g        // g >= MinimumFix         -> ...
-
-Why: a threshold written in five guards changes in one place; the name says
-what the number is (`BatteryLowThreshold`, not `15`); and the constant has a
-type, so `c <= BatteryLowThreshold` needs `c` to be a `BatteryCharge`, as a
-literal's unit is not.
-
-It needs no annotation. The draft `temp.sumspec` gives the value with
-`@default 15`, which mixes "starts as" (an initial value) with "is always".
-Here `@default` stays documentation, and a value is a definition:
-
-- **The body** of a definition is a value: a type name with one literal in
-  parentheses (`BatteryCharge(15)`, `Name("main")`), or a variant of a sum
-  without payloads (`GPSFix.Fix3D`). Today a body is a type, and `T = A(1)`
-  and `T = A.B` are syntax errors, so no spec changes meaning.
-- **The type of a constant** is the type it names. The literal is checked
-  like a literal in a comparison (the table above).
-- **A constant is a value, not a type.** It is a side of a comparison
-  (a single uppercase name where a variant path goes). It is not a factor
-  of a product, a payload, or a type in a definition, and the checker
-  rejects those uses, so the app cannot hold a constant as state.
-- **A constant is a pattern** (step 2): `Zero = Count(0)` is a pattern
-  equal to `Count(0)`, and `MinimumFix = GPSFix.Fix3D` one equal to that
-  variant. As a pattern head it takes no arguments, and it may appear
-  where the literal pattern may. In step 1 the checker rejects it there.
-- Names are shared with types: a constant and a type can't have the same
-  name.
-- **Constants of constants** (`Low = BatteryLowThreshold`) are out.
-
-A constant is also an operand of an arithmetic expression (see
-"Arithmetic in targets").
+A named constant (see "Named constants" in `spec-v1.md`) defined as
+`Zero = Count(0)` is a pattern equal to `Count(0)`, and one defined as
+`GPSFix.Fix3D` is a pattern equal to that variant. As a pattern head it
+takes no arguments, and it may appear where the literal pattern may. Today
+the checker rejects a constant in a pattern. This comes after literal
+patterns exist.
 
 Open:
 
+- Arithmetic in targets, `Count(c + 1)`: see "Arithmetic in targets".
 - Bare binding, `Attempts(#n)`: see "Bare binding".
 
 ## Arithmetic in targets
@@ -243,7 +199,7 @@ A target may compute a value from the values the transition binds:
 `Attempts(n + 1)`. It replaces derived values (Part B in `efsm-gaps.md`,
 gap 3): the change is written in the transition where it happens, not
 in the type definition. Builds on named values (see "Named values" in
-`spec-v1.md`) and on "Literal patterns and named constants", whose literal in a target is
+`spec-v1.md`) and on "Literal patterns", whose literal in a target is
 the simplest case.
 
     __atomics { Int = __int }
@@ -314,14 +270,14 @@ says what changes.
 Cost: the checker cannot verify an invariant such as "ItemsLeft is the
 number of active todos"; it lives in the transitions, one delta in each.
 For reachability, an arithmetic expression makes the type's value "any"
-(see "Literal patterns and named constants").
+(see "Literal patterns").
 
 Open:
 
 - Division, and `min`/`max`, if a spec needs them.
 - Whether an expression is allowed in an `__init` (no names are bound
-  there, so only literals and constants, which "Literal patterns and named
-  constants" already covers).
+  there, so only literals and constants, which "Literal patterns" already
+  covers).
 
 ## Membership in guards
 
@@ -407,8 +363,8 @@ Guards on patterns and comparisons of values are in v1 (see "Guards" and
 "Comparing values" in `spec-v1.md`). What is left:
 
 - **Membership**, `x in ys`: see "Membership in guards" above.
-- **Named constants**, such as `BatteryLowThreshold`: see "Literal patterns and named constants"
-  above.
+- **Named constants**, such as `BatteryLowThreshold`: done, see "Named
+  constants" in `spec-v1.md`.
 - **Arithmetic and calls**, such as `a + 1` (see "Arithmetic in
   targets", which defines the expression language) or `further(p, b)`, and
   whether guards share the predicate language of the dependent type
