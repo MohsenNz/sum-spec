@@ -1,0 +1,41 @@
+-- Bare binding: Head(#n) is Head(T#n), where T is what Head holds.
+__atomics { Int = __int  Text = __text  Reason  TagId }
+__events { retry report nested next pick wide input sum }
+
+__init :: App
+
+App = Attempts * Link * Outer * Tags * Primary * Note * Retries
+Attempts = Int
+Retries = Int
+Link = Off | Failed Reason | Named Inner
+Inner = Int
+Outer = Inner
+Tag = Text
+Tags = [Tag by TagId]
+Primary = Gps
+Gps = NoFix | Fix3D
+Note = Text
+
+-- A newtype: n is an Int, so it sets a part of type Int.
+retry :: App => Attempts(#n) // n < 3 -> Retries(n)
+
+-- A variant carrying one type.
+report :: Link.Failed(#r) -> Link.Failed(r)
+
+-- A newtype of a newtype binds the next value, Inner, and A(B(#n)) the Int.
+nested
+  :: App => Outer(#i) // i == i -> Link.Named(i)
+
+next :: App => Outer(Inner(#n)) // n > 0 -> Attempts(n)
+
+-- An element that isn't a product.
+pick TagId#id :: Tags[id](#t) -> Tags[id](t)
+
+-- Under a shared path, beside other parts, and named as a whole too.
+wide :: App => Attempts(#n)#a * Note // n != 1 -> a * Note'
+
+-- In the input.
+input Attempts(#n) :: App => Retries -> Retries(n)
+
+-- A newtype of a sum.
+sum :: App => Primary(#g) // g >= Gps.Fix3D -> Primary'

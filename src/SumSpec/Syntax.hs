@@ -221,6 +221,10 @@ data Pattern
   | -- | @P#x@: matches @P@ and names its value @x@. The name is the one
     -- after the @#@.
     PatternNamed Pattern Name
+  | -- | @#x@, the whole argument of @Head(#x)@: names the one value inside
+    -- @Head@ without writing its type. The checker reads it as the explicit
+    -- @Head(T#x)@.
+    PatternBound Name
   | -- | A pattern followed by a prime, @A'@: a new value, set by the
     -- transition. The position is the prime's. The parser accepts a prime
     -- after any pattern; the checker allows it only on a bare type name on

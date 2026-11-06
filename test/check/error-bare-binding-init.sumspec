@@ -1,0 +1,9 @@
+-- The initial state takes no input, so it names no value.
+__atomics { Int = __int }
+__events { go }
+
+__init :: Attempts(#n)
+
+Attempts = Int
+
+go :: Attempts -> Attempts'

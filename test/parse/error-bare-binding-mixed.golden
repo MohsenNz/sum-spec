@@ -1,0 +1,6 @@
+test/parse/error-bare-binding-mixed.sumspec:10:14:
+   |
+10 | go :: App(#n * Count) -> App(Count')
+   |              ^
+unexpected '*'
+expecting ')'

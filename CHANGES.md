@@ -30,6 +30,10 @@ release" in `VERSIONING.md`).
   It is a value, not a type: never a factor, payload, pattern, input or
   list element. It shares its name space with the types. The overlap
   warning reads a constant as its value.
+- Bare binding: `Head(#n)` names the one value inside a newtype, a
+  variant carrying one type or an element that isn't a product, without
+  writing its type. `Attempts(#n)` means `Attempts(Int#n)`, and all the
+  rules for names apply. A newtype of a newtype binds the next value.
 - Comparisons in guards: `== != < <= > >=` between a name the
   transition binds, a literal (integer `15`, decimal `1.5`, string
   `"abc"`) and a variant (`GPSFix.Fix3D`). Two values compare only if

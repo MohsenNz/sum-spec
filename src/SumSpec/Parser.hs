@@ -280,7 +280,7 @@ pattern = do
   withNaming (foldl (flip PatternPrimed) base primes)
 
 -- type_pattern = path , [ element_key ] ,
---                [ "(" , pattern , { "*" , pattern } , ")" ]
+--                [ "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ]
 --              | "[" , type_term , "]" ;
 typePattern :: Parser Pattern
 typePattern =
@@ -289,9 +289,11 @@ typePattern =
     , do
         names <- path
         key <- optional elementKey
-        args <- option [] (parens (sepBy1 pattern (symbol "*")))
+        args <- option [] (parens (bound <|> sepBy1 pattern (symbol "*")))
         pure (maybe (PatternPath names args) (\k -> PatternElement names k args) key)
     ]
+  where
+    bound = pure . PatternBound <$> naming
 
 -- element_key = "[" , LOWER , "]" ;
 elementKey :: Parser Name

@@ -53,6 +53,9 @@ checkSpec file source spec =
   sortOn (position . errorPos) . nubOrdOn key $
     concat
       [ checkHeaders spec
+      , concatMap
+          (checkBoundHeads env)
+          (map snd rawInits <> concatMap eventPatterns rawEvents)
       , checkInit file env inits
       , checkTypeDefs env typeDefs
       , checkConsts env consts
@@ -65,7 +68,9 @@ checkSpec file source spec =
       , warnOverlaps env transitions
       , warnSuffixSpaces
           source
-          (inputs <> concat [[from, to] | Flat _ _ from to _ <- transitions])
+          ( mapMaybe eventInput rawEvents
+              <> concat [[from, to] | Flat _ _ from to _ <- concatMap flatten rawEvents]
+          )
       ]
   where
     position pos = (unPos (sourceLine pos), unPos (sourceColumn pos))
@@ -74,10 +79,12 @@ checkSpec file source spec =
     key e = (position (errorPos e), errorSeverity e == Error, errorMessage e)
     typeDefs = [d | DefType d <- specDefinitions spec]
     consts = [c | DefConst c <- specDefinitions spec]
-    events = [e | DefEvent e <- specDefinitions spec]
+    rawEvents = [e | DefEvent e <- specDefinitions spec]
+    rawInits = [(k, p) | DefInit k p <- specDefinitions spec]
+    -- Every check but the spacing warning reads @Head(#n)@ as @Head(T#n)@.
+    events = map (elaborateEvent env) rawEvents
     transitions = concatMap flatten events
-    inputs = mapMaybe eventInput events
-    inits = [(k, p) | DefInit k p <- specDefinitions spec]
+    inits = [(k, elaborate env p) | (k, p) <- rawInits]
     -- The type of every state: the head type of the initial state.
     root = case inits of
       (_, p) : _ | isKnownType env (patternKey p) -> Just (patternKey p)
@@ -204,6 +211,7 @@ checkInit file env inits = case inits of
         ]
       PatternPath _ args -> concatMap initValues args
       PatternList _ _ -> []
+      PatternBound _ -> []
     -- Drops what 'initValues' reports, so it isn't reported again.
     withoutValues = \case
       PatternPath names args ->
@@ -440,6 +448,7 @@ warnSuffixSpaces source patterns =
       PatternElement _ _ args -> concatMap suffixes args
       PatternList _ _ -> []
       PatternName _ -> []
+      PatternBound _ -> []
     -- The @#@ is right before the name: no space can go between them.
     hashPos n =
       let pos = namePos n
@@ -517,6 +526,7 @@ checkNewStatePrimes from to
         concatMap (go (at <> [elementSegment h key]) new) args
       PatternList _ _ -> []
       PatternName _ -> []
+      PatternBound _ -> []
 
 -- | The variant positions a pattern writes: each variant of a dotted path,
 -- at every depth.
@@ -533,6 +543,7 @@ fixedVariants = go []
       PatternNamed p _ -> go at p
       PatternList _ _ -> Set.empty
       PatternName _ -> Set.empty
+      PatternBound _ -> Set.empty
 
 -- | Each variant of the path @h.V1.V2@ at @at@: its position, and the path
 -- up to it as written (@h.V1@).
@@ -601,6 +612,7 @@ checkListPlaces defs inits transitions =
       PatternNamed p _ -> patternLists p
       PatternPrimed _ p -> patternLists p
       PatternName _ -> []
+      PatternBound _ -> []
 
 -- | The names a transition gives, with their types: in its input and on
 -- its source side.
@@ -621,6 +633,7 @@ namings = \case
   PatternPrimed _ p -> namings p
   PatternList _ _ -> []
   PatternName _ -> []
+  PatternBound _ -> []
 
 -- | The keys of the element paths in a pattern (@id@ in @Todos[id]@).
 elementKeys :: Pattern -> [Name]
@@ -631,6 +644,7 @@ elementKeys = \case
   PatternPrimed _ p -> elementKeys p
   PatternList _ _ -> []
   PatternName _ -> []
+  PatternBound _ -> []
 
 -- | Where names may be given: once each, in the input or on the source
 -- side, and only to a type pattern. On the target side a name is only
@@ -654,14 +668,17 @@ checkNamings input from to =
     <> [ errorAt n "an element can't be named yet; name its parts instead"
        | (PatternElement {}, n) <- concatMap named (maybe [] pure input <> [from])
        ]
-  where
-    named = \case
-      PatternNamed p n -> (p, n) : named p
-      PatternPath _ args -> concatMap named args
-      PatternElement _ _ args -> concatMap named args
-      PatternPrimed _ p -> named p
-      PatternList _ _ -> []
-      PatternName _ -> []
+
+-- | Every @P#x@ in a pattern, as @P@ and @x@.
+named :: Pattern -> [(Pattern, Name)]
+named = \case
+  PatternNamed p n -> (p, n) : named p
+  PatternPath _ args -> concatMap named args
+  PatternElement _ _ args -> concatMap named args
+  PatternPrimed _ p -> named p
+  PatternList _ _ -> []
+  PatternName _ -> []
+  PatternBound _ -> []
 
 -- | The side of a transition a pattern is on: the source is a
 -- precondition, the target is the effect.
@@ -696,6 +713,7 @@ checkPrimes side = \case
   PatternNamed p _ -> checkPrimes side p
   PatternList _ _ -> []
   PatternName _ -> []
+  PatternBound _ -> []
 
 -- | What a position in a pattern stands for: a type or a variant, with a
 -- label for messages (@Page.Plan@) and the type expression its path and
@@ -713,6 +731,136 @@ typeNode env name = case Map.lookup name (envTypes env) of
     | Map.member name (envAtomics env) -> Just (Node name Nothing)
     | otherwise -> Nothing
 
+-- ---------- Bare bindings ----------
+
+-- | What @#n@ finds in the parentheses after a head.
+data Bound
+  = -- | One value, of this type.
+    BoundValue Name
+  | -- | No single value; the message says why.
+    BoundNothing (Name -> Text)
+  | -- | The head doesn't resolve, which 'checkPattern' reports.
+    BoundUnresolved
+
+-- | What a type or a variant holds. A newtype holds its base, so a newtype
+-- of a newtype binds the next value, not the innermost.
+nodeBound :: Node -> Bound
+nodeBound node = case nodeBody node of
+  Just (TypeTerm (TermName base)) -> BoundValue base
+  Just (TypeTerm (TermList _ _)) ->
+    BoundNothing $ \n ->
+      label
+        <> " is a list type, so it holds no single value; write "
+        <> label
+        <> "#"
+        <> nameText n
+  Just (TypeSum _) ->
+    BoundNothing $ \_ ->
+      label <> " is a sum, so it holds no single value; pick a variant with \".\""
+  Just (TypeProduct factors) ->
+    BoundNothing $ \n ->
+      label
+        <> " holds several parts, so #"
+        <> nameText n
+        <> " can't bind them; name a part, such as "
+        <> label
+        <> "("
+        <> T.concat (take 1 (map termKey factors))
+        <> "#"
+        <> nameText n
+        <> ")"
+  Nothing ->
+    BoundNothing $ \n ->
+      label <> " holds no value inside it; write " <> label <> "#" <> nameText n
+  where
+    label = nodeLabel node
+
+-- | What @#n@ finds after a path.
+pathBound :: Env -> NonEmpty Name -> Bound
+pathBound env (h :| path) = case typeNode env (nameText h) of
+  Just node | Right (end, _) <- resolve env node h path -> nodeBound end
+  _ -> BoundUnresolved
+
+-- | What @#n@ finds after an element path. Like the arguments of an
+-- element (see 'checkElement'), it is a product's factors, or else one
+-- value of the element type.
+elementBound :: Env -> NonEmpty Name -> Name -> Bound
+elementBound env (h :| path) key = case nodeBody <$> typeNode env (nameText h) of
+  Just (Just (TypeTerm (TermList element (Just _))))
+    | null path -> case element of
+        TermName e
+          | Just body@(TypeProduct _) <- Map.lookup (nameText e) (envTypes env) ->
+              nodeBound (Node label (Just body))
+          | otherwise -> BoundValue e
+        TermList _ _ -> nodeBound (Node label (Just (TypeTerm element)))
+  _ -> BoundUnresolved
+  where
+    label = nameText h <> "[" <> nameText key <> "]"
+
+-- | Reads @Head(#n)@ as @Head(T#n)@, where @T@ is what @Head@ holds, so no
+-- other check needs to know the short form. A head that holds no single
+-- value is reported by 'checkBoundHeads'; it becomes @Head#n@, so that @n@
+-- is still a name and its uses aren't reported too.
+elaborate :: Env -> Pattern -> Pattern
+elaborate env = \case
+  PatternPath names [PatternBound n] -> case pathBound env names of
+    BoundValue base -> PatternPath names [explicit base n]
+    _ -> PatternNamed (PatternPath names []) n
+  PatternElement names key [PatternBound n] -> case elementBound env names key of
+    BoundValue base -> PatternElement names key [explicit base n]
+    _ -> PatternElement names key []
+  PatternPath names args -> PatternPath names (map (elaborate env) args)
+  PatternElement names key args -> PatternElement names key (map (elaborate env) args)
+  PatternNamed p n -> PatternNamed (elaborate env p) n
+  PatternPrimed pos p -> PatternPrimed pos (elaborate env p)
+  p -> p
+  where
+    explicit base n = PatternNamed (PatternPath (Name (namePos n) (nameText base) :| []) []) n
+
+elaborateEvent :: Env -> Event -> Event
+elaborateEvent env event =
+  event
+    { eventInput = elaborate env <$> eventInput event
+    , eventTransitions = transition <$> eventTransitions event
+    }
+  where
+    transition t =
+      t
+        { transitionFrom = elaborate env <$> transitionFrom t
+        , transitionGuard = guard <$> transitionGuard t
+        , transitionTo = elaborate env <$> transitionTo t
+        }
+    guard = \case
+      GuardPattern p -> GuardPattern (elaborate env p)
+      g@(GuardCompare {}) -> g
+      GuardNot g -> GuardNot (guard g)
+      GuardAnd gs -> GuardAnd (guard <$> gs)
+      GuardOr gs -> GuardOr (guard <$> gs)
+
+-- | Every pattern written in an event.
+eventPatterns :: Event -> [Pattern]
+eventPatterns (Event _ input transitions) =
+  maybeToList input
+    <> concat
+      [ NE.toList from <> foldMap guardPatterns guard <> NE.toList to
+      | Transition _ from guard to <- NE.toList transitions
+      ]
+
+-- | @Head(#n)@ needs a head that holds one value.
+checkBoundHeads :: Env -> Pattern -> [CheckError]
+checkBoundHeads env = \case
+  PatternPath names [PatternBound n] -> report n (pathBound env names)
+  PatternElement names key [PatternBound n] -> report n (elementBound env names key)
+  PatternPath _ args -> concatMap (checkBoundHeads env) args
+  PatternElement _ _ args -> concatMap (checkBoundHeads env) args
+  PatternNamed p _ -> checkBoundHeads env p
+  PatternPrimed _ p -> checkBoundHeads env p
+  _ -> []
+  where
+    report n = \case
+      BoundNothing why -> [errorAt n (why n)]
+      _ -> []
+
 -- | The names a transition gives, with the type of each.
 type Names = Map Text Text
 
@@ -725,6 +873,7 @@ checkPattern env names = \case
   PatternPrimed _ inner -> checkPattern env names inner
   PatternNamed inner _ -> checkPattern env names inner
   PatternName n -> [unknownName n | nameText n `Map.notMember` names]
+  PatternBound _ -> []
   PatternList term key -> checkTerm env (TermList term key)
   PatternPath (h :| path) args -> case typeNode env (nameText h) of
     Nothing -> [unknownType env h]
@@ -1075,6 +1224,7 @@ nameUses = \case
   PatternElement _ k args -> k : concatMap nameUses args
   PatternPrimed _ p -> nameUses p
   PatternList _ _ -> []
+  PatternBound _ -> []
 
 -- | A variant, named by the type it belongs to and the path to it
 -- (@PMode.ShowMission.List@). Variants are named by type, not by where
@@ -1134,6 +1284,7 @@ reach env names fixed = goPattern []
       PatternPrimed _ p -> anyOf (patternKey p)
       PatternNamed p _ -> goPattern at fill p
       PatternName n -> maybe mempty anyOf (Map.lookup (nameText n) names)
+      PatternBound _ -> mempty
       PatternList _ _ -> mempty
       PatternPath (h :| path) args ->
         typeOnly (nameText h)
@@ -1555,6 +1706,12 @@ checkGuards :: Env -> [Flat] -> [CheckError]
 checkGuards env transitions =
   concat
     [ concatMap (atom names from) (guardPatterns g)
+        <> [ errorAt n $
+               "a guard binds no value, so #"
+                 <> nameText n
+                 <> " names nothing; name the value in the input or on the source side"
+           | (_, n) <- concatMap named (guardPatterns g)
+           ]
         <> concat [checkComparison env names op l r | (op, l, r) <- guardComparisons g]
     | t@(Flat _ _ from _ (Just g)) <- transitions
     , let names = transitionNameMap t
@@ -1825,6 +1982,7 @@ patternHead = \case
   PatternPrimed _ p -> patternHead p
   PatternNamed p _ -> patternHead p
   PatternName n -> n
+  PatternBound n -> n
 
 -- | The type a pattern is headed by: its first name, or its list type.
 -- A prime or a naming doesn't change it: @A'@ and @A#x@ are headed by
@@ -1837,6 +1995,7 @@ patternKey = \case
   PatternPrimed _ p -> patternKey p
   PatternNamed p _ -> patternKey p
   PatternName n -> nameText n
+  PatternBound n -> nameText n
 
 -- | The factor an argument stands for: 'patternKey', or for a name the
 -- type of the value it names ('Nothing' for an unknown name).

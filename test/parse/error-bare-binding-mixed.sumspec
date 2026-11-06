@@ -1,0 +1,10 @@
+-- #n is the whole argument, so nothing goes beside it.
+__atomics { Int = __int }
+__events { go }
+
+__init :: App
+
+App = Int * Count
+Count = Int
+
+go :: App(#n * Count) -> App(Count')

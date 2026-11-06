@@ -1,6 +1,6 @@
 -- Guards that break the rules.
 __atomics { A }
-__events { wider element list unknown arguments }
+__events { wider element list unknown arguments named }
 
 __init :: App(Page.Home)
 
@@ -17,3 +17,4 @@ element :: App => Page.Home // Files[i](Kind.Text) -> Page.Plan
 list :: Page.Home // [File] -> Page.Plan
 unknown :: App => Page.Home // Missing -> Page.Plan
 arguments :: App => Page.Home // Page.Home(A) -> Page.Devices
+named Id#i :: App => Page.Home // Files[i](Kind#k) -> Page.Plan

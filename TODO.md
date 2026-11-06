@@ -86,8 +86,9 @@ update before any code:
         set of literals or "any"; a warning only when a source literal
         is never given to the type. Needs literals and arithmetic in
         targets first.
-- [ ] Bare binding (`Attempts(#n)`: bind the value inside a newtype or a
-      single-type payload; see `spec/proposals.md`).
+- [x] Bare binding (`Attempts(#n)`): in v1 (see "Bare binding" in
+      `spec/spec-v1.md`).
 - [ ] Membership in guards (`i in ids`; see `spec/proposals.md`).
 - [ ] Arithmetic in targets, and in guards with the same expression
       language (see "Arithmetic in targets" in `spec/proposals.md`).
+- [ ] add arithmetic for named value on targets

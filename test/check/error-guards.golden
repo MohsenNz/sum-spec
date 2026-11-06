@@ -28,3 +28,9 @@ test/check/error-guards.sumspec:19:39:
    |                                       ^
 Page.Home takes no arguments
 
+test/check/error-guards.sumspec:20:49:
+   |
+20 | named Id#i :: App => Page.Home // Files[i](Kind#k) -> Page.Plan
+   |                                                 ^
+a guard binds no value, so #k names nothing; name the value in the input or on the source side
+

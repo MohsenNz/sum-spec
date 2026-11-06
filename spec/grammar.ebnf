@@ -163,13 +163,16 @@ input         = type_pattern , [ NAMING ] ;
    (see "Named values" in spec-v1.md):
      Todo(id * RowMode.Editing(EditText(Text#e)))
      Todo(Title(e) * RowMode.Viewing)
+   NAMING as the whole argument names the one value inside the head,
+   without writing its type (see "Bare binding" in spec-v1.md):
+     Attempts(#n)        means  Attempts(Int#n)
    An element_key after a path picks one element of a list type by key
    (see "Element paths" in spec-v1.md):
      Projects[p](Todos[t](Completion.Active))                           *)
 pattern       = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
 
 type_pattern  = path , [ element_key ] ,
-                [ "(" , pattern , { "*" , pattern } , ")" ]
+                [ "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ]
               | "[" , type_term , [ "by" , UPPER ] , "]" ;
 
 element_key   = "[" , LOWER , "]" ;
@@ -295,8 +298,9 @@ character     = ? any Unicode character ? ;
      with the shared paths around it: it describes the same type as the
      source, so with no shared path it is headed by the source's type. It
      binds no value (the grammar has no naming, prime or lowercase name
-     there), may use a name the transition binds, and is not a list. See
-     "Guards" in spec-v1.md;
+     at its top, and a naming in its arguments is an error), may use a
+     name the transition binds, and is not a list. See "Guards" in
+     spec-v1.md;
    - a comparison has two sides of one type, or a value and a literal or
      variant that fits it. A name is a value the transition binds, and
      its type resolves through newtypes to an atomic with a base
@@ -309,6 +313,10 @@ character     = ? any Unicode character ? ;
      (name against name). "not", "and" and "or" are not value names in
      a guard. A constant stands for its value, with the type it names.
      See "Comparing values" in spec-v1.md;
+   - Head(#n) needs a head that holds one value: a newtype, a variant
+     carrying one type, or an element that isn't a product. It means
+     Head(T#n), where T is that type, and every rule for names applies
+     to it. See "Bare binding" in spec-v1.md;
    - a prime goes only on a bare type name, at most once, and only on
      the target side, outside a new state (a variant the source doesn't
      fix, as Plan in Page -> Page.Plan(PMode')). See "Source and target"

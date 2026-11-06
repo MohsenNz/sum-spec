@@ -1,0 +1,9 @@
+-- #n is one token: no space between # and the name.
+__atomics { Int = __int }
+__events { go }
+
+__init :: Count
+
+Count = Int
+
+go :: Count(# n) -> Count'

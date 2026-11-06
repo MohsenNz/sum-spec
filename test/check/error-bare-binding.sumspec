@@ -1,0 +1,34 @@
+-- Bare bindings that break the rules.
+__atomics { Int = __int  Text = __text  TagId  Reason }
+__events { product payload sum inline list atomic bare element target guard twice unknown badpath type use }
+
+__init :: App
+
+App = Attempts * Footer * Link * Gps * Tags * Rows * Reason
+Attempts = Int
+Footer = Attempts * Reason
+Link = Off | Wide (Attempts * Reason) | Inline (Off | On) | Named Attempts
+Gps = NoFix | Fix3D
+Tags = [Reason by TagId]
+Row = Attempts * Reason
+Rows = [Row by TagId]
+
+product :: App => Footer(#f) -> Footer'
+payload :: Link.Wide(#w) -> Link.Off
+sum :: App => Gps(#g) -> Gps'
+inline :: Link.Inline(#x) -> Link.Off
+list :: App => Tags(#t) -> Tags'
+atomic :: App => Reason(#r) -> Reason'
+bare :: Link.Off(#o) -> Link.Off
+element TagId#id :: Rows[id](#r) -> Rows[id](Attempts')
+target :: App => Attempts -> Attempts(#n)
+guard :: App => Attempts // Attempts(#n) and n > 1 -> Attempts'
+twice :: App => Attempts(#n) * Link.Named(#n) -> Attempts'
+unknown :: App => Missing(#m) -> Attempts'
+badpath :: Link.Nope(#m) -> Link.Off
+
+-- The type of the name is the type Head holds.
+type :: App => Attempts(#n) -> Link.Named(n)
+
+-- A name after an invalid head is still a name.
+use :: App => Footer(#f) -> f

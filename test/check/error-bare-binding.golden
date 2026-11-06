@@ -1,0 +1,96 @@
+test/check/error-bare-binding.sumspec:16:27:
+   |
+16 | product :: App => Footer(#f) -> Footer'
+   |                           ^
+Footer holds several parts, so #f can't bind them; name a part, such as Footer(Attempts#f)
+
+test/check/error-bare-binding.sumspec:17:23:
+   |
+17 | payload :: Link.Wide(#w) -> Link.Off
+   |                       ^
+Link.Wide holds several parts, so #w can't bind them; name a part, such as Link.Wide(Attempts#w)
+
+test/check/error-bare-binding.sumspec:18:20:
+   |
+18 | sum :: App => Gps(#g) -> Gps'
+   |                    ^
+Gps is a sum, so it holds no single value; pick a variant with "."
+
+test/check/error-bare-binding.sumspec:19:24:
+   |
+19 | inline :: Link.Inline(#x) -> Link.Off
+   |                        ^
+Link.Inline is a sum, so it holds no single value; pick a variant with "."
+
+test/check/error-bare-binding.sumspec:20:22:
+   |
+20 | list :: App => Tags(#t) -> Tags'
+   |                      ^
+Tags is a list type, so it holds no single value; write Tags#t
+
+test/check/error-bare-binding.sumspec:21:26:
+   |
+21 | atomic :: App => Reason(#r) -> Reason'
+   |                          ^
+Reason holds no value inside it; write Reason#r
+
+test/check/error-bare-binding.sumspec:22:19:
+   |
+22 | bare :: Link.Off(#o) -> Link.Off
+   |                   ^
+Link.Off holds no value inside it; write Link.Off#o
+
+test/check/error-bare-binding.sumspec:23:31:
+   |
+23 | element TagId#id :: Rows[id](#r) -> Rows[id](Attempts')
+   |                               ^
+Rows[id] holds several parts, so #r can't bind them; name a part, such as Rows[id](Attempts#r)
+
+test/check/error-bare-binding.sumspec:24:40:
+   |
+24 | target :: App => Attempts -> Attempts(#n)
+   |                                        ^
+a value is named only in the input or on the source side; on the target side, write the name alone: n
+
+test/check/error-bare-binding.sumspec:25:39:
+   |
+25 | guard :: App => Attempts // Attempts(#n) and n > 1 -> Attempts'
+   |                                       ^
+a guard binds no value, so #n names nothing; name the value in the input or on the source side
+
+test/check/error-bare-binding.sumspec:25:46:
+   |
+25 | guard :: App => Attempts // Attempts(#n) and n > 1 -> Attempts'
+   |                                              ^
+unknown name n; name a value with #n in the input or on the source side
+
+test/check/error-bare-binding.sumspec:26:44:
+   |
+26 | twice :: App => Attempts(#n) * Link.Named(#n) -> Attempts'
+   |                                            ^
+n is named twice in this transition
+
+test/check/error-bare-binding.sumspec:27:19:
+   |
+27 | unknown :: App => Missing(#m) -> Attempts'
+   |                   ^
+Missing is not a factor of App (Attempts * Footer * Link * Gps * Tags * Rows * Reason)
+
+test/check/error-bare-binding.sumspec:28:17:
+   |
+28 | badpath :: Link.Nope(#m) -> Link.Off
+   |                 ^
+Nope is not a variant of Link
+
+test/check/error-bare-binding.sumspec:31:43:
+   |
+31 | type :: App => Attempts(#n) -> Link.Named(n)
+   |                                           ^
+n has type Int, but Attempts is expected here
+
+test/check/error-bare-binding.sumspec:34:23:
+   |
+34 | use :: App => Footer(#f) -> f
+   |                       ^
+Footer holds several parts, so #f can't bind them; name a part, such as Footer(Attempts#f)
+

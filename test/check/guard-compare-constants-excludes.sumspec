@@ -1,7 +1,7 @@
 -- Comparisons with constants exclude each other like the literals they
 -- stand for: no overlap warning.
 __atomics { Percent = __float  Count = __int  Name = __text }
-__events { drain step pick fix label wrapped }
+__events { drain step pick fix label wrapped short }
 
 __init :: App
 
@@ -41,3 +41,7 @@ label Name#n
 wrapped
   :: App => Primary(Gps#g) // g >= MinFix -> Primary'
   :: App => Primary(Gps#g) // g < MinFix -> Primary'
+
+short
+  :: App => Primary(#g) // g >= MinFix -> Primary'
+  :: App => Primary(#g) // g < MinFix -> Primary'

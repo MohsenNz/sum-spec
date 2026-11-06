@@ -95,13 +95,13 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
 
 addTodo
   :: App
-  => Screen.NoTodos * NewTodo.Typing(Text#t)
-  // t != ""
+  => Screen.NoTodos * NewTodo.Typing(#text)
+  // text != ""
   -> Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank
 
   :: App
-  => Screen.WithTodos * NewTodo.Typing(Text#t)
-  // t != ""
+  => Screen.WithTodos * NewTodo.Typing(#text)
+  // text != ""
   -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank
 
 toggleTodo TodoId#id 
@@ -111,10 +111,10 @@ toggleTodo TodoId#id
 toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
           :: ToggleAll.AllDone -> ToggleAll.NotAllDone
 
-startEditing TodoId#id :: Todos[id] => Title(Text#t) * RowMode.Viewing
-                                    -> RowMode.Editing(EditText(t))
+startEditing TodoId#id :: Todos[id] => Title(#title) * RowMode.Viewing
+                                    -> RowMode.Editing(EditText(title))
 
-finishEditing TodoId#id :: Todos[id] => RowMode.Editing(EditText(Text#e))
+finishEditing TodoId#id :: Todos[id] => RowMode.Editing(EditText(#e))
                                      -> Title(e) * RowMode.Viewing
 
 cancelEditing TodoId#id :: Todos[id] => RowMode.Editing -> RowMode.Viewing

@@ -1,0 +1,6 @@
+test/parse/error-bare-binding-spaced.sumspec:9:14:
+  |
+9 | go :: Count(# n) -> Count'
+  |              ^
+unexpected space
+expecting name right after #

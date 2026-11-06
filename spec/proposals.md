@@ -189,7 +189,6 @@ patterns exist.
 Open:
 
 - Arithmetic in targets, `Count(c + 1)`: see "Arithmetic in targets".
-- Bare binding, `Attempts(#n)`: see "Bare binding".
 
 ## Arithmetic in targets
 
@@ -235,7 +234,7 @@ inner value or to the whole type:
 
 | Source | Type of the name | Target that uses it |
 |---|---|---|
-| `Attempts(Int#n)` | `Int`, the wrapped type | `Attempts(n + 1)` |
+| `Attempts(Int#n)`, or `Attempts(#n)` | `Int`, the wrapped type | `Attempts(n + 1)` |
 | `Attempts#attm` | `Attempts`, the whole type | `(attm + 1)` |
 
 - `Head(expr)`: `expr` has the type `Head` wraps, the same rule as
@@ -456,51 +455,3 @@ Version impact: additive.
 
 `L[x]#t` names the element, with the element type (`Todo`), not the
 list type. Not allowed yet.
-
-## Bare binding `(#n)`
-
-Version impact: additive.
-
-`Head(#n)` binds the one value inside `Head` to the name `n`, without
-naming its type. Today the type is written: `Head(Type#n)`.
-
-    Attempts = Int
-
-    retry :: App => Link.Failed * Attempts(#n)
-                 -> Link.Connecting * Attempts(n + 1)
-
-`Attempts(#n)` is `Attempts(Int#n)`, so `n` has the type `Int`, the type
-`Attempts` wraps. It builds on named values (see "Named values" in
-`spec-v1.md`).
-
-Rules:
-
-- Allowed where the parentheses hold exactly one thing:
-  - a newtype: `Attempts(#n)` binds the wrapped value;
-  - a variant whose payload is one type: `NewTodo.Typing(#t)` is
-    `NewTodo.Typing(Text#t)`.
-- An error where they hold several parts or no single value: a product
-  (`Footer(#f)`), a variant whose payload is a product
-  (`WithTodos(#x)`), a sum or a list head. The checker asks for explicit
-  parts.
-- A newtype of a newtype binds the next value, not the innermost: with
-  `A = B` and `B = Int`, `A(#n)` gives `n : B`. To get the `Int`, write
-  `A(B(#n))`.
-- `#` right after `(` starts no other form (a pattern starts with a type
-  name), so one token of lookahead decides.
-- The bound name is used as any named value: in a guard, or in a target
-  (`Attempts(n + 1)`, see `literal-patterns.md`, question 13).
-
-The three ways to fill the same parentheses:
-
-| Form | Meaning |
-|---|---|
-| `Attempts(0)` | the value is 0 (a literal pattern) |
-| `Attempts(#n)` | bind the value |
-| `Attempts(n + 1)` | set the value (a target expression) |
-
-Gain: the inner type is not repeated, and a spec still reads if
-`Attempts` later wraps another type.
-
-Cost: the source no longer shows the type of `n`. A reader looks at the
-definition, and a wrong use is caught only by the checker.

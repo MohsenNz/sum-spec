@@ -119,6 +119,7 @@ renderPattern = \case
   PatternList term key -> renderList term key
   PatternName name -> nameText name
   PatternNamed p name -> renderPattern p <> "#" <> nameText name
+  PatternBound name -> "#" <> nameText name
   PatternPrimed _ p -> renderPattern p <> "'"
   where
     renderPath = T.intercalate "." . map nameText . NE.toList

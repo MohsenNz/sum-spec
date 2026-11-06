@@ -1,0 +1,6 @@
+test/check/error-bare-binding-init.sumspec:5:21:
+  |
+5 | __init :: Attempts(#n)
+  |                     ^
+the initial state takes no input, so it names no value; remove #n
+

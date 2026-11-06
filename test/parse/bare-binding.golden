@@ -1,0 +1,21 @@
+__atomics {
+  Int = __int
+  Reason
+}
+
+__events {
+  retry
+  fail
+  nested
+}
+
+__init :: App
+App = Attempts * Link * Outer
+Attempts = Int
+Link = Off | Failed Reason
+Inner = Int
+Outer = Inner
+Tags = [Reason by Int]
+retry :: App => Attempts(#n) * Link.Failed(#r) -> Attempts(n) * Link.Off
+fail Attempts(#n) :: Link.Off -> Link.Off
+nested :: App(Outer(Inner(#n))) -> App(Outer')

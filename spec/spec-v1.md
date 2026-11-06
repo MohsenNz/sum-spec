@@ -265,7 +265,7 @@ goToAircraft :: App
 - A guard starts with `//` and is built from patterns with `not`, `and`, `or` and parentheses. `not` binds tighter than `and`, and `and` tighter than `or`. These are words only here; elsewhere they are ordinary lowercase names.
 - A guard is read where the source is. After a shared path (`App =>`), a pattern in the guard is an argument of the innermost shared path, written like the source's arguments: `not AircraftLink.Disconnected` above is `not App(AircraftLink.Disconnected)`. Without a shared path, a pattern in the guard describes the same type as the source (`Page.Home // not Page.Plan`).
 - So a local transition sees only its own part of the state. To look at a wider part, start the transition with a shared path that holds both: `App => ...`. To look at the other parts of one list element, start it with the element path: `Files[p] => Kind.Text // Flag.On -> Kind.Binary`.
-- A guard is a condition on the source. A pattern in it may use a name the transition binds in its input or source, as an element path does: `drop Id#p :: App => Page.Home // Files[p](Kind.Text) -> Page.Plan`.
+- A guard is a condition on the source. A pattern in it may use a name the transition binds in its input or source, as an element path does: `drop Id#p :: App => Page.Home // Files[p](Kind.Text) -> Page.Plan`. It names no value: `#x` in a guard is an error, so name the value in the input or on the source side.
 - A condition that is one variant of a sum is often better written in the source as a positive pattern. `not AircraftLink.Disconnected` is the same as `AircraftLink.Connected` there. Use a guard for what a source cannot say: a negation across several parts (`not (A and B)`), or an `or` across them.
 
 ```
@@ -300,7 +300,7 @@ startMission :: App
   | an atomic with no base | none (name against name only) | `==` `!=` |
 
 - A sum without payloads is **ordered by the order of its variants, the first being the smallest**: with `GPSFix = NoFix | Fix2D | Fix3D | DGPS | RTKFix`, `g >= GPSFix.Fix3D` holds for `Fix3D`, `DGPS` and `RTKFix`. Reordering its variants changes what a guard means, so keep the order meaningful once a guard compares it.
-- A variant has the type of its sum, so a newtype of that sum doesn't compare with it directly. Name the base value inside the newtype instead: with `Primary = GPSFix`, write `Primary(GPSFix#g) // g >= GPSFix.Fix3D`.
+- A variant has the type of its sum, so a newtype of that sum doesn't compare with it directly. Name the base value inside the newtype instead: with `Primary = GPSFix`, write `Primary(GPSFix#g) // g >= GPSFix.Fix3D`, or `Primary(#g)` for short (see "Bare binding").
 - `not`, `and` and `or` can't be value names in a guard.
 - A comparison reads the values the transition binds; it binds none. A guard still only restricts.
 
@@ -431,6 +431,23 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
 
 A name says which value; a prime says only that the value is new.
 `Title'` is some new title, and `Title(e)` is the title `e`.
+
+### Bare binding
+
+`Head(#n)` names the one value inside `Head` without writing its type. It means `Head(T#n)`, where `T` is the type `Head` holds, and every rule for names applies to it:
+
+```
+Attempts = Int
+NewTodo  = Blank | Typing Text
+
+bump   :: App => Attempts(#n) // n < 3 -> Attempts'
+submit :: NewTodo.Typing(#t) -> NewTodo.Blank
+```
+
+- `Head` holds one value when it is a newtype (`Attempts(#n)` is `Attempts(Int#n)`), a variant carrying one type (`NewTodo.Typing(#t)` is `NewTodo.Typing(Text#t)`), or an element that isn't a product (`Tags[id](#t)` with `Tags = [Tag by TagId]`).
+- It is an error on a head with several parts or no single value: a product, a variant carrying a product, a sum, a list type, an atomic or a variant without a payload.
+- A newtype of a newtype binds the next value, not the innermost: with `A = B` and `B = Int`, `A(#n)` gives `n` the type `B`. To reach the `Int`, write `A(B(#n))`.
+- `#n` is the whole argument: `Head(#n * C)` is a syntax error. Write `Head(T#n * C)`.
 
 ## List
 
