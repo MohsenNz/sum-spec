@@ -67,6 +67,9 @@ update before any code:
       checked, arguments opaque.
 - [ ] Argument kinds for annotations (`@unless <pattern>`), and checking
       `@default` and `@range` (see proposals.md).
+- [ ] Core and UI specs: `__import`, qualified names, UI events that
+      dispatch core events (`>>`) or react to them (see "Core and UI
+      specs" in `spec/proposals.md`).
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
 - [ ] Several events with one transition (`g, h :: Y -> Z`).

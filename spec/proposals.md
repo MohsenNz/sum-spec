@@ -49,6 +49,99 @@ from `Page.Home`).
 An atomic takes no annotations: a type that needs `@default` or `@range`
 is a newtype of it.
 
+## Core and UI specs
+
+Version impact: additive. A spec without an import reads as it does
+today.
+
+An application has a core (the domain: its data, commands and
+occurrences) and a UI (pages, modes, forms). They are two specs, and the
+UI depends on the core, never the other way round. The core is the
+source of truth and is complete on its own; the UI is its own small view
+state plus a view of the core.
+
+The alternatives fail:
+
+- One spec for both (as `temp` does): view state (`Page`, `PMode`) sits
+  in the domain, drawing annotations crowd it, and `@from` and `@edits`
+  exist only to copy core data into the view. The core can't serve a CLI,
+  an API or a second UI.
+- Two independent specs: nothing checks that the UI shows fields the
+  core has, or fires events the core defines, so they drift.
+
+### Import
+
+The UI imports the core in a header block, and names everything the core
+declares with a qualifier. Its root holds the core's root as a factor;
+products are keyed by type, so this is an ordinary product:
+
+    __import core "drone-core.sumspec"
+
+    App  = View * core.App
+    View = Home | Plan PlanView | Failure
+
+### Three kinds of UI event
+
+- **View-only**: it changes only the UI's own state.
+
+      goToPlan :: App => View.Home -> View.Plan
+
+- **Dispatching**: a UI transition fires a core event, and both happen as
+  one step. The core event is named after the target:
+
+      startClicked :: App => View.Plan -> View.Flight  >> core.startFlight
+
+- **Reaction**: the UI adds view changes to a core event, often an
+  occurrence, by giving transitions for its name. They happen with the
+  core's transition, as one step:
+
+      core.flightFailed :: App => View.Flight -> View.Failure
+
+### Reading the core
+
+UI sources and guards may match the core's state through its root, so the
+UI reads core data instead of copying it:
+
+    retryClicked :: App => View.Failure * core.App(core.Flight.Failed)
+                        -> View.Plan  >> core.retry
+
+This replaces most `@from`. `@edits` becomes a form that holds a draft in
+the view, and submitting it dispatches a core event with the draft as the
+input.
+
+### Checker rules
+
+- A UI transition never changes a core type: no core type goes on the
+  target side of a UI transition. Core state changes only through core
+  events.
+- A qualified name is one the import declares; a dispatched core event,
+  and a core event with reactions, exists in the core.
+- The core spec checks on its own, with no knowledge of the UI.
+- Warning: a dispatching transition whose source can hold in a state
+  where the dispatched core event can't happen (none of its sources
+  matches the core part).
+- Warning: a core command that no UI transition dispatches.
+
+### Relations
+
+- "Two events with the same transition": `startClicked, core.startFlight
+  ::` could also say "these happen together", but the UI would restate the
+  core's change. `>>` keeps the core's change written once, in the core.
+- `@announce` and `@stream` become annotations on reactions, and
+  `@control` stays on dispatching and view-only transitions.
+
+Open:
+
+- How the core marks occurrences (from the system or the world) apart
+  from commands (from a user), for the "never dispatched" warning.
+- Whether one transition may dispatch several core events, and in which
+  order.
+- Import paths, several imports, and renaming (`as`); an import cycle is
+  an error.
+- An input on a dispatched event: how the UI passes a value it binds
+  (`>> core.select(id)`).
+- Splitting `example/drone` into a core and a UI to try it.
+
 ## Checking `@default` and `@range`
 
 Version impact: additive.
