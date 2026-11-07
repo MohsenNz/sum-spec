@@ -4,8 +4,6 @@
 humans and AI agents edit it and approve each other's
 changes, and agents generate the application from it.**
 
-SumSpec is a small language for an application's specification. .
-
 ## The idea
 
 In AI agents era, spec-driven development has become popular more and more:
@@ -17,7 +15,7 @@ rename missed a paragraph.
 
 SumSpec keeps the workflow and changes the spec. The specification is
 written in a type-safe language instead of human language, You
-describe specification in [algebraic data type](https://en.wikipedia.org/wiki/Algebraic_data_type) and
+describe the application in [algebraic data type](https://en.wikipedia.org/wiki/Algebraic_data_type) and
 transitions ([finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine))
 
 **For example we describe the git: Git's file life cycle:**
