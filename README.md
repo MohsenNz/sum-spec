@@ -40,7 +40,7 @@ add Path#p
   => FileState.{Untracked | Modified | StagedAndModified} -> FileState.Staged
 ```
 
-**We can describe UI too**, for example I gave this to Opus 4.5 and it generates the below design in [Penpot](https://penpot.app/?utm_red=g&utm_group=&gad_source=1&gad_campaignid=23620085724) (open-source Figma alternative) for me:
+**We can describe UI too**, for example I gave this to Opus 4.5 and it generates the below design in [Penpot](https://penpot.app/?utm_red=g&utm_group=&gad_source=1&gad_campaignid=23620085724) for me:
 
 ```haskell
 App = Map * Plots * NewPlot
@@ -238,7 +238,7 @@ To build it, run the tests, or contribute, see
 
 ## Vibe Coded vs Human Revised
 
-The files that fully vibe coded (no human revised) vs human revised files:
+The files that are human revised vs fully vibe coded:
 
 | File                      | Human Revised
 |---------------------------|--------------
@@ -254,4 +254,4 @@ The files that fully vibe coded (no human revised) vs human revised files:
 | `./spec/grammar.ebnf`     | Partial
 | `./test/parse/*`          | Partial
 
-Every thing else is vibe coded without human revised today.
+Every thing else today is vibe coded without human revised.
