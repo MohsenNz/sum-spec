@@ -1,0 +1,30 @@
+-- Membership: unkeyed and keyed lists, a newtype of a list, and each left side.
+__atomics { Id  Percent = __float  Name = __text  TodoId  Tag }
+__events { select unselect literal variant constant newtype item key missing input }
+
+__init :: App
+
+App = Ids * Names * Fixes * Levels * Todos * Alias * Tags * Labels
+Ids = [Id]
+Names = [Name]
+Fixes = [Fix]
+Fix = NoFix | Fix3D
+Min = Fix.Fix3D
+Levels = [Percent]
+Low = Percent(15)
+Todo = Name * Id
+Todos = [Todo by TodoId]
+Alias = Ids
+Tags = [Tag]
+Labels = [Name by TodoId]
+
+select Id#i :: App => Ids#ids // not (i in ids) -> Ids'
+unselect Id#i :: App => Ids#ids // i in ids -> Ids'
+literal :: App => Names#ns // "main" in ns -> Names'
+variant :: App => Fixes#fs // Fix.Fix3D in fs -> Fixes'
+constant :: App => Levels#ls // Low in ls or 1.5 in ls -> Levels'
+newtype Id#i :: App => Alias#a // i in a -> Alias'
+item Name#n :: App => Labels#ls // n in ls -> Labels'
+key TodoId#k :: App => Ids // Todos[k] -> Ids'
+missing TodoId#k :: App => Ids // not Todos[k] -> Ids'
+input Tag#t :: App => Tags#ts // t in ts -> Tags'

@@ -88,7 +88,10 @@ update before any code:
         targets first.
 - [x] Bare binding (`Attempts(#n)`): in v1 (see "Bare binding" in
       `spec/spec-v1.md`).
-- [ ] Membership in guards (`i in ids`; see `spec/proposals.md`).
+- [x] Membership in guards (`i in ids`): in v1 (see "Membership" in
+      `spec/spec-v1.md`).
+- [ ] Equality on every type (`==` and `!=` on products, lists and sums
+      with payloads; see `spec/proposals.md`).
 - [ ] Arithmetic in targets, and in guards with the same expression
       language (see "Arithmetic in targets" in `spec/proposals.md`).
 - [ ] add arithmetic for named value on targets

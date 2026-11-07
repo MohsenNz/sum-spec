@@ -129,14 +129,20 @@ conjunction   = negation , { "and" , negation } ;
 negation      = "not" , negation
               | "(" , predicate , ")"
               | comparison
+              | membership
               | type_pattern ;
 
 (* A comparison of two values (see "Comparing values" in spec-v1.md). A
    path is a variant, Type.Variant, or a single name, a named constant.
-   A path with no CMP after it is a type_pattern, not an operand:
+   A path with no CMP or "in" after it is a type_pattern, not an operand:
      c <= 15        g >= GPSFix.Fix3D        n != "main"
      c <= BatteryLowThreshold                                           *)
 comparison    = operand , CMP , operand ;
+
+(* A value is in a list value (see "Membership" in spec-v1.md). "in" is a
+   word only here, like "not":
+     i in ids        not (i in ids)          "main" in names             *)
+membership    = operand , "in" , LOWER ;
 
 operand       = LOWER | literal | path ;
 
@@ -310,9 +316,13 @@ character     = ? any Unicode character ? ;
      __float, a decimal only a __float, a string only a __text, and a
      variant a value of its sum. < <= > >= need a number or an
      enumeration; == and != also take text and an atomic with no base
-     (name against name). "not", "and" and "or" are not value names in
-     a guard. A constant stands for its value, with the type it names.
+     (name against name). "not", "and", "or" and "in" are not value names
+     in a condition. A constant stands for its value, with the type it names.
      See "Comparing values" in spec-v1.md;
+   - x in ys: ys is a name whose type resolves through newtypes to a
+     list type, keyed or not. x has its element type, which == must
+     compare; a literal fits as in a comparison. A key is tested with an
+     element path. See "Membership" in spec-v1.md;
    - Head(#n) needs a head that holds one value: a newtype, a variant
      carrying one type, or an element that isn't a product. It means
      Head(T#n), where T is that type, and every rule for names applies
@@ -353,9 +363,10 @@ character     = ? any Unicode character ? ;
    - a transition that can never happen: its source writes a variant
      that is never reached, or its type is one no state holds;
    - two transitions of one event, on the same type, whose sources can
-     match the same state (no part of them picks different variants) and
+     match the same state (no part of them picks different variants, and
+     two element paths are one element only if their keys have one name) and
      whose guards can hold in the same state (a guard is compared by the
-     variants it requires and forbids, and by the comparisons of a name
-     with a literal or variant).
+     variants it requires and forbids, by the comparisons of a name with
+     a literal or variant, and by its memberships and element paths).
 
    Not in v1 (see proposals.md): "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)

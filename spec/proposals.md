@@ -278,56 +278,6 @@ Open:
   there, so only literals and constants, which "Literal patterns" already
   covers).
 
-## Membership in guards
-
-Version impact: additive.
-
-`x in ys` holds when the value `x` is an element of the list value `ys`.
-It is a condition like a comparison, and `not`, `and`, `or` combine it with
-the others. `in` is a word only in a guard, like `not`.
-
-    Ids = [Id]
-
-    select   Id#i :: App => Ids#ids // not (i in ids) -> Ids'
-    unselect Id#i :: App => Ids#ids // i in ids       -> Ids'
-
-Both sides are values the transition binds (`Id#i` in the input, `Ids#ids`
-on the source side), so a guard still binds nothing.
-
-Rules:
-
-- The right side is a name whose type is a list type (`Ids = [Id]`,
-  `Todos = [Todo by TodoId]`).
-- The left side is a name of the list's element type, or a literal that
-  fits it. The element type is one that `==` compares: a number, text, an
-  enumeration or an atomic.
-- For a keyed list, `[T by K]`, the left side has the key type `K`, and
-  `k in ts` holds when an element has that key. A source can already say
-  that an element exists (`Todos[k]`, see "Element paths" in
-  `spec-v1.md`); `not (k in ts)` says that it does not, which a pattern
-  cannot.
-- A list of products has no whole-element value to compare with. Key it by
-  the part that identifies an element (`EdgeMargins = [EdgeMargin by
-  Edge]`), and `e in ms` tests the key.
-
-What it would replace in a real spec (`temp.sumspec`, Parvaz Agro), where a
-comment now only admits it ("disabled for an edge with no EdgeMargin; spec
-cannot say it"):
-
-    edgeMarginReset ... EdgePick.Selected(Edge#e) * EdgeMargins#ms
-      // e in ms
-      -> ...
-
-Open:
-
-- The overlap warning: the checker should take the same `x in ys` as true in
-  one guard and false in the other (`i in ids` and `not (i in ids)`) to
-  exclude each other. Any other membership may hold.
-- Whether the left side may be a literal, and a form for "some element
-  satisfies a comparison", which this does not give.
-- Whether a list value can be named at all where it sits inside a list of
-  lists.
-
 ## Prelude
 
 Version impact: additive.
@@ -361,7 +311,9 @@ Version impact: additive.
 Guards on patterns and comparisons of values are in v1 (see "Guards" and
 "Comparing values" in `spec-v1.md`). What is left:
 
-- **Membership**, `x in ys`: see "Membership in guards" above.
+- **Membership**, `x in ys`: done, see "Membership" in `spec-v1.md`. A form
+  for "some element satisfies a comparison" is still open, and so is testing a
+  key of a list given as an input (an element path reads the list in the state).
 - **Named constants**, such as `BatteryLowThreshold`: done, see "Named
   constants" in `spec-v1.md`.
 - **Arithmetic and calls**, such as `a + 1` (see "Arithmetic in
@@ -455,3 +407,56 @@ Version impact: additive.
 
 `L[x]#t` names the element, with the element type (`Todo`), not the
 list type. Not allowed yet.
+
+## Equality on every type
+
+Version impact: additive.
+
+`==` and `!=` compare two values of any one type, by structure: the same
+variant and equal parts. `<`, `<=`, `>` and `>=` stay as they are, for numbers
+and enumerations, since a product or a list has no natural order.
+
+    Box   = Id * Name
+    Boxes = [Box]
+
+    add    Box#b :: App => Boxes#bs // not (b in bs) -> Boxes'
+    change Box#a :: App => Box#b // a != b -> Box'
+
+Today a product, a list and a sum with payloads don't compare (see "Comparing
+values" in `spec-v1.md`), so these are errors and no spec changes meaning.
+
+Why: every type is built from sums, products, lists and atomics, so equality
+has a clear meaning for all of them; an atomic with no base already compares
+name against name. `in` then works on any list, and its error for an element
+`==` can't compare goes away.
+
+Rules:
+
+- Two values still compare only if they have the same type: `Meters` and
+  `Seconds` do not, and neither do two products with the same factors.
+- Two values of a product are equal when every factor is equal.
+- Two values of a sum are equal when they are the same variant with equal
+  payloads.
+- Two values of a list `[T]` are equal when they have the same items in the same
+  order.
+- Two values of a keyed list `[T by K]` are equal when they have the same keys
+  with equal elements, in any order: the key identifies an element, so a keyed
+  list compares as a map.
+- A key is not part of the element, so `t in ts` on a keyed list compares only
+  the items, and two elements with different keys can be equal items.
+- A variant with a payload has no form as a value, so a sum with payloads
+  compares name against name, or with a variant without a payload
+  (`x == Shape.Square`).
+
+Cost: it overturns the rule "test it with a pattern", which makes a spec say
+which part matters. `t1 == t2` tells a reader and a code generator less than a
+comparison of the part that counts. Every code generator also needs deep
+equality.
+
+The overlap warning needs no change: a comparison of two names is unknown, so
+it may hold. `x == Shape.Square` could be read as a constraint later.
+
+Open:
+
+- Whether a decimal inside a product compares as it does alone, with the
+  target's own float equality.

@@ -164,6 +164,8 @@ data Guard
     GuardPattern Pattern
   | -- | @left op right@: a comparison of two values. See 'Operand'.
     GuardCompare CompareOp Operand Operand
+  | -- | @x in ys@: the value @x@ is in the list named @ys@.
+    GuardIn Operand Name
   | GuardNot Guard
   | GuardAnd (NonEmpty Guard)
   | GuardOr (NonEmpty Guard)

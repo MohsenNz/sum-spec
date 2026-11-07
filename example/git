@@ -113,10 +113,11 @@ commit
   -- so the checker warns that this doesn't say which file.
   :: FileState.Staged -> FileState.Unmodified
 
-switch 
+switch BranchName#b
   :: Repository.Initialized
   => Operation.Idle
-  -> Head.OnBranch * Files'
+  // Branches[b]
+  -> Head.OnBranch(b) * Files'
 
 checkoutCommit
   :: Repository.Initialized

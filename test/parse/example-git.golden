@@ -48,7 +48,7 @@ restore Path#p :: Files[p] => FileState.Modified -> FileState.Unmodified
 commit :: Repository.Initialized => Head.Unborn * Operation.Idle -> Head.OnBranch * Branches' * Files'
        :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Branches' * Files'
        :: FileState.Staged -> FileState.Unmodified
-switch :: Repository.Initialized => Operation.Idle -> Head.OnBranch * Files'
+switch BranchName#b :: Repository.Initialized => Operation.Idle // Branches[b] -> Head.OnBranch(b) * Files'
 checkoutCommit :: Repository.Initialized => Operation.Idle -> Head.Detached * Files'
 merge :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Branches' * Files'
       :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Files' * Operation.Merging

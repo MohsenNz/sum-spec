@@ -1,0 +1,6 @@
+test/parse/error-guard-in-right.sumspec:10:31:
+   |
+10 | go Id#i :: App => Ids // i in Ids -> Ids'
+   |                               ^
+unexpected 'I'
+expecting value name

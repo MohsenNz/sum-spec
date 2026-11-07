@@ -30,6 +30,15 @@ release" in `VERSIONING.md`).
   It is a value, not a type: never a factor, payload, pattern, input or
   list element. It shares its name space with the types. The overlap
   warning reads a constant as its value.
+- Membership in guards: `x in ys` holds when a value is an item of a list
+  value, and `not (x in ys)` when it isn't. The right side is a name of a
+  list type, keyed or not; the left side is a name, a literal, a variant
+  or a constant of the element type. A key is tested with an element
+  path: `// Todos[k]` and `// not Todos[k]`. The overlap warning takes
+  the same membership or element path, true and false, to exclude each
+  other, and two element paths with differently named keys can pick
+  different elements, so they no longer exclude each other. `in`, like `not`, `and` and `or`, is now refused as a value name
+  in a condition.
 - Bare binding: `Head(#n)` names the one value inside a newtype, a
   variant carrying one type or an element that isn't a product, without
   writing its type. `Attempts(#n)` means `Attempts(Int#n)`, and all the

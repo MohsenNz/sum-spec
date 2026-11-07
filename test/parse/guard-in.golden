@@ -1,0 +1,18 @@
+__atomics {
+  Id
+  Name = __text
+  Int = __int
+}
+
+__events {
+  go
+}
+
+__init :: App
+App = Ids * Names * Fixes
+Ids = [Id]
+Names = [Name]
+Fixes = [Fix]
+Fix = NoFix | Fix3D
+Min = Fix.Fix3D
+go Id#i :: App => Ids#ids * Names#ns * Fixes#fs // i in ids and not "main" in ns or Fix.Fix3D in fs and Min in fs or 3 in ns -> Ids'

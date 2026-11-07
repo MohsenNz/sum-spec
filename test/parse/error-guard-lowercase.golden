@@ -3,4 +3,4 @@ test/parse/error-guard-lowercase.sumspec:10:22:
 10 | go :: Page.Home // x -> Page.Plan
    |                      ^^
 unexpected "->"
-expecting comparison operator
+expecting "in" or comparison operator

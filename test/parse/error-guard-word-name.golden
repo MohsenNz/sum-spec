@@ -1,0 +1,6 @@
+test/parse/error-guard-word-name.sumspec:10:31:
+   |
+10 | go Int#and :: App => Count // and == 1 -> Count'
+   |                               ^^^
+unexpected "and"
+expecting "not", '"', '(', '-', '[', digit, or type or variant name

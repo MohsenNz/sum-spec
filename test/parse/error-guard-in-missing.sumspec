@@ -1,0 +1,10 @@
+-- "in" needs a list after it.
+__atomics { Id }
+__events { go }
+
+__init :: App
+
+App = Ids
+Ids = [Id]
+
+go Id#i :: App => Ids // i in -> Ids'

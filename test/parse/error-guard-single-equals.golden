@@ -3,4 +3,4 @@ test/parse/error-guard-single-equals.sumspec:10:22:
 10 | go :: Page.Home // x = 3 -> Page.Plan
    |                      ^^
 unexpected "= "
-expecting comparison operator
+expecting "in" or comparison operator

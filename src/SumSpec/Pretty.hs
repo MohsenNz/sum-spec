@@ -74,6 +74,7 @@ renderGuard = \case
       GuardNot inner -> "not " <> renderNegated inner
       GuardPattern p -> renderPattern p
       GuardCompare op l r -> renderOperand l <> " " <> compareWord op <> " " <> renderOperand r
+      GuardIn l ys -> renderOperand l <> " in " <> nameText ys
       guard -> "(" <> renderGuard guard <> ")"
 
 renderOperand :: Operand -> Text

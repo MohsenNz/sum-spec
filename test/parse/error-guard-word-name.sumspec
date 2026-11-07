@@ -1,0 +1,10 @@
+-- The words of a guard are not value names in a condition.
+__atomics { Int = __int }
+__events { go }
+
+__init :: App
+
+App = Count
+Count = Int
+
+go Int#and :: App => Count // and == 1 -> Count'

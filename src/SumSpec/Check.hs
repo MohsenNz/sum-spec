@@ -340,6 +340,7 @@ expandGuard :: [Shared] -> Guard -> Guard
 expandGuard paths = \case
   GuardPattern p -> GuardPattern (expand paths (p :| []))
   g@(GuardCompare {}) -> g
+  g@(GuardIn {}) -> g
   GuardNot g -> GuardNot (expandGuard paths g)
   GuardAnd gs -> GuardAnd (fmap (expandGuard paths) gs)
   GuardOr gs -> GuardOr (fmap (expandGuard paths) gs)
@@ -646,6 +647,17 @@ elementKeys = \case
   PatternName _ -> []
   PatternBound _ -> []
 
+-- | The element paths in a pattern, as the list type and the key.
+elementPaths :: Pattern -> [(Text, Name)]
+elementPaths = \case
+  PatternElement (h :| _) k args -> (nameText h, k) : concatMap elementPaths args
+  PatternPath _ args -> concatMap elementPaths args
+  PatternNamed p _ -> elementPaths p
+  PatternPrimed _ p -> elementPaths p
+  PatternList _ _ -> []
+  PatternName _ -> []
+  PatternBound _ -> []
+
 -- | Where names may be given: once each, in the input or on the source
 -- side, and only to a type pattern. On the target side a name is only
 -- used, to set a value.
@@ -833,6 +845,7 @@ elaborateEvent env event =
     guard = \case
       GuardPattern p -> GuardPattern (elaborate env p)
       g@(GuardCompare {}) -> g
+      g@(GuardIn {}) -> g
       GuardNot g -> GuardNot (guard g)
       GuardAnd gs -> GuardAnd (guard <$> gs)
       GuardOr gs -> GuardOr (guard <$> gs)
@@ -1447,8 +1460,9 @@ variantNames defs =
 -- can match both sources: no part of the sources picks different
 -- variants. The spec doesn't say which one happens (gap 5 in
 -- spec/efsm-gaps.md). Transitions on different types describe effects
--- on different parts, so they aren't compared. Names are ignored, so two
--- element paths are taken to pick the same element. Warns once per
+-- on different parts, so they aren't compared. Two element paths pick the
+-- same element when their keys have the same name; with different names
+-- they may pick different elements, so they exclude nothing. Warns once per
 -- transition, naming the first one it overlaps.
 warnOverlaps :: Env -> [Flat] -> [CheckError]
 warnOverlaps env transitions =
@@ -1472,14 +1486,7 @@ warnOverlaps env transitions =
         && patternKey from == patternKey other
         && not (excludes (variantsOf from) (variantsOf other))
         && guardsMayHold env (transitionNameMap t, g) (transitionNameMap u, h)
-    variantsOf = positionsOf
-
--- | The variant positions a pattern writes, with an element's key left out:
--- two element paths are taken to pick the same element.
-positionsOf :: Pattern -> Set Position
-positionsOf = Set.map (map dropKey) . fixedVariants
-  where
-    dropKey segment = T.takeWhile (/= '[') segment
+    variantsOf = fixedVariants
 
 -- | Two sets of variant positions exclude each other when a variant of one
 -- and a variant of the other are at the same place and differ: their
@@ -1497,8 +1504,20 @@ excludes a b =
 -- | A guard in disjunctive form is a list of clauses, one of which must
 -- hold. A clause holds in a state that has all the variants it requires,
 -- matches none of the patterns it forbids (each given by the variants it
--- fixes), and satisfies its comparisons.
-data Clause = Clause (Set Position) [Set Position] [Constraint]
+-- fixes), satisfies its comparisons, and has its memberships true or false
+-- as marked.
+data Clause = Clause (Set Position) [Set Position] [Constraint] [(Member, Bool)]
+
+-- | What a guard says is in a list, to tell whether two guards can hold
+-- together. As for a 'Constraint', two transitions that use the same name
+-- with the same type are taken to mean the same value.
+data Member
+  = -- | @x in ys@: the left side, as a name with its type or as its value,
+    -- then the list's name and type.
+    ItemOf (Either (Text, Text) Value) (Text, Text)
+  | -- | @L[k]@: the key's name and type, then the list type.
+    KeyOf (Text, Text) Text
+  deriving stock (Eq)
 
 -- | A comparison of a named value with a literal or a variant, kept to tell
 -- whether two guards can hold together. A value is told apart by its name
@@ -1518,25 +1537,41 @@ guardClauses :: Env -> Names -> Guard -> [Clause]
 guardClauses env names = positive
   where
     positive = \case
-      GuardPattern p -> [Clause (positionsOf p) [] []]
-      GuardCompare op l r -> [Clause Set.empty [] (constraint op l r)]
+      GuardPattern p -> [Clause (fixedVariants p) [] [] [(m, True) | m <- keysOf p]]
+      GuardCompare op l r -> [Clause Set.empty [] (constraint op l r) []]
+      GuardIn l ys -> [Clause Set.empty [] [] (membership True l ys)]
       GuardNot g -> negative g
       GuardAnd gs -> foldr1 bothClauses (map positive (NE.toList gs))
       GuardOr gs -> concatMap positive (NE.toList gs)
     -- The clauses of @not g@, by De Morgan. The negation of a comparison is
     -- the opposite comparison.
     negative = \case
-      GuardPattern p -> [Clause Set.empty [positionsOf p] []]
-      GuardCompare op l r -> [Clause Set.empty [] (constraint (negateOp op) l r)]
+      -- A pattern with an element path also fails when the element is
+      -- missing, whatever it says of the element's variants.
+      GuardPattern p -> case (Set.null (fixedVariants p), keysOf p) of
+        (True, ms@(_ : _)) -> map missing ms
+        (_, ms) -> Clause Set.empty [fixedVariants p] [] [] : map missing ms
+      GuardCompare op l r -> [Clause Set.empty [] (constraint (negateOp op) l r) []]
+      GuardIn l ys -> [Clause Set.empty [] [] (membership False l ys)]
       GuardNot g -> positive g
       GuardAnd gs -> concatMap negative (NE.toList gs)
       GuardOr gs -> foldr1 bothClauses (map negative (NE.toList gs))
     constraint op l r = maybeToList (comparisonConstraint env names op l r)
+    membership holds l ys = [(m, holds) | m <- maybeToList (guardMember env names l ys)]
+    missing m = Clause Set.empty [] [] [(m, False)]
+    keysOf p =
+      [ KeyOf (nameText k, ty) list
+      | (list, k) <- elementPaths p
+      , Just ty <- [Map.lookup (nameText k) names]
+      ]
 
 -- | The clauses of @a and b@ from those of @a@ and of @b@.
 bothClauses :: [Clause] -> [Clause] -> [Clause]
 bothClauses xs ys =
-  [Clause (p <> q) (n <> m) (c <> d) | Clause p n c <- xs, Clause q m d <- ys]
+  [ Clause (p <> q) (n <> m) (c <> d) (a <> b)
+  | Clause p n c a <- xs
+  , Clause q m d b <- ys
+  ]
 
 negateOp :: CompareOp -> CompareOp
 negateOp = \case
@@ -1570,6 +1605,17 @@ comparisonConstraint env names op l r = case (l, r) of
       key <- Map.lookup (nameText n) names
       (domain, value) <- operandValue env (kindOf env key) other
       pure (Constraint (nameText n, key) domain o value)
+
+-- | A membership as a 'Member'. A left side or a list that isn't valid is
+-- unknown, so it may hold.
+guardMember :: Env -> Names -> Operand -> Name -> Maybe Member
+guardMember env names l ys = do
+  key <- Map.lookup (nameText ys) names
+  element <- listBody env key >>= memberType
+  left <- case l of
+    OperandName n -> Left . (nameText n,) <$> Map.lookup (nameText n) names
+    _ -> Right . snd <$> operandValue env (kindOf env element) l
+  pure (ItemOf left (nameText ys, key))
 
 -- | The value a literal or a variant stands for, when it fits the kind of
 -- the value it is compared with.
@@ -1676,16 +1722,19 @@ consistent cs = all holds (Map.elems grouped)
 -- | Whether two guards can hold in one state. No guard always holds. Two
 -- clauses can hold together unless the variants they require pick
 -- different variants of one place, one forbids a pattern whose variants
--- the other already requires, or their comparisons leave no value. It
--- does not notice that several forbidden patterns together can cover every
+-- the other already requires, their comparisons leave no value, or one
+-- membership is both true and false. It does not notice that several forbidden patterns together can cover every
 -- variant of a place, so it may find an overlap that is not one.
 guardsMayHold :: Env -> (Names, Maybe Guard) -> (Names, Maybe Guard) -> Bool
 guardsMayHold env (names1, g) (names2, h) =
   any satisfiable (bothClauses (clausesOf names1 g) (clausesOf names2 h))
   where
-    clausesOf names = maybe [Clause Set.empty [] []] (guardClauses env names)
-    satisfiable (Clause p n cs) =
-      not (excludes p p) && all (not . (`Set.isSubsetOf` p)) n && consistent cs
+    clausesOf names = maybe [Clause Set.empty [] [] []] (guardClauses env names)
+    satisfiable (Clause p n cs ms) =
+      not (excludes p p)
+        && all (not . (`Set.isSubsetOf` p)) n
+        && consistent cs
+        && and [(m, not holds) `notElem` ms | (m, holds) <- ms]
 
 -- ---------- Guards ----------
 
@@ -1714,6 +1763,7 @@ checkGuards env transitions =
            | (_, n) <- concatMap named (guardPatterns g)
            ]
         <> concat [checkComparison env names op l r | (op, l, r) <- guardComparisons g]
+        <> concat [checkMembership env names l ys | (l, ys) <- guardMemberships g]
     | t@(Flat _ _ from _ (Just g)) <- transitions
     , let names = transitionNameMap t
     ]
@@ -1741,6 +1791,7 @@ guardPatterns :: Guard -> [Pattern]
 guardPatterns = \case
   GuardPattern p -> [p]
   GuardCompare {} -> []
+  GuardIn {} -> []
   GuardNot g -> guardPatterns g
   GuardAnd gs -> concatMap guardPatterns (NE.toList gs)
   GuardOr gs -> concatMap guardPatterns (NE.toList gs)
@@ -1749,9 +1800,19 @@ guardComparisons :: Guard -> [(CompareOp, Operand, Operand)]
 guardComparisons = \case
   GuardPattern _ -> []
   GuardCompare op l r -> [(op, l, r)]
+  GuardIn {} -> []
   GuardNot g -> guardComparisons g
   GuardAnd gs -> concatMap guardComparisons (NE.toList gs)
   GuardOr gs -> concatMap guardComparisons (NE.toList gs)
+
+guardMemberships :: Guard -> [(Operand, Name)]
+guardMemberships = \case
+  GuardPattern _ -> []
+  GuardCompare {} -> []
+  GuardIn l ys -> [(l, ys)]
+  GuardNot g -> guardMemberships g
+  GuardAnd gs -> concatMap guardMemberships (NE.toList gs)
+  GuardOr gs -> concatMap guardMemberships (NE.toList gs)
 
 -- | What a value is, as far as a comparison goes. A type resolves through
 -- newtypes to an atomic with a base, to a sum without payloads (an
@@ -1860,46 +1921,11 @@ checkComparison env names op l r =
     (Left e1, Left e2) -> e1 <> e2
     (Left e, _) -> e
     (_, Left e) -> e
-    (Right a, Right b) -> case relate a b of
+    (Right a, Right b) -> case relateSides a b of
       [] -> concatMap order [a, b]
       errors -> errors
   where
     ordering = op `elem` [OpLt, OpLe, OpGt, OpGe]
-    relate a b = case (sideType a, sideType b) of
-      (Just ta, Just tb)
-        | ta /= tb ->
-            [ errorAtPos (sideAt b) $
-                "cannot compare "
-                  <> sideText a
-                  <> " (a "
-                  <> ta
-                  <> ") with "
-                  <> sideText b
-                  <> " (a "
-                  <> tb
-                  <> "); they are different types"
-            ]
-      _ -> fits a b <> fits b a
-    -- A literal fits a value whose kind has that kind of literal.
-    fits typed lit = case (sideKind typed, sideKind lit) of
-      (OfType k, LiteralInt) | k `notElem` [KInt, KFloat] -> mismatch typed lit "the integer"
-      (OfType k, LiteralDecimal) | k /= KFloat -> mismatch typed lit "the decimal"
-      (OfType k, LiteralText) | k /= KText -> mismatch typed lit "the text"
-      (LiteralText, LiteralInt) -> literals typed lit
-      (LiteralText, LiteralDecimal) -> literals typed lit
-      (LiteralInt, LiteralText) -> literals typed lit
-      (LiteralDecimal, LiteralText) -> literals typed lit
-      _ -> []
-    mismatch typed lit what =
-      [ errorAtPos (sideAt lit) $
-          describeSide typed
-            <> ", so it can't be compared with "
-            <> what
-            <> " "
-            <> sideText lit
-      ]
-    literals a b =
-      [errorAtPos (sideAt b) ("cannot compare " <> sideText a <> " with " <> sideText b)]
     order side = case sideKind side of
       OfType k
         | ordering
@@ -1918,9 +1944,112 @@ checkComparison env names op l r =
                 "ordering needs a number or an enumeration, but this is text"
             ]
       _ -> []
-    describeSide side = case (sideType side, sideKind side) of
-      (Just ty, OfType k) -> sideText side <> " is a " <> ty <> " (" <> describeKind k <> ")"
-      _ -> sideText side
+
+-- | Whether two sides can be compared: they have one type, or a literal
+-- fits the other side.
+relateSides :: CmpSide -> CmpSide -> [CheckError]
+relateSides a b = case (sideType a, sideType b) of
+  (Just ta, Just tb)
+    | ta /= tb ->
+        [ errorAtPos (sideAt b) $
+            "cannot compare "
+              <> sideText a
+              <> " (a "
+              <> ta
+              <> ") with "
+              <> sideText b
+              <> " (a "
+              <> tb
+              <> "); they are different types"
+        ]
+  _ -> fits a b <> fits b a
+  where
+    -- A literal fits a value whose kind has that kind of literal.
+    fits typed lit = case (sideKind typed, sideKind lit) of
+      (OfType k, LiteralInt) | k `notElem` [KInt, KFloat] -> mismatch typed lit "the integer"
+      (OfType k, LiteralDecimal) | k /= KFloat -> mismatch typed lit "the decimal"
+      (OfType k, LiteralText) | k /= KText -> mismatch typed lit "the text"
+      (LiteralText, LiteralInt) -> literals typed lit
+      (LiteralText, LiteralDecimal) -> literals typed lit
+      (LiteralInt, LiteralText) -> literals typed lit
+      (LiteralDecimal, LiteralText) -> literals typed lit
+      _ -> []
+    mismatch typed lit what =
+      [ errorAtPos (sideAt lit) $
+          describeSide typed
+            <> ", so it can't be compared with "
+            <> what
+            <> " "
+            <> sideText lit
+      ]
+    literals x y =
+      [errorAtPos (sideAt y) ("cannot compare " <> sideText x <> " with " <> sideText y)]
+
+describeSide :: CmpSide -> Text
+describeSide side = case (sideType side, sideKind side) of
+  (Just ty, OfType k) -> sideText side <> " is a " <> ty <> " (" <> describeKind k <> ")"
+  _ -> sideText side
+
+-- | The list a type resolves to through newtypes: its element, and its key
+-- type if it has one.
+listBody :: Env -> Text -> Maybe (TypeTerm, Maybe Name)
+listBody env = go Set.empty
+  where
+    go seen name = case Map.lookup name (envTypes env) of
+      Just (TypeTerm (TermList element key)) -> Just (element, key)
+      Just (TypeTerm (TermName next))
+        | name `Set.notMember` seen -> go (Set.insert name seen) (nameText next)
+      _ -> Nothing
+
+-- | The type the left side of @x in ys@ has: the list's element, keyed or
+-- not. A list of lists has no such type.
+memberType :: (TypeTerm, Maybe Name) -> Maybe Text
+memberType = \case
+  (TermName element, _) -> Just (nameText element)
+  (TermList _ _, _) -> Nothing
+
+-- | @x in ys@: @ys@ is a name of a list type, and @x@ has its element type,
+-- which @==@ must compare. A key is tested with an element path instead.
+checkMembership :: Env -> Names -> Operand -> Name -> [CheckError]
+checkMembership env names l ys = case Map.lookup (nameText ys) names of
+  Nothing -> either id (const []) left <> [unknownName ys]
+  Just list -> case listBody env list of
+    Nothing ->
+      [ errorAt ys $
+          nameText ys <> " is a " <> list <> ", not a list, so nothing can be in it"
+      ]
+    Just body@(element, key)
+      | Just ty <- memberType body
+      , kindOf env ty /= KOther ->
+          either id (relateSides (side ty)) left
+      | otherwise ->
+          [ errorAt ys $
+              nameText ys
+                <> " is a list of "
+                <> termKey element
+                <> ", and a "
+                <> termKey element
+                <> " can't be compared with =="
+                <> advice
+          ]
+      where
+        elementIsList = maybe True (isJust . listBody env) (memberType body)
+        advice
+          | elementIsList = ""
+          | otherwise =
+              "; to test for an element, "
+                <> (if isJust key then "" else "give the list a key and ")
+                <> "use an element path, such as "
+                <> list
+                <> "[k]"
+  where
+    left = resolveSide env names l
+    side ty =
+      CmpSide
+        (namePos ys)
+        ("an element of " <> nameText ys)
+        (Just ty)
+        (OfType (kindOf env ty))
 
 -- ---------- Helpers ----------
 

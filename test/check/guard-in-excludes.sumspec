@@ -1,0 +1,41 @@
+-- The same membership, true in one guard and false in the other: no overlap.
+__atomics { Id  Percent = __float  Key }
+__events { toggle value constant keyed deep samekey samesource }
+
+__init :: App
+
+App = Ids * Levels * Todos
+Ids = [Id]
+Levels = [Percent]
+Todo = Id * Percent * Mode
+Mode = On | Off
+Todos = [Todo by Key]
+Low = Percent(15)
+
+toggle Id#i
+  :: App => Ids#ids // i in ids -> Ids'
+  :: App => Ids#ids // not (i in ids) -> Ids'
+
+value
+  :: App => Levels#ls // 15 in ls -> Levels'
+  :: App => Levels#ls // not (15.0 in ls) -> Levels'
+
+constant
+  :: App => Levels#ls // Low in ls -> Levels'
+  :: App => Levels#ls // not (15 in ls) -> Levels'
+
+keyed Key#k
+  :: App => Ids // Todos[k] -> Ids'
+  :: App => Ids // not Todos[k] -> Ids'
+
+deep Key#k
+  :: App => Levels#ls // Todos[k] and 1 in ls -> Levels'
+  :: App => Levels#ls // not (Todos[k] and 1 in ls) -> Levels'
+
+samekey Key#k
+  :: App => Levels // Todos[k](Mode.On) -> Levels'
+  :: App => Levels // Todos[k](Mode.Off) -> Levels'
+
+samesource Key#k
+  :: Todos[k](Mode.On) -> Todos[k](Mode.Off)
+  :: Todos[k](Mode.Off) -> Todos[k](Mode.On)

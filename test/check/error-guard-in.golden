@@ -1,0 +1,66 @@
+test/check/error-guard-in.sumspec:18:40:
+   |
+18 | notlist Id#i :: App => Count#c // i in c -> Count'
+   |                                        ^
+c is a Count, not a list, so nothing can be in it
+
+test/check/error-guard-in.sumspec:19:40:
+   |
+19 | unknownlist Id#i :: App => Ids // i in nope -> Ids'
+   |                                        ^
+unknown name nope; name a value with #nope in the input or on the source side
+
+test/check/error-guard-in.sumspec:20:34:
+   |
+20 | unknownleft :: App => Ids#ids // nope in ids -> Ids'
+   |                                  ^
+unknown name nope; name a value with #nope in the input or on the source side
+
+test/check/error-guard-in.sumspec:21:43:
+   |
+21 | wrongelement Other#o :: App => Ids#ids // o in ids -> Ids'
+   |                                           ^
+cannot compare an element of ids (a Id) with o (a Other); they are different types
+
+test/check/error-guard-in.sumspec:22:40:
+   |
+22 | wrongitem Key#k :: App => Labels#ls // k in ls -> Labels'
+   |                                        ^
+cannot compare an element of ls (a Name) with k (a Key); they are different types
+
+test/check/error-guard-in.sumspec:23:49:
+   |
+23 | keyedproducts Todo#t :: App => Todos#ts // t in ts -> Todos'
+   |                                                 ^
+ts is a list of Todo, and a Todo can't be compared with ==; to test for an element, use an element path, such as Todos[k]
+
+test/check/error-guard-in.sumspec:24:30:
+   |
+24 | literal :: App => Ids#ids // 3 in ids -> Ids'
+   |                              ^
+an element of ids is a Id (an atomic with no base), so it can't be compared with the integer 3
+
+test/check/error-guard-in.sumspec:25:31:
+   |
+25 | variant :: App => Names#ns // Missing.Value in ns -> Names'
+   |                               ^
+unknown type Missing; declare it in __atomics or define it
+
+test/check/error-guard-in.sumspec:26:43:
+   |
+26 | products Box#b :: App => Boxes#bs // b in bs -> Boxes'
+   |                                           ^
+bs is a list of Box, and a Box can't be compared with ==; to test for an element, give the list a key and use an element path, such as Boxes[k]
+
+test/check/error-guard-in.sumspec:27:38:
+   |
+27 | nested Id#i :: App => Nest#n // i in n -> Nest'
+   |                                      ^
+n is a list of Ids, and a Ids can't be compared with ==
+
+test/check/error-guard-in.sumspec:28:28:
+   |
+28 | text :: App => Names#ns // 3 in ns -> Names'
+   |                            ^
+an element of ns is a Name (a __text), so it can't be compared with the integer 3
+

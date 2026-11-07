@@ -266,6 +266,7 @@ goToAircraft :: App
 - A guard is read where the source is. After a shared path (`App =>`), a pattern in the guard is an argument of the innermost shared path, written like the source's arguments: `not AircraftLink.Disconnected` above is `not App(AircraftLink.Disconnected)`. Without a shared path, a pattern in the guard describes the same type as the source (`Page.Home // not Page.Plan`).
 - So a local transition sees only its own part of the state. To look at a wider part, start the transition with a shared path that holds both: `App => ...`. To look at the other parts of one list element, start it with the element path: `Files[p] => Kind.Text // Flag.On -> Kind.Binary`.
 - A guard is a condition on the source. A pattern in it may use a name the transition binds in its input or source, as an element path does: `drop Id#p :: App => Page.Home // Files[p](Kind.Text) -> Page.Plan`. It names no value: `#x` in a guard is an error, so name the value in the input or on the source side. It sets no value either, so a prime in a guard is an error too.
+- An element path in a guard tests a key: `// Todos[k]` holds when an element has the key `k`, and `// not Todos[k]` when none has. It reads the list in the state, so it can't test a list given as an input. The overlap warning takes `Todos[k]` and `not Todos[k]`, with the same name `k`, to exclude each other. Two element paths are the same element only when their keys have the same name, so `Todos[k](Mode.On)` and `Todos[j](Mode.Off)` can both hold, in a source or in a guard.
 - A condition that is one variant of a sum is often better written in the source as a positive pattern. `not AircraftLink.Disconnected` is the same as `AircraftLink.Connected` there. Use a guard for what a source cannot say: a negation across several parts (`not (A and B)`), or an `or` across them.
 
 ```
@@ -301,7 +302,7 @@ startMission :: App
 
 - A sum without payloads is **ordered by the order of its variants, the first being the smallest**: with `GPSFix = NoFix | Fix2D | Fix3D | DGPS | RTKFix`, `g >= GPSFix.Fix3D` holds for `Fix3D`, `DGPS` and `RTKFix`. Reordering its variants changes what a guard means, so keep the order meaningful once a guard compares it.
 - A variant has the type of its sum, so a newtype of that sum doesn't compare with it directly. Name the base value inside the newtype instead: with `Primary = GPSFix`, write `Primary(GPSFix#g) // g >= GPSFix.Fix3D`, or `Primary(#g)` for short (see "Bare binding").
-- `not`, `and` and `or` can't be value names in a guard.
+- `not`, `and`, `or` and `in` can't be value names in a condition.
 - A comparison reads the values the transition binds; it binds none. A guard still only restricts.
 
 #### Named constants
@@ -320,6 +321,23 @@ start      :: App => GPSFix#g                 // g >= MinimumFix         -> ...
 - A constant of a constant (`Low = BatteryLowThreshold`) is not allowed: that is a newtype of a constant, and a constant is not a type.
 
 The overlap warning reads a constant as the literal or variant it stands for: `c < Low` and `c >= 15` exclude each other when `Low` is `Percent(15)`.
+
+#### Membership
+
+`x in ys` holds when the value `x` is in the list value `ys`. It is a condition like a comparison, and `not`, `and` and `or` combine it with the others. `in` is a word only in a guard:
+
+```
+Ids = [Id]
+
+select   Id#i :: App => Ids#ids // not (i in ids) -> Ids'
+unselect Id#i :: App => Ids#ids // i in ids       -> Ids'
+```
+
+- The right side is a name whose type resolves through newtypes to a list type (keyed or not).
+- The left side is any side of a comparison: a name, a literal, a variant or a constant. It has the same type rules as `==`.
+- The left side has the element type, which must be a type `==` compares: a number, text, an enumeration or an atomic. `==` doesn't compare products or lists, so `in` can't test their items.
+- `in` always tests an item, also in a keyed list. To test a key, use an element path (see "Guards"): `Todos[k]`, or `not Todos[k]`.
+
 
 ### Several transitions for one event
 
@@ -625,3 +643,7 @@ Comparisons of a name with a literal or a variant count too: `c < 15` and `c >= 
 From `__init`, the type checker finds the variants the app can reach: a transition can happen once every variant its source writes has been reached, and its target then reaches the variants it writes. A part that may have any value (left out of `__init` or of a new state, or primed) reaches every variant inside it. The checker warns about a variant of a type inside the app's state that is never reached, and reports only the outermost one (not `Bolt` inside an unreached `Locked (Bolt | Chain)`). Parts of a source are tested one at a time and names are ignored, so a variant may be counted as reached when the app can't really get there, but never the other way around.
 
 A transition whose source writes a variant that is never reached, or whose type no state holds (a type outside the app's state), can never happen, and the type checker warns about it, naming the outermost variant its source needs. Such a transition also adds nothing, so what only it would reach is reported as never reached as well.
+
+### Membership Warnings
+
+The overlap warning takes the same membership, true in one guard and false in the other, to exclude each other: `i in ids` and `not (i in ids)`. Two left sides are the same when they are the same name of one type, or the same value (a constant is read as its value). Any other membership may hold, and a comparison says nothing about one.

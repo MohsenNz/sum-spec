@@ -1,0 +1,46 @@
+-- Memberships that can hold together.
+__atomics { Id  Percent = __float  Key }
+__events { both left list comparison keys variants positive sources }
+
+__init :: App
+
+App = Ids * Others * Levels * Id * Key * Todos
+Ids = [Id]
+Others = [Id]
+Levels = [Percent]
+Todo = Id * Mode
+Mode = On | Off
+Todos = [Todo by Key]
+
+both Id#i
+  :: App => Ids#ids // i in ids -> Ids'
+  :: App => Ids#ids // i in ids -> Ids'
+
+left Id#i
+  :: App => Ids#ids * Id#j // i in ids -> Ids'
+  :: App => Ids#ids * Id#j // not (j in ids) -> Ids'
+
+list Id#i
+  :: App => Ids#ids // i in ids -> Ids'
+  :: App => Others#ids // not (i in ids) -> Others'
+
+comparison
+  :: App => Levels#ls // 1 in ls -> Levels'
+  :: App => Levels#ls // not (2 in ls) -> Levels'
+
+-- Different keys: one element can exist while the other is missing.
+keys Key#k
+  :: App => Levels * Key#j // Todos[k] -> Levels'
+  :: App => Levels * Key#j // not Todos[j] -> Levels'
+
+variants Key#k
+  :: App => Levels * Key#j // Todos[k](Mode.On) -> Levels'
+  :: App => Levels * Key#j // not Todos[j](Mode.On) -> Levels'
+
+positive Key#k
+  :: App => Levels * Key#j // Todos[k](Mode.On) -> Levels'
+  :: App => Levels * Key#j // Todos[j](Mode.Off) -> Levels'
+
+sources Key#k
+  :: App => Todos[k](Mode.On) * Key#j -> Key'
+  :: App => Todos[j](Mode.Off) * Key#j -> Key'

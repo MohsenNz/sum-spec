@@ -4,27 +4,27 @@ example/git:114:6:
     |      ^
 warning: commit changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:131:6:
+example/git:132:6:
     |
-131 |   :: Repository.Initialized
+132 |   :: Repository.Initialized
     |      ^
-warning: merge: this transition and the one on line 127 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: merge: this transition and the one on line 128 can apply to the same state, and which one happens isn't said; give their sources different variants
 
-example/git:137:6:
+example/git:138:6:
     |
-137 |   :: FileState.Unmodified -> FileState.Conflicted
+138 |   :: FileState.Unmodified -> FileState.Conflicted
     |      ^
 warning: merge changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:154:6:
+example/git:155:6:
     |
-154 |   :: FileState.Conflicted -> FileState.Unmodified
+155 |   :: FileState.Conflicted -> FileState.Unmodified
     |      ^
 warning: mergeAbort changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:166:6:
+example/git:167:6:
     |
-166 |   :: Repository.Initialized
+167 |   :: Repository.Initialized
     |      ^
-warning: rebaseContinue: this transition and the one on line 162 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: rebaseContinue: this transition and the one on line 163 can apply to the same state, and which one happens isn't said; give their sources different variants
 

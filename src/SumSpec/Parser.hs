@@ -10,6 +10,7 @@ module SumSpec.Parser
 
 import Control.Monad (unless, void)
 import Data.List.NonEmpty (NonEmpty (..))
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Void (Void)
 import SumSpec.Lexer
@@ -209,7 +210,7 @@ conjunction :: Parser Guard
 conjunction = operands GuardAnd negation "and"
 
 -- negation = "not" , negation | "(" , predicate , ")" | comparison
---          | type_pattern ;
+--          | membership | type_pattern ;
 negation :: Parser Guard
 negation =
   choice
@@ -219,37 +220,44 @@ negation =
     ]
 
 -- comparison = operand , CMP , operand ;
+-- membership = operand , "in" , LOWER ;
 -- operand = LOWER | literal | path ;
 --
--- A comparison starting with a name or a literal is known from its first
--- token. One starting with a path is a pattern unless an operator follows
--- the bare path, which is then a variant.
+-- A condition starting with a name or a literal is known from its first
+-- token. One starting with a path is a pattern unless an operator or "in"
+-- follows the bare path, which is then a variant or a constant.
 comparisonOrPattern :: Parser Guard
 comparisonOrPattern =
   choice
-    [ comparisonFrom (uncurry OperandLiteral <$> literal)
-    , comparisonFrom (OperandName <$> valueName)
+    [ afterOperand . uncurry OperandLiteral =<< literal
+    , afterOperand . OperandName =<< guardName
     , do
         p <- typePattern
         case p of
           PatternPath names [] ->
-            optional compareOp >>= \case
-              Nothing -> pure (GuardPattern p)
-              Just op -> GuardCompare op (OperandVariant names) <$> operand
+            fromMaybe (GuardPattern p) <$> optional (afterOperand (OperandVariant names))
           _ -> pure (GuardPattern p)
     ]
   where
     literal = numberLiteral <|> stringLiteral
-    comparisonFrom left = (\l op r -> GuardCompare op l r) <$> left <*> compareOp <*> operand
+    afterOperand left =
+      choice
+        [ GuardIn left <$> (keyword "in" *> guardName)
+        , (`GuardCompare` left) <$> compareOp <*> operand
+        ]
 
 operand :: Parser Operand
 operand =
   choice
     [ uncurry OperandLiteral <$> (numberLiteral <|> stringLiteral)
-    , OperandName <$> valueName
+    , OperandName <$> guardName
     , OperandVariant <$> path
     ]
     <?> "a value, a literal or a variant"
+
+-- A LOWER in a condition: the words of a guard are not value names there.
+guardName :: Parser Name
+guardName = notFollowedBy (choice (map keyword ["not", "and", "or", "in"])) *> valueName
 
 -- One operand, or two or more joined by a word, as one guard.
 operands :: (NonEmpty Guard -> Guard) -> Parser Guard -> Text -> Parser Guard

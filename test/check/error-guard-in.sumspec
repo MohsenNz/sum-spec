@@ -1,0 +1,28 @@
+-- Memberships that break the rules.
+__atomics { Id  Other  Percent = __float  Name = __text  Key }
+__events { notlist unknownlist unknownleft wrongelement wrongitem keyedproducts literal variant products nested text }
+
+__init :: App
+
+App = Ids * Names * Boxes * Todos * Nest * Count * Labels
+Ids = [Id]
+Names = [Name]
+Box = Id * Name
+Boxes = [Box]
+Todo = Id * Name
+Todos = [Todo by Key]
+Labels = [Name by Key]
+Nest = [Ids]
+Count = Percent
+
+notlist Id#i :: App => Count#c // i in c -> Count'
+unknownlist Id#i :: App => Ids // i in nope -> Ids'
+unknownleft :: App => Ids#ids // nope in ids -> Ids'
+wrongelement Other#o :: App => Ids#ids // o in ids -> Ids'
+wrongitem Key#k :: App => Labels#ls // k in ls -> Labels'
+keyedproducts Todo#t :: App => Todos#ts // t in ts -> Todos'
+literal :: App => Ids#ids // 3 in ids -> Ids'
+variant :: App => Names#ns // Missing.Value in ns -> Names'
+products Box#b :: App => Boxes#bs // b in bs -> Boxes'
+nested Id#i :: App => Nest#n // i in n -> Nest'
+text :: App => Names#ns // 3 in ns -> Names'
