@@ -4,9 +4,7 @@
 humans and AI agents edit it and approve each other's
 changes, and agents generate the application from it.**
 
-SumSpec is a small language for an application's specification. You
-describe specification in [algebraic data type](https://en.wikipedia.org/wiki/Algebraic_data_type)(like in [Type theory](https://en.wikipedia.org/wiki/Type_theory)) and
-transitions (like in [finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine)).
+SumSpec is a small language for an application's specification. .
 
 ## The idea
 
@@ -18,7 +16,9 @@ sections contradict each other, that a state has no way out, or that a
 rename missed a paragraph.
 
 SumSpec keeps the workflow and changes the spec. The specification is
-written in a type-safe language instead of human language:
+written in a type-safe language instead of human language, You
+describe specification in [algebraic data type](https://en.wikipedia.org/wiki/Algebraic_data_type) and
+transitions ([finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine))
 
 **For example we describe the git: Git's file life cycle:**
 
