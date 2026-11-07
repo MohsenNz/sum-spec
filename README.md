@@ -81,8 +81,7 @@ cancelPlot :: App => NewPlot.Open -> NewPlot.Closed
     @control button
 ```
 
-[Image]()
-
+[Image](images/penpot-pic.png)
 
 ## Workflow
 
