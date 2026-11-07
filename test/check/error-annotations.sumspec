@@ -1,0 +1,12 @@
+-- An annotation must be declared, and declared once.
+__atomics { Text }
+__events { go }
+__annotations { @control @status @control }
+
+__init :: App(Screen.Home)
+
+App = Screen * Text @label name
+Screen @default Home
+  = Home
+  | Failed Text @status error @tone red
+go :: Screen.Home -> Screen.Failed @control button @effect log

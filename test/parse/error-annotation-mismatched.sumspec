@@ -1,0 +1,6 @@
+__atomics {}
+__events { go }
+__annotations { @unless }
+
+App = A | B
+go :: App.A -> App.B @unless App(A]

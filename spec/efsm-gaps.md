@@ -189,8 +189,8 @@ To decide:
     a save is in progress), and a response is an ordinary event
     (`saved`, `failed`).
   - What the types can't say (which API, a debounce) is metadata, so
-    it goes in an annotation on the transition (see `@` annotation in
-    `proposals.md`), not in a second, typed mechanism.
+    it goes in an annotation on the transition (see "Annotations
+    (@name)" in `spec-v1.md`), not in a second, typed mechanism.
   - Considered and dropped: an `__effects` block with typed payloads
     and a `! effect(x)` clause on transitions. It adds checking
     (payload types, every effect emitted) at the cost of a block, a

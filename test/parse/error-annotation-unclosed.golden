@@ -1,0 +1,5 @@
+test/parse/error-annotation-unclosed.sumspec:7:14:
+  |
+7 |   @unless App(A * (B)
+  |              ^
+unclosed ( in the arguments of @unless

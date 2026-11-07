@@ -1,0 +1,5 @@
+test/parse/error-annotation-mismatched.sumspec:6:35:
+  |
+6 | go :: App.A -> App.B @unless App(A]
+  |                                   ^
+expected ) to close ( in the arguments of @unless

@@ -5,16 +5,18 @@
 
 (* ---------- Spec ---------- *)
 
-(* The optional version header comes first. Then __atomics and __events
-   both appear once, in either order, before any definition. *)
+(* The optional version header comes first. Then come the header blocks,
+   before any definition, in any order: __atomics and __events once each,
+   __annotations at most once. *)
 spec          = [ version_header ] , headers , { definition } ;
 
 (* The language version the spec is written for, major.minor. No header
    means 1.0. *)
 version_header = "__version" , VERSION ;
 
-headers       = atomics_block , events_block
-              | events_block , atomics_block ;
+headers       = header_block , { header_block } ;
+
+header_block  = atomics_block | events_block | annotations_block ;
 
 atomics_block = "__atomics" , "{" , { atomic } , "}" ;
 
@@ -29,6 +31,10 @@ primitive     = "__int" | "__float" | "__text" ;
 
 events_block  = "__events" , "{" , { LOWER } , "}" ;
 
+(* The annotations a spec may use (see "Annotations" in spec-v1.md):
+     __annotations { @control  @default  @effect }                      *)
+annotations_block = "__annotations" , "{" , { ANNOTATION } , "}" ;
+
 definition    = init_state
               | type_def
               | const_def
@@ -42,7 +48,11 @@ init_state    = "__init" , "::" , pattern ;
 
 (* ---------- Type definitions ---------- *)
 
-type_def      = UPPER , "=" , type_expr ;
+(* Annotations after the name belong to the type; so do those after the
+   body of a newtype or a list:
+     Plot @default Empty = Empty | Drawn Shape
+     PortSetting = Port @default 14550 @range 1..65535                  *)
+type_def      = UPPER , { annotation } , "=" , type_expr ;
 
 (* A named constant: a fixed value with a name, used as a side of a
    comparison in a guard (see "Named constants" in spec-v1.md). The
@@ -58,11 +68,14 @@ const_def     = UPPER , "=" , UPPER , ( "(" , literal , ")"
    A product has at least two factors:   Z           = Y * C            *)
 type_expr     = sum
               | product
-              | type_term ;
+              | type_term , { annotation } ;
 
 sum           = variant , "|" , variant , { "|" , variant } ;
 
-variant       = UPPER , [ payload ] ;
+(* Annotations after a variant and its payload belong to the variant, as
+   do those after a single term in a parenthesised payload, V (T @a):
+     | Failed FailureReason @status error                               *)
+variant       = UPPER , [ payload ] , { annotation } ;
 
 (* A payload is one type, or a parenthesised inline sum, product or term:
      Failed   FailureReason
@@ -74,7 +87,11 @@ payload       = type_term
 
 (* Product factors are named types or lists, never anonymous sums or
    products, because a product is keyed by its factors' type names. *)
-product       = type_term , "*" , type_term , { "*" , type_term } ;
+product       = factor , "*" , factor , { "*" , factor } ;
+
+(* Annotations after a factor belong to that member:
+     Mission = MissionName * Plot @control map                          *)
+factor        = type_term , { annotation } ;
 
 (* A list, [T], or a keyed list, [T by K], whose elements are identified
    by a unique key of type K (see "Keyed lists" in spec-v1.md). "by" is
@@ -111,10 +128,16 @@ event_def     = LOWER , [ input ] , transition , { transition } ;
      X => A -> B => C -> D means   X(A) -> X(B)  and  X(C) -> X(D)
    A shared path and a pattern start alike (path, element_key); the
    "/" or "=>" after it tells them apart.                               *)
+(* Annotations after the target belong to that transition (one branch):
+     goToPlan :: Page.Home -> Page.Plan @control button
+     landed :: Page.Plan => PMode.Flying -> PMode.JustMap
+            @effect notify "Mission saved"                              *)
 transition    = "::" , ( shared , { "/" , shared } , branch , { branch }
-                       | pattern , [ guard ] , "->" , pattern ) ;
+                       | pattern , [ guard ] , "->" , pattern ,
+                         { annotation } ) ;
 
-branch        = "=>" , arguments , [ guard ] , "->" , arguments ;
+branch        = "=>" , arguments , [ guard ] , "->" , arguments ,
+                { annotation } ;
 
 (* A guard is a condition on the current state, after the source and
    before "->": the transition applies only while it holds (see "Guards"
@@ -198,6 +221,13 @@ element_key   = "[" , LOWER , "]" ;
 path          = UPPER , { "." , UPPER } ;
 
 
+(* ---------- Annotations ---------- *)
+
+(* An annotation is metadata for the target: SumSpec gives it no meaning
+   and checks only its name. Its arguments are opaque text. *)
+annotation    = ANNOTATION , ARGUMENTS ;
+
+
 (* ---------- Lexical ---------- *)
 
 UPPER         = upper_letter , { letter | digit } ;
@@ -229,6 +259,22 @@ CMP           = "==" | "!=" | "<=" | ">=" | "<" | ">" ;
 (* A naming is one token: no space between "#" and the name. *)
 NAMING        = "#" , LOWER ;
 
+(* An annotation name is one token: no space between "@" and the name. *)
+ANNOTATION    = "@" , LOWER ;
+
+(* The arguments of an annotation: the text after its name, up to the
+   end of the line, a comment, or, outside brackets, one of
+   "@" "=" "|" "*" "::" or a closing bracket that isn't matched. Brackets
+   ( [ { nest, must match, and may span lines; a string is one unit, so
+   "a | b" is part of the arguments. A comment inside brackets is
+   dropped, and each run of whitespace is one space. ARGUMENTS may be
+   empty:
+     @range 1..65535
+     @unless ( Page.Plan(PMode.ManualAircraft)   -- spans two lines
+             * AircraftLink.Connected )
+   This is the only place where a line break matters. *)
+ARGUMENTS     = ? characters, as described above ? ;
+
 comment       = "--" , { character - newline } , [ newline ] ;
 newline       = ? line feed ? ;
 character     = ? any Unicode character ? ;
@@ -238,6 +284,8 @@ character     = ? any Unicode character ? ;
 
    Whitespace: spaces, tabs, newlines and comments separate tokens and
    are otherwise ignored. Layout (aligned "|", "*", "->") is only style.
+   The one exception is the arguments of an annotation, which end at the
+   end of the line (see ARGUMENTS).
 
    Comments: a comment can go anywhere whitespace can, including at the
    end of a line of code:
@@ -247,9 +295,13 @@ character     = ? any Unicode character ? ;
    "/". No token contains "--", so "--" always starts a comment.
 
    Definition boundary: a variant's payload can be a bare UPPER, so
-   "Failed FailureReason" is one variant. An UPPER followed by "=" always
-   starts a new type_def and is never a payload or a variant. A parser
-   checks this with one extra token of lookahead (LL(2) at this point).
+   "Failed FailureReason" is one variant. An UPPER followed by "=", or by
+   annotations and then "=", always starts a new type_def and is never a
+   payload or a variant. A parser checks this with one extra token of
+   lookahead (LL(2) at this point), reading past the annotations.
+
+   Header blocks: a parser reports a header block written twice, and a
+   missing __atomics or __events, as syntax errors.
 
    Constant or type: after "UPPER = UPPER", a "." or a "(" that is not
    followed by a type name or "[" starts a const_def; anything else is a
@@ -290,7 +342,10 @@ character     = ? any Unicode character ? ;
      value, not a type: it is only a side of a comparison, never a
      factor, a payload, a pattern, an input or a list element. See
      "Named constants" in spec-v1.md;
-   - no name is listed twice in __atomics or in __events;
+   - no name is listed twice in __atomics, __events or __annotations;
+   - every annotation used is listed in __annotations (a spec without
+     the block uses none). Its arguments are not checked. See
+     "Annotations" in spec-v1.md;
    - every event is listed in __events, and every name in __events has
      at least one transition;
    - an event is defined once (one event_def), with all its
@@ -385,4 +440,4 @@ character     = ? any Unicode character ? ;
      variants it requires and forbids, by the comparisons of a name with
      a literal or variant, and by its memberships and element paths).
 
-   Not in v1 (see proposals.md): "<-", annotations, "g, h ::", variant refinement (PMode.ShowMission = ...). *)
+   Not in v1 (see proposals.md): "<-", "g, h ::", variant refinement (PMode.ShowMission = ...). *)

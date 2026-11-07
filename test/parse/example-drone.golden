@@ -28,16 +28,23 @@ __events {
   batteryChanged
 }
 
+__annotations {
+  @control
+  @default
+  @status
+  @effect
+}
+
 __init :: App(Page.Home)
 App = Page * Settings * BatteryCharge
 Page = Home | Plan (PMode * Missions) | Devices
-PMode = JustMap | Plot (PlotOrigin * Plot) | Flight Flight | ShowMission (List (Empty | NonEmpty MissionSummaries) | Selected Mission)
-Flight = Arming | Flying | Failed FailureReason
+PMode = JustMap | Plot (PlotOrigin * Plot) | Flight Flight | ShowMission (List (Empty @status empty | NonEmpty MissionSummaries) | Selected Mission)
+Flight = Arming | Flying | Failed FailureReason @status error
 MissionSummaries = [MissionSummary]
 MissionSummary = MissionName * At * Area * Distance * MissionState
 PlotOrigin = Draft | Editing
 Missions = [Mission]
-Mission = MissionName * At * Area * Distance * MissionState * Plot
+Mission = MissionName * At * Area * Distance * MissionState * Plot @control map
 MissionName = Text
 At = Timestamp
 Area = Hectares
@@ -45,7 +52,7 @@ Distance = Meters
 MissionState = NotStarted | Completed | Stopped (StopReason * BreakPoint)
 StopReason = Commanded | BatteryLow | LinkLost
 BreakPoint = Point
-Plot = Empty | Drawn (Boundary * Markings)
+Plot @default Empty = Empty | Drawn (Boundary * Markings)
 Boundary = Ring
 Markings = [Marking]
 Marking = Obstacle Ring | RoundObstacle Spot | PowerLine Path | NonSprayArea Ring | MarkPoint Spot
@@ -54,8 +61,8 @@ Path = Partial Point | Total Points
 Points = [Point]
 Spot = Point
 MinTakeoffCharge = BatteryCharge(20)
-goToPlan :: Page.Home -> Page.Plan(PMode.JustMap * Missions)
-goToDevices :: Page.Home -> Page.Devices
+goToPlan :: Page.Home -> Page.Plan(PMode.JustMap * Missions) @control button
+goToDevices :: Page.Home -> Page.Devices @control button
 planBackToHome :: Page.Plan(PMode.JustMap * Missions) -> Page.Home
 devicesBackToHome :: Page.Devices -> Page.Home
 newPlot :: Page.Plan => PMode.JustMap * Missions -> PMode.Plot(PlotOrigin.Draft * Plot.Empty) * Missions
@@ -63,9 +70,9 @@ newPlot :: Page.Plan => PMode.JustMap * Missions -> PMode.Plot(PlotOrigin.Draft 
 showMission :: Page.Plan => PMode.JustMap * Missions -> PMode.ShowMission.List * Missions
 selectMission :: Page.Plan => PMode.ShowMission.List.NonEmpty -> PMode.ShowMission.Selected
 editMission :: Page.Plan => PMode.ShowMission.Selected(Mission(Plot#p)) -> PMode.Plot(PlotOrigin.Editing * p)
-startFlight :: Page.Plan => PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed))) -> PMode.Flight(Flight.Arming)
+startFlight :: Page.Plan => PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed))) -> PMode.Flight(Flight.Arming) @control button
 takeOff :: App => Page.Plan(PMode.Flight(Flight.Arming)) * BatteryCharge#c // c >= MinTakeoffCharge -> Page.Plan(PMode.Flight(Flight.Flying))
 flightFailed FailureReason#r :: Flight.{Arming | Flying} -> Flight.Failed(r)
-landed :: Page.Plan => PMode.Flight(Flight.Flying) -> PMode.JustMap * Missions'
+landed :: Page.Plan => PMode.Flight(Flight.Flying) -> PMode.JustMap * Missions' @effect notify "Mission saved"
 dismissFailure :: Page.Plan => PMode.Flight(Flight.Failed) -> PMode.JustMap
 batteryChanged :: App => BatteryCharge -> BatteryCharge'

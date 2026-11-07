@@ -18,6 +18,8 @@ module SumSpec.Syntax
   , primitiveWord
   , Variant (..)
   , TypeTerm (..)
+  , Factor (..)
+  , Annotation (..)
   , Event (..)
   , Transition (..)
   , Branch (..)
@@ -46,6 +48,9 @@ data Spec = Spec
   -- ^ Types declared in @__atomics { ... }@.
   , specEvents :: [Name]
   -- ^ Names declared in @__events { ... }@.
+  , specAnnotations :: Maybe [Name]
+  -- ^ Names declared in @__annotations { ... }@, without the @\@@;
+  -- 'Nothing' without the block.
   , specDefinitions :: [Definition]
   }
   deriving stock (Eq, Show)
@@ -64,6 +69,9 @@ data Definition
 -- | @T = expr@
 data TypeDef = TypeDef
   { typeDefName :: Name
+  , typeDefAnnotations :: [Annotation]
+  -- ^ The annotations of the type: after its name (@T \@a = ...@), or
+  -- after the body of a newtype or a list (@T = A \@a@).
   , typeDefBody :: TypeExpr
   }
   deriving stock (Eq, Show)
@@ -89,7 +97,7 @@ data TypeExpr
   = -- | @V1 | V2 A | ...@, at least two variants.
     TypeSum [Variant]
   | -- | @A * B * ...@, at least two factors.
-    TypeProduct [TypeTerm]
+    TypeProduct [Factor]
   | -- | A single term: a newtype (@T = A@) or a list (@T = [A]@).
     TypeTerm TypeTerm
   deriving stock (Eq, Show)
@@ -119,6 +127,27 @@ primitiveWord = \case
 data Variant = Variant
   { variantName :: Name
   , variantPayload :: Maybe TypeExpr
+  , variantAnnotations :: [Annotation]
+  -- ^ The annotations after the variant and its payload.
+  }
+  deriving stock (Eq, Show)
+
+-- | A factor of a product, with the annotations after it.
+data Factor = Factor
+  { factorTerm :: TypeTerm
+  , factorAnnotations :: [Annotation]
+  }
+  deriving stock (Eq, Show)
+
+-- | @\@name args@: metadata for the target. SumSpec checks only that the
+-- name is declared in @__annotations@; the arguments are opaque text.
+data Annotation = Annotation
+  { annotationName :: Name
+  -- ^ The name without the @\@@, at the position of the @\@@.
+  , annotationArgs :: Text
+  -- ^ The arguments as written, with comments dropped, each run of
+  -- whitespace made one space, and no space at the ends. Empty when
+  -- there are none.
   }
   deriving stock (Eq, Show)
 
@@ -163,6 +192,8 @@ data Branch = Branch
   -- while it holds.
   , branchTo :: NonEmpty Pattern
   -- ^ The target, written like the source.
+  , branchAnnotations :: [Annotation]
+  -- ^ The annotations after the target.
   }
   deriving stock (Eq, Show)
 

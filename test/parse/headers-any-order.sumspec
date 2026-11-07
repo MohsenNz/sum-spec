@@ -1,0 +1,7 @@
+-- The header blocks come in any order, each once.
+__annotations { @note }
+__events { go }
+__atomics { X }
+
+App = A | B @note last
+go :: App.A -> App.B

@@ -1,0 +1,30 @@
+test/check/error-annotations.sumspec:4:34:
+  |
+4 | __annotations { @control @status @control }
+  |                                  ^
+@control is listed twice in __annotations
+
+test/check/error-annotations.sumspec:8:21:
+  |
+8 | App = Screen * Text @label name
+  |                     ^
+@label is not listed in __annotations
+
+test/check/error-annotations.sumspec:9:8:
+  |
+9 | Screen @default Home
+  |        ^
+@default is not listed in __annotations
+
+test/check/error-annotations.sumspec:11:31:
+   |
+11 |   | Failed Text @status error @tone red
+   |                               ^
+@tone is not listed in __annotations
+
+test/check/error-annotations.sumspec:12:52:
+   |
+12 | go :: Screen.Home -> Screen.Failed @control button @effect log
+   |                                                    ^
+@effect is not listed in __annotations
+

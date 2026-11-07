@@ -1,0 +1,5 @@
+test/parse/error-annotations-twice.sumspec:4:1:
+  |
+4 | __annotations { @b }
+  | ^
+__annotations is written twice

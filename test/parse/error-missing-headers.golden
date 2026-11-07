@@ -1,6 +1,5 @@
 test/parse/error-missing-headers.sumspec:1:1:
   |
 1 | T = A
-  | ^^^^^
-unexpected "T = A<newline>"
-expecting "__atomics", "__events", or "__version"
+  | ^
+missing __atomics and __events: the header blocks come first

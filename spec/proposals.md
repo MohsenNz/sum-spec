@@ -27,47 +27,13 @@ Means:
 
     X(Y(A' * B')) <-
 
-## `@` annotation
+## Annotation argument kinds
 
 Version impact: additive.
 
-An annotation is metadata: something the application needs that the
-types can't say (how a value is drawn, when a transition is unavailable,
-which side effect a transition causes). SumSpec gives it no meaning; the
-target (the code generator) does.
-
-An annotation is `@name` followed by its arguments, which the checker
-treats as opaque. Available annotations are declared once, in a header
-block like `__events`; only declared names may be used. A comment next to
-each name documents it:
-
-    __annotations {
-      @control     -- what widget edits a value or triggers an action
-      @unless      -- a transition is unavailable while this state holds
-      @effect      -- a side effect the transition causes
-    }
-
-An annotation goes after the head of a type definition, after the
-variant or member it belongs to, or on the lines after a transition.
-Several may be stacked:
-
-    Draft @default Empty = Empty | Typing Text @control text_field
-
-    exportLogs :: Page.Logs -> Page.Logs
-      @control button_icon
-      @effect share Logs
-
-In a newtype `A = B @x`, the annotation belongs to `A`; in a sum or a
-product it belongs to the variant or member it follows.
-
-SumSpec has no event outputs (see `efsm-gaps.md`, section 4): a side
-effect is an annotation on the transition, such as `@effect`.
-
-The checker verifies that every name is declared in `__annotations` and
-declared once. Checking arguments is open: opaque tokens first, then
-arguments that are state paths (`@unless`, `@when`) read as patterns.
-
-A declaration may state its argument kind, so the checker validates it:
+Builds on annotations (see "Annotations (@name)" in `spec-v1.md`), whose
+arguments are opaque text today. A declaration may state its argument
+kind, so the checker validates it:
 
     __annotations {
       @unless <pattern>   -- unavailable while this state holds
@@ -80,21 +46,17 @@ types, and warn when the pattern can never hold, always holds, or
 contradicts the transition's source (`@unless Page.Home` on a transition
 from `Page.Home`).
 
-A type the notation does not decompose and that has no base type in the
-language is declared inside __atomics. An atomic has no members here; each
-target supplies it, and the only thing the checker knows about its values
-is equality. An atomic with a base (`Port = __int`) is described under
-"Primitive types" in `spec-v1.md`. An atomic takes no annotations: a type
-that needs `@default` or `@range` is a newtype of it.
+An atomic takes no annotations: a type that needs `@default` or `@range`
+is a newtype of it.
 
 ## Checking `@default` and `@range`
 
 Version impact: additive.
 
 Builds on the primitive types and the comparisons of v1 (see "Primitive
-types" and "Comparing values" in `spec-v1.md`), and on the annotations
-above. A newtype over an atomic carries the annotations, since an atomic
-takes none:
+types" and "Comparing values" in `spec-v1.md`), and on annotations
+(see "Annotations (@name)" in `spec-v1.md`). A newtype over an atomic
+carries the annotations, since an atomic takes none:
 
     __atomics { Port = __int  Meters = __float }
 

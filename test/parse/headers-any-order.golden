@@ -1,0 +1,14 @@
+__atomics {
+  X
+}
+
+__events {
+  go
+}
+
+__annotations {
+  @note
+}
+
+App = A | B @note last
+go :: App.A -> App.B

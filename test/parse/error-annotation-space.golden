@@ -1,0 +1,6 @@
+test/parse/error-annotation-space.sumspec:6:23:
+  |
+6 | go :: App.A -> App.B @ control button
+  |                       ^
+unexpected space
+expecting annotation name right after @

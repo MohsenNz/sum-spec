@@ -1,6 +1,5 @@
 test/parse/error-version-not-first.sumspec:2:1:
   |
 2 | __version 1.0
-  | ^^^^^^^^
-unexpected "__versio"
-expecting "__events"
+  | ^
+missing __events: the header blocks come first

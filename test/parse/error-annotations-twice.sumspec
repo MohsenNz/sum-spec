@@ -1,0 +1,4 @@
+__atomics {}
+__annotations { @a }
+__events {}
+__annotations { @b }

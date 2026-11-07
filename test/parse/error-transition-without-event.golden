@@ -3,4 +3,4 @@ test/parse/error-transition-without-event.sumspec:7:3:
 7 |   :: App -> App
   |   ^
 unexpected ':'
-expecting "__init", "|" (a sum needs at least two variants), '(', '*', '[', end of input, event name, or type or variant name
+expecting "__init", "|" (a sum needs at least two variants), '(', '*', '@', '[', end of input, event name, or type or variant name

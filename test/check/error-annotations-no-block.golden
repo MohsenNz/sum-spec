@@ -1,0 +1,6 @@
+test/check/error-annotations-no-block.sumspec:7:13:
+  |
+7 | App = A | B @status done
+  |             ^
+@status is not listed in __annotations
+

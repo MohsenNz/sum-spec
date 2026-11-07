@@ -1,0 +1,47 @@
+-- Annotations: on a type, a variant, a member and a transition. Their
+-- arguments are opaque text, up to the end of the line, a comment, or one
+-- of @ = | * :: outside brackets.
+__atomics { Port = __int  Text }
+__events { open tick share }
+__annotations {
+  @default  -- the value a new state starts with
+  @range
+  @control
+  @status
+  @from
+  @unless
+  @announce
+  @effect
+}
+
+__init :: App(Screen.Home)
+
+App = Screen * Settings @control form
+
+-- On the head, before "=", and after the body of a newtype: both belong
+-- to the type.
+Screen @default Home
+  = Home @control tab "Home | start"
+  | Busy (Loading @status loading | Failed Text @status error)
+  | Detail Info @from Settings -- a comment ends the arguments
+
+Settings = PortSetting @control stepper * Info
+
+PortSetting = Port @default 14550 @range 1..65535
+
+Info = Text @control text_field
+
+-- The previous sum ends at a head with annotations, not a payload.
+Mode = On | Off
+Level @default Low
+  = Low | High
+
+open :: Screen.Home -> Screen.Busy @control button @effect log "opened"
+     :: Screen.Busy -> Screen.Home
+       @unless ( Screen.Home    -- a comment inside brackets is dropped
+               * Settings )
+       @announce
+tick :: App => Screen.Home -> Screen.Busy @announce
+            => Screen.Busy -> Screen.Home
+share :: Screen.Home -> Screen.Detail
+  @effect share(file, [Text])

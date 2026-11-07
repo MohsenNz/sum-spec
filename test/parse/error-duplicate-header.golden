@@ -1,6 +1,5 @@
 test/parse/error-duplicate-header.sumspec:2:1:
   |
 2 | __atomics {}
-  | ^^^^^^^^
-unexpected "__atomic"
-expecting "__events"
+  | ^
+__atomics is written twice

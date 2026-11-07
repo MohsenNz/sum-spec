@@ -1,0 +1,8 @@
+-- Without __annotations, no annotation may be used.
+__atomics {}
+__events { go }
+
+__init :: App.A
+
+App = A | B @status done
+go :: App.A -> App.B

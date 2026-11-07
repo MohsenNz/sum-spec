@@ -63,7 +63,10 @@ update before any code:
 - [x] Branches on a shared path (`:: App => A -> B => C -> D`), with `/`
       chaining shared paths.
 - [ ] Branches on a guard (`f :: T(Int#i) // i < 10 -> ... // i >= 10 -> ...`).
-- [ ] Annotations (`__annotations`), also on transitions.
+- [x] Annotations (`__annotations`), also on transitions: names
+      checked, arguments opaque.
+- [ ] Argument kinds for annotations (`@unless <pattern>`), and checking
+      `@default` and `@range` (see proposals.md).
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).
 - [ ] Several events with one transition (`g, h :: Y -> Z`).

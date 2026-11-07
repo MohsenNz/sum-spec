@@ -3,4 +3,4 @@ test/parse/error-mixed-sum-product.sumspec:3:11:
 3 | T = A * B | C
   |           ^
 unexpected '|'
-expecting "__init", '*', end of input, event name, or type or variant name
+expecting "__init", '*', '@', end of input, event name, or type or variant name

@@ -18,13 +18,17 @@ import SumSpec.Syntax
 import SumSpec.Version (renderVersion)
 
 renderSpec :: Spec -> Text
-renderSpec (Spec version atomics events defs) =
+renderSpec (Spec version atomics events annotations defs) =
   T.unlines $
     maybe [] (\v -> ["__version " <> T.pack (renderVersion v), ""]) version
       <> block "__atomics" (map renderAtomic atomics)
       <> [""]
       <> block "__events" (map nameText events)
       <> [""]
+      <> maybe
+        []
+        (\ns -> block "__annotations" (map (("@" <>) . nameText) ns) <> [""])
+        annotations
       <> map renderDefinition defs
   where
     block keyword names =
@@ -36,7 +40,8 @@ renderAtomic (Atomic name base) =
 
 renderDefinition :: Definition -> Text
 renderDefinition = \case
-  DefType (TypeDef name body) -> nameText name <> " = " <> renderTypeExpr body
+  DefType (TypeDef name notes body) ->
+    nameText name <> renderAnnotations notes <> " = " <> renderTypeExpr body
   DefConst (ConstDef name ty value) ->
     nameText name <> " = " <> nameText ty <> case value of
       ConstLiteral _ lit -> "(" <> renderLiteral lit <> ")"
@@ -60,11 +65,12 @@ renderDefinition = \case
             <> T.concat [indent <> "=> " <> renderBranch b | b <- NE.toList branches]
         where
           shared = T.intercalate " / " (map renderShared paths)
-      renderBranch (Branch from guard to) =
+      renderBranch (Branch from guard to notes) =
         renderSide from
           <> maybe "" ((" // " <>) . renderGuard) guard
           <> " -> "
           <> renderSide to
+          <> renderAnnotations notes
       renderSide = T.intercalate " * " . map renderPattern . NE.toList
       renderShared (Shared names key) =
         T.intercalate "." (map nameText (NE.toList names))
@@ -103,15 +109,28 @@ renderLiteral = \case
 renderTypeExpr :: TypeExpr -> Text
 renderTypeExpr = \case
   TypeSum variants -> T.intercalate " | " (map renderVariant variants)
-  TypeProduct terms -> T.intercalate " * " (map renderTerm terms)
+  TypeProduct factors -> T.intercalate " * " (map renderFactor factors)
   TypeTerm term -> renderTerm term
 
 renderVariant :: Variant -> Text
-renderVariant (Variant name p) = nameText name <> maybe "" ((" " <>) . renderPayload) p
+renderVariant (Variant name p notes) =
+  nameText name <> maybe "" ((" " <>) . renderPayload) p <> renderAnnotations notes
   where
     renderPayload = \case
       TypeTerm term -> renderTerm term
       expr -> "(" <> renderTypeExpr expr <> ")"
+
+renderFactor :: Factor -> Text
+renderFactor (Factor term notes) = renderTerm term <> renderAnnotations notes
+
+-- | Annotations after what they belong to, each with a space before it.
+-- They go on one line: the arguments stop at the same characters when
+-- they're read back.
+renderAnnotations :: [Annotation] -> Text
+renderAnnotations = T.concat . map render
+  where
+    render (Annotation name args) =
+      " @" <> nameText name <> (if T.null args then "" else " " <> args)
 
 renderTerm :: TypeTerm -> Text
 renderTerm = \case

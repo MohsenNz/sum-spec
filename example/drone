@@ -30,6 +30,15 @@ __events {
                         -- a new value.
 }
 
+-- Metadata for the generator, which gives each annotation its meaning;
+-- SumSpec only checks that every annotation used is listed here.
+__annotations {
+  @control  -- the widget that edits a value or triggers a transition
+  @default  -- the value a part starts with
+  @status   -- how a variant is shown: loading, error or empty
+  @effect   -- a side effect of the transition
+}
+
 __init :: App(Page.Home)
 
 App
@@ -48,14 +57,14 @@ PMode
   | Flight Flight
   | ShowMission
       ( List
-          ( Empty
+          ( Empty                @status empty
           | NonEmpty MissionSummaries )
       | Selected Mission )
 
 Flight
   = Arming
   | Flying
-  | Failed FailureReason
+  | Failed FailureReason  @status error
 
 MissionSummaries = [MissionSummary]
 
@@ -71,7 +80,7 @@ Mission
   * Area
   * Distance
   * MissionState
-  * Plot
+  * Plot          @control map
 
 MissionName = Text
 
@@ -90,7 +99,7 @@ StopReason = Commanded | BatteryLow | LinkLost
 
 BreakPoint = Point
 
-Plot
+Plot @default Empty
   = Empty
   | Drawn
       ( Boundary
@@ -123,8 +132,8 @@ Spot = Point
 -- A named constant: the lowest charge the drone may take off with.
 MinTakeoffCharge = BatteryCharge(20)
 
-goToPlan          :: Page.Home -> Page.Plan(PMode.JustMap * Missions)
-goToDevices       :: Page.Home -> Page.Devices
+goToPlan          :: Page.Home -> Page.Plan(PMode.JustMap * Missions)  @control button
+goToDevices       :: Page.Home -> Page.Devices                          @control button
 planBackToHome    :: Page.Plan(PMode.JustMap * Missions) -> Page.Home
 devicesBackToHome :: Page.Devices -> Page.Home
 
@@ -145,6 +154,7 @@ editMission   :: Page.Plan => PMode.ShowMission.Selected(Mission(Plot#p))
 
 startFlight   :: Page.Plan => PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed)))
                            -> PMode.Flight(Flight.Arming)
+                           @control button
 
 takeOff       :: App => Page.Plan(PMode.Flight(Flight.Arming)) * BatteryCharge#c
                         // c >= MinTakeoffCharge
@@ -154,6 +164,7 @@ flightFailed FailureReason#r :: Flight.{Arming | Flying} -> Flight.Failed(r)
 
 landed         :: Page.Plan => PMode.Flight(Flight.Flying)
                             -> PMode.JustMap * Missions'
+                            @effect notify "Mission saved"
 
 dismissFailure :: Page.Plan => PMode.Flight(Flight.Failed)
                             -> PMode.JustMap

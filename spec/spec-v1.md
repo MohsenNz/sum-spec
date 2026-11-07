@@ -633,6 +633,76 @@ how versions are numbered.
 
 `__atomics` and `__events` are written before any type, transition or `__init`.
 
+## Annotations (@name)
+
+An annotation is metadata: something the application needs that the
+types can't say, such as how a value is drawn, its default, or a side
+effect of a transition. SumSpec gives it no meaning; the target (the code
+generator) does.
+
+The annotations a spec uses are listed once in an `__annotations` block,
+next to `__atomics` and `__events` (the header blocks come in any order).
+A comment next to each name documents it:
+
+```
+__annotations {
+  @control  -- the widget that edits a value or triggers a transition
+  @default  -- the value a part starts with
+  @status   -- how a variant is shown: loading, error or empty
+  @effect   -- a side effect of the transition
+}
+```
+
+An annotation is `@name` (no space after the `@`) followed by its
+arguments. Several may follow one another. Where it's written says what
+it belongs to:
+
+| Written                                  | Belongs to              |
+|------------------------------------------|-------------------------|
+| `Plot @default Empty = Empty \| Drawn`   | the type `Plot`         |
+| `PortSetting = Port @default 14550`      | the type `PortSetting`  |
+| `\| Failed FailureReason @status error`  | the variant `Failed`    |
+| `Mission = Name * Plot @control map`     | the member `Plot`       |
+| `go :: A -> B @control button`           | the transition          |
+
+After the body of a newtype or a list, an annotation belongs to the type,
+as it does after the name. In a sum or a product it belongs to the
+variant or member it follows. After the target of a transition it
+belongs to that transition; with branches (`=>`), to the branch it
+follows. A sum or product as a whole takes its annotations after its
+name. Atomics, constants and `__init` take none.
+
+SumSpec doesn't decompose the arguments: they're text for the target.
+They run to the end of the line, to a comment, or to one of `@ = | * ::`,
+so another annotation, variant or member may follow on the same line:
+
+```
+PortSetting = Port  @default 14550 @range 1..65535
+
+Screen @default Home
+  = Home                @control tab
+  | Failed Reason       @status error
+
+landed :: Page.Plan => PMode.Flying -> PMode.JustMap
+       @effect notify "Mission saved"
+```
+
+Inside brackets, `( [ {`, the arguments go on, across lines too, and
+may hold any of those characters; a string is one unit. A comment inside
+brackets is dropped, and each run of spaces and line breaks counts as
+one space:
+
+```
+       @unless ( Page.Plan(PMode.ManualAircraft)
+               * AircraftLink.Connected )
+```
+
+This is the only place in SumSpec where a line break matters.
+
+The checker reports an annotation that isn't listed in `__annotations`
+(a spec without the block uses none), and a name listed twice. It
+doesn't check the arguments.
+
 ## Summary:
 
 `=`  used for type definition
@@ -642,6 +712,7 @@ how versions are numbered.
 `::` starts a transition
 `->` state transition
 `=>` a path both sides of a transition share
+`@`  an annotation: metadata for the target
 
 ## Example
 

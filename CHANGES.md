@@ -130,9 +130,24 @@ release" in `VERSIONING.md`).
 - The examples use these: `example/todomvc` and `example/git` have keyed
   lists (`Todos`, `Files`, `Branches`) and element paths, and
   `example/drone` names its lists (`Points`, `MissionSummaries`).
+- Annotations: `@name args` is metadata for the target, which gives it
+  its meaning. The names a spec uses are listed in an `__annotations`
+  block. An annotation goes after a type's name (or a newtype's body),
+  after a variant, after a product member, or after a transition's
+  target. Its arguments are opaque text up to the end of the line, a
+  comment, or one of `@ = | * ::` outside brackets; brackets may span
+  lines. The header blocks (`__atomics`, `__events`, `__annotations`)
+  now come in any order. `example/drone` uses `@control`, `@default`,
+  `@status` and `@effect`.
 
 ### Tool
 
+- The parser, printer and checker read annotations. The canonical form
+  puts a type's annotations after its name and writes each
+  annotation's arguments on one line. The checker reports an annotation
+  not listed in `__annotations` and a name listed twice there. A header
+  block written twice, or a missing `__atomics` or `__events`, is
+  reported by name.
 - The parser, printer and checker read event inputs, named values,
   keyed lists, element paths and `__init`.
 - Warnings for a variant the app never reaches from `__init`, and for

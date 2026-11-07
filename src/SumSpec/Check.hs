@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- | Type checker for SumSpec v1. It checks a parsed spec against the rules
 -- listed at the end of spec/grammar.ebnf and reports every error it finds,
@@ -54,6 +55,7 @@ checkSpec file source spec =
   sortOn (position . errorPos) . nubOrdOn key $
     concat
       [ checkHeaders spec
+      , checkAnnotations spec
       , concatMap
           (checkBoundHeads env)
           (map snd rawInits <> concatMap eventPatterns rawEvents)
@@ -160,6 +162,40 @@ checkHeaders spec =
     <> [ errorAt n (nameText n <> " is listed twice in __events")
        | (n, _) <- repeats nameText (specEvents spec)
        ]
+    <> [ errorAt n ("@" <> nameText n <> " is listed twice in __annotations")
+       | (n, _) <- repeats nameText (fromMaybe [] (specAnnotations spec))
+       ]
+
+-- | Every annotation used is declared in @__annotations@. SumSpec gives
+-- annotations no meaning, so this is all it checks of them.
+checkAnnotations :: Spec -> [CheckError]
+checkAnnotations spec =
+  [ errorAt n ("@" <> nameText n <> " is not listed in __annotations")
+  | Annotation n _ <- annotationUses spec
+  , nameText n `Set.notMember` declared
+  ]
+  where
+    declared = Set.fromList (map nameText (fromMaybe [] (specAnnotations spec)))
+
+-- | The annotations written in a spec: on types, variants (in inline
+-- payloads too), product factors and transitions.
+annotationUses :: Spec -> [Annotation]
+annotationUses spec = concatMap fromDefinition (specDefinitions spec)
+  where
+    fromDefinition = \case
+      DefType (TypeDef _ notes body) -> notes <> fromExpr body
+      DefEvent (Event _ _ transitions) ->
+        [ a
+        | Transition _ branches <- NE.toList transitions
+        , b <- NE.toList branches
+        , a <- branchAnnotations b
+        ]
+      _ -> []
+    fromExpr = \case
+      TypeSum variants ->
+        concat [notes <> foldMap fromExpr p | Variant _ p notes <- variants]
+      TypeProduct factors -> concatMap factorAnnotations factors
+      TypeTerm _ -> []
 
 -- | A spec has exactly one @__init :: P@. @P@ is a whole new state: there's
 -- no old value and no input, so nothing in it takes a prime, a naming, a
@@ -230,10 +266,10 @@ checkInit file env inits = case inits of
 checkTypeDefs :: Env -> [TypeDef] -> [CheckError]
 checkTypeDefs env defs =
   [ errorAt n (nameText n <> " is defined twice (first on line " <> lineOf first <> ")")
-  | (TypeDef n _, TypeDef first _) <- repeats (nameText . typeDefName) defs
+  | (TypeDef n _ _, TypeDef first _ _) <- repeats (nameText . typeDefName) defs
   ]
     <> [ errorAt n (nameText n <> " is declared in __atomics and also defined")
-       | TypeDef n _ <- defs
+       | TypeDef n _ _ <- defs
        , Map.member (nameText n) (envAtomics env)
        ]
     <> concatMap (checkTypeExpr env . typeDefBody) defs
@@ -292,10 +328,10 @@ checkTypeExpr :: Env -> TypeExpr -> [CheckError]
 checkTypeExpr env = \case
   TypeSum variants ->
     [ errorAt n ("variant " <> nameText n <> " appears twice in this sum")
-    | (Variant n _, _) <- repeats (nameText . variantName) variants
+    | (Variant n _ _, _) <- repeats (nameText . variantName) variants
     ]
-      <> concat [checkTypeExpr env p | Variant _ (Just p) <- variants]
-  TypeProduct terms ->
+      <> concat [checkTypeExpr env p | Variant _ (Just p) _ <- variants]
+  TypeProduct (map factorTerm -> terms) ->
     [ errorAt (termName t) ("factor " <> termKey t <> " appears twice in this product")
     | (t, _) <- repeats termKey terms
     ]
@@ -312,7 +348,7 @@ checkTerm env term =
 -- | A newtype that leads back to itself (@A = B@, @B = A@) has no
 -- structure at all. Reported at the definition, with the chain.
 newtypeCycle :: Env -> TypeDef -> Maybe CheckError
-newtypeCycle env (TypeDef start _) = go [nameText start] (nameText start)
+newtypeCycle env (TypeDef start _ _) = go [nameText start] (nameText start)
   where
     go seen current = case Map.lookup current (envTypes env) of
       Just (TypeTerm (TermName next))
@@ -346,7 +382,7 @@ flatten (Event n input transitions) =
       (expandGuard paths <$> guard)
       (fromMaybe (patternHead (NE.head from)) (listToMaybe picked))
   | Transition paths branches <- NE.toList transitions
-  , Branch from guard to <- NE.toList branches
+  , Branch from guard to _ <- NE.toList branches
   , (source, picked) <- expandSide from
   ]
   where
@@ -411,7 +447,7 @@ checkAlternatives inits events =
       [ misplaced "a target sets one state, so it has no alternatives; pick one variant" p
       | Event _ _ transitions <- events
       , Transition _ branches <- NE.toList transitions
-      , Branch _ _ to <- NE.toList branches
+      , Branch _ _ to _ <- NE.toList branches
       , p <- NE.toList to
       ]
     <> concatMap inGroups (inits <> concatMap eventPatterns events)
@@ -726,8 +762,8 @@ checkListPlaces defs inits transitions =
       TypeTerm (TermName _) -> []
       expr -> inlineLists expr
     inlineLists = \case
-      TypeSum variants -> concat [inlineLists p | Variant _ (Just p) <- variants]
-      TypeProduct terms -> concatMap termLists terms
+      TypeSum variants -> concat [inlineLists p | Variant _ (Just p) _ <- variants]
+      TypeProduct (map factorTerm -> terms) -> concatMap termLists terms
       TypeTerm term -> termLists term
     termLists = \case
       TermName _ -> []
@@ -916,7 +952,7 @@ nodeBound node = case nodeBody node of
   Just (TypeSum _) ->
     BoundNothing $ \_ ->
       label <> " is a sum, so it holds no single value; pick a variant with \".\""
-  Just (TypeProduct factors) ->
+  Just (TypeProduct (map factorTerm -> factors)) ->
     BoundNothing $ \n ->
       label
         <> " holds several parts, so #"
@@ -1007,7 +1043,7 @@ eventPatterns (Event _ input transitions) =
     <> concat
       [ NE.toList from <> foldMap guardPatterns guard <> NE.toList to
       | Transition _ branches <- NE.toList transitions
-      , Branch from guard to <- NE.toList branches
+      , Branch from guard to _ <- NE.toList branches
       ]
 
 -- | @Head(#n)@ needs a head that holds one value.
@@ -1063,7 +1099,7 @@ resolve env node at path = case path of
   v : rest -> case nodeBody node of
     Just (TypeSum variants) ->
       case find ((== nameText v) . nameText . variantName) variants of
-        Just (Variant _ payload) ->
+        Just (Variant _ payload _) ->
           resolve env (Node (nodeLabel node <> "." <> nameText v) payload) v rest
         Nothing -> Left [errorAt v (nameText v <> " is not a variant of " <> nodeLabel node)]
     Just (TypeTerm (TermName base))
@@ -1175,7 +1211,7 @@ checkArgs env names node at args = case nodeBody node of
     [ errorAt at $
         nodeLabel node <> " is a sum; pick a variant with \".\" instead of arguments"
     ]
-  Just (TypeProduct factors) -> checkFactors env names node factors args
+  Just (TypeProduct (map factorTerm -> factors)) -> checkFactors env names node factors args
   -- A list type is written bare, or picks an element with [x]. A list
   -- pattern is reported by 'checkListPlaces', and a name of the list
   -- fits where an inline list was written (also reported there).
@@ -1299,8 +1335,8 @@ listPlaces env root =
       TypeTerm term -> goTerm seen lists (Just name) term
       expr -> goExpr seen lists expr
     goExpr seen lists = \case
-      TypeSum variants -> concat [goExpr seen lists p | Variant _ (Just p) <- variants]
-      TypeProduct terms -> concatMap (goTerm seen lists Nothing) terms
+      TypeSum variants -> concat [goExpr seen lists p | Variant _ (Just p) _ <- variants]
+      TypeProduct (map factorTerm -> terms) -> concatMap (goTerm seen lists Nothing) terms
       TypeTerm term -> goTerm seen lists Nothing term
     goTerm seen lists listName = \case
       TermName n -> goType seen lists False (nameText n)
@@ -1424,10 +1460,10 @@ exprContents prefix = \case
   TypeSum variants ->
     mconcat
       [ ([label], []) <> maybe mempty (exprContents label) payload
-      | Variant n payload <- variants
+      | Variant n payload _ <- variants
       , let label = prefix <> "." <> nameText n
       ]
-  TypeProduct terms -> ([], concatMap termRefs terms)
+  TypeProduct (map factorTerm -> terms) -> ([], concatMap termRefs terms)
   TypeTerm term -> ([], termRefs term)
 
 -- | The types a term names: the type, or a list's element and key types.
@@ -1479,7 +1515,8 @@ reach env names fixed = goPattern []
           [] -> goNode (at <> map nameText seen) f l b args
           v : more -> case b of
             Just (TypeSum variants)
-              | Just (Variant _ payload) <- find ((== nameText v) . nameText . variantName) variants ->
+              | Just (Variant _ payload _) <-
+                  find ((== nameText v) . nameText . variantName) variants ->
                   let
                     l' = l <> "." <> nameText v
                     seen' = seen <> [v]
@@ -1498,7 +1535,7 @@ reach env names fixed = goPattern []
       Just expr@(TypeSum _)
         | null args, fill == AnyValue -> anyExpr label expr
         | otherwise -> mempty
-      Just (TypeProduct factors) ->
+      Just (TypeProduct (map factorTerm -> factors)) ->
         let given = Map.fromList [(k, a) | a <- args, Just k <- [argKey names a]]
         in  mconcat
               [ case Map.lookup (termKey factor) given of
@@ -1598,14 +1635,15 @@ warnReachability env defs inits transitions = case inits of
 variantNames :: [TypeDef] -> [(Label, Name, Maybe Label)]
 variantNames defs =
   concat
-    [ go (nameText n) Nothing body | TypeDef n body <- firsts (nameText . typeDefName) defs
+    [ go (nameText n) Nothing body
+    | TypeDef n _ body <- firsts (nameText . typeDefName) defs
     ]
   where
     go prefix parent = \case
       TypeSum variants ->
         concat
           [ (label, n, parent) : maybe [] (go label (Just label)) payload
-          | Variant n payload <- variants
+          | Variant n payload _ <- variants
           , let label = prefix <> "." <> nameText n
           ]
       _ -> []
@@ -2050,14 +2088,14 @@ resolveSide env names = \case
 variantRefErrors :: [Variant] -> Name -> Name -> [CheckError]
 variantRefErrors variants h v = case find ((== nameText v) . nameText . variantName) variants of
   Nothing -> [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
-  Just (Variant _ (Just _)) ->
+  Just (Variant _ (Just _) _) ->
     [ errorAt v $
         nameText h
           <> "."
           <> nameText v
           <> " has a payload, so it can't be written as a value; test it with a pattern"
     ]
-  Just (Variant _ Nothing) -> []
+  Just (Variant _ Nothing _) -> []
 
 notASum :: Text -> Name -> CheckError
 notASum what h =

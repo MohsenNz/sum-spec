@@ -9,8 +9,9 @@ module SumSpec.Parser
   ) where
 
 import Control.Monad (unless, void)
+import Data.List (intercalate)
 import Data.List.NonEmpty (NonEmpty (..))
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Text (Text)
 import Data.Void (Void)
 import SumSpec.Lexer
@@ -32,8 +33,8 @@ renderParseError = errorBundlePretty
 spec :: Parser Spec
 spec = do
   version <- optional versionHeader
-  (atomics, events) <- headers
-  Spec version atomics events <$> many definition
+  (atomics, events, annotations) <- headers
+  Spec version atomics events annotations <$> many definition
 
 -- version_header = "__version" , VERSION ;
 --
@@ -57,12 +58,37 @@ versionHeader = do
       | defaultVersion == latestVersion = renderVersion latestVersion
       | otherwise = renderVersion defaultVersion <> " to " <> renderVersion latestVersion
 
--- headers = atomics_block , events_block | events_block , atomics_block ;
-headers :: Parser ([Atomic], [Name])
-headers = atomicsFirst <|> eventsFirst
+-- headers = header_block , { header_block } ;
+-- header_block = atomics_block | events_block | annotations_block ;
+--
+-- The blocks come in any order, each at most once; __atomics and __events
+-- are required.
+headers :: Parser ([Atomic], [Name], Maybe [Name])
+headers = go Nothing Nothing Nothing
   where
-    atomicsFirst = (,) <$> atomicsBlock <*> eventsBlock
-    eventsFirst = flip (,) <$> eventsBlock <*> atomicsBlock
+    go atomics events annotations = do
+      offset <- getOffset
+      next <-
+        optional . choice $
+          [ Left . Left <$> atomicsBlock
+          , Left . Right <$> eventsBlock
+          , Right <$> annotationsBlock
+          ]
+      case next of
+        Just (Left (Left a)) -> once offset "__atomics" atomics *> go (Just a) events annotations
+        Just (Left (Right e)) -> once offset "__events" events *> go atomics (Just e) annotations
+        Just (Right n) -> once offset "__annotations" annotations *> go atomics events (Just n)
+        Nothing -> case (atomics, events) of
+          (Just a, Just e) -> pure (a, e, annotations)
+          _ -> do
+            let missing = [b | (b, False) <- [("__atomics", isJust atomics), ("__events", isJust events)]]
+            setOffset offset
+            fail ("missing " <> intercalate " and " missing <> ": the header blocks come first")
+    once offset block seen = case seen of
+      Nothing -> pure ()
+      Just _ -> do
+        setOffset offset
+        fail (block <> " is written twice")
 
 -- atomics_block = "__atomics" , "{" , { atomic } , "}" ;
 atomicsBlock :: Parser [Atomic]
@@ -78,8 +104,13 @@ primitive =
   choice [p <$ keyword (primitiveWord p) | p <- [minBound .. maxBound]]
     <?> "a primitive type (__int, __float or __text)"
 
+-- events_block = "__events" , "{" , { LOWER } , "}" ;
 eventsBlock :: Parser [Name]
 eventsBlock = symbol "__events" *> braces (many lowerName)
+
+-- annotations_block = "__annotations" , "{" , { ANNOTATION } , "}" ;
+annotationsBlock :: Parser [Name]
+annotationsBlock = symbol "__annotations" *> braces (many annotationDecl)
 
 -- definition = init_state | type_def | event_def ;
 definition :: Parser Definition
@@ -122,49 +153,78 @@ constDef = do
         , ConstVariant <$> (symbol "." *> upperName)
         ]
 
+-- type_def = UPPER , { annotation } , "=" , type_expr ;
+--
+-- The annotations of a newtype or a list may also follow its body; they
+-- belong to the type either way.
 typeDef :: Parser TypeDef
-typeDef = TypeDef <$> upperName <* equals <*> typeExpr
+typeDef = do
+  name <- upperName
+  before <- many annotation
+  equals
+  (body, after) <- typeExpr
+  pure (TypeDef name (before <> after) body)
 
--- type_expr = sum | product | type_term ;
+-- type_expr = sum | product | type_term , { annotation } ;
 --
 -- The three forms share their first token, so the parser reads the first
--- term and then decides from what follows it.
-typeExpr :: Parser TypeExpr
+-- term and its annotations, and then decides from what follows them. The
+-- annotations after a single term are returned: they belong to what the
+-- term defines.
+typeExpr :: Parser (TypeExpr, [Annotation])
 typeExpr = do
   first <- typeTerm
+  notes <- many annotation
+  let alone = pure (TypeTerm first, notes)
   case first of
-    TermName name -> afterName name
-    TermList _ _ -> productOrTerm first
-  where
-    afterName name =
+    TermName name ->
       choice
-        [ TypeSum . (Variant name Nothing :) <$> moreVariants
-        , productAfter (TermName name)
-        , sumWithPayload name
-        , pure (TypeTerm (TermName name))
+        [ sumAfter (Variant name Nothing notes)
+        , productAfter (Factor first notes)
+        , if null notes then sumWithPayload name else empty
+        , alone
         ]
+    TermList _ _ -> productAfter (Factor first notes) <|> alone
+  where
     sumWithPayload name = do
-      p <- payload
-      TypeSum . (Variant name (Just p) :) <$> moreVariants
-    productOrTerm term = productAfter term <|> pure (TypeTerm term)
-    productAfter term = TypeProduct . (term :) <$> some (symbol "*" *> typeTerm)
+      (p, inner) <- payload
+      notes <- many annotation
+      sumAfter (Variant name (Just p) (inner <> notes))
+    sumAfter v = (,[]) . TypeSum . (v :) <$> moreVariants
+    productAfter f = (,[]) . TypeProduct . (f :) <$> some (symbol "*" *> factor)
     moreVariants =
       some (symbol "|" *> variant)
         <?> "\"|\" (a sum needs at least two variants)"
 
+-- variant = UPPER , [ payload ] , { annotation } ;
+--
+-- The annotations of a payload written as one term in parentheses,
+-- V (T @a), belong to the variant too.
 variant :: Parser Variant
-variant = Variant <$> upperName <*> optional payload
+variant = do
+  name <- upperName
+  p <- optional payload
+  notes <- many annotation
+  pure $ case p of
+    Just (body, inner) -> Variant name (Just body) (inner <> notes)
+    Nothing -> Variant name Nothing notes
+
+-- factor = type_term , { annotation } ;
+factor :: Parser Factor
+factor = Factor <$> typeTerm <*> many annotation
 
 -- payload = type_term | "(" , type_expr , ")" ;
 --
--- A bare UPPER followed by "=" starts the next type definition, so it is
--- never taken as a payload.
-payload :: Parser TypeExpr
+-- A bare UPPER followed by "=", or by annotations and then "=", starts the
+-- next type definition, so it is never taken as a payload. A payload in
+-- parentheses gives the annotations after a single term inside them.
+payload :: Parser (TypeExpr, [Annotation])
 payload =
   choice
     [ parens typeExpr
-    , TypeTerm . uncurry TermList <$> listTerm
-    , TypeTerm . TermName <$> try (upperName <* notFollowedBy equals)
+    , (,[]) . TypeTerm . uncurry TermList <$> listTerm
+    , (,[]) . TypeTerm . TermName
+        <$> try (upperName <* notFollowedBy (many annotation *> equals))
     ]
 
 -- type_term = UPPER | "[" , type_term , [ "by" , UPPER ] , "]" ;
@@ -185,7 +245,8 @@ eventDef =
     <*> ((:|) <$> transition <*> many transition)
 
 -- transition = "::" , ( shared , { "/" , shared } , branch , { branch }
---                     | pattern , [ guard ] , "->" , pattern ) ;
+--                     | pattern , [ guard ] , "->" , pattern ,
+--                       { annotation } ) ;
 --
 -- A shared path starts like a pattern; the "/" or "=>" after it tells
 -- them apart.
@@ -197,16 +258,18 @@ transition = do
     [] -> Transition [] . pure <$> plain
     _ -> Transition paths <$> ((:|) <$> branch <*> many branch)
   where
-    plain = Branch <$> one <*> optional guard <*> (symbol "->" *> one)
+    plain =
+      Branch <$> one <*> optional guard <*> (symbol "->" *> one) <*> many annotation
     one = (:| []) <$> pattern
 
--- branch = "=>" , arguments , [ guard ] , "->" , arguments ;
+-- branch = "=>" , arguments , [ guard ] , "->" , arguments , { annotation } ;
 branch :: Parser Branch
 branch =
   Branch
     <$> (symbol "=>" *> arguments)
     <*> optional guard
     <*> (symbol "->" *> arguments)
+    <*> many annotation
 
 -- guard = "//" , predicate ;
 guard :: Parser Guard
