@@ -1,0 +1,9 @@
+-- Only a transition with shared paths has branches: without one, the
+-- target ends the transition.
+__atomics { }
+__events { t }
+
+App = A
+A = B | C | D
+
+t :: A.B -> A.C => A.C -> A.D

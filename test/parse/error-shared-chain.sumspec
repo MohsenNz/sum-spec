@@ -1,0 +1,10 @@
+-- Shared paths chain with /, not =>: after "=> Y" the parser reads Y as
+-- a source, which must be followed by "->" or a guard.
+__atomics { }
+__events { t }
+
+App = X
+X = Y (A) | U
+A = B | C
+
+t :: X => X.Y => A.B -> A.C

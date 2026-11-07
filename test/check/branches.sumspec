@@ -1,0 +1,39 @@
+-- Branches under one shared path are checked as separate transitions:
+-- the input's names are visible in every branch, a name bound in a
+-- branch stays in it, and two branches can overlap.
+__atomics { Id  Text = __text }
+__events { rename mixed overlap unknown }
+
+__init :: App(Page.Plan(Mode.View))
+
+App = Page
+Page = Home | Plan (Mode * Items)
+Mode = View | Edit (Text)
+Items = [Item by Id]
+Item = Name * State
+Name = Text
+State = Done | Todo
+
+-- i, from the input, in every branch; the same #t in two branches.
+rename Id#i
+  :: App / Page.Plan
+  => Mode.Edit(#t) * Items[i](State.Done) -> Items[i](Name(t)) * Mode.View
+  => Mode.Edit(#t) * Items[i](State.Todo) -> Items[i](Name(t) * State.Done) * Mode.View
+
+-- t is named in the first branch only.
+mixed Id#i
+  :: Page.Plan
+  => Mode.Edit(#t) * Items[i](State.Done) -> Mode.View
+  => Mode.View * Items[i](State.Todo) -> Items[i](Name(t))
+
+-- Two branches with the same source overlap.
+overlap
+  :: Page.Plan
+  => Mode.View -> Mode.Edit
+  => Mode.View -> Items'
+
+-- Nope is reported once, not once per branch.
+unknown
+  :: Nope
+  => Mode.View -> Mode.Edit
+  => Mode.Edit -> Mode.View

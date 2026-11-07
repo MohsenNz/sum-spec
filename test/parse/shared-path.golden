@@ -6,6 +6,7 @@ __events {
   toggle
   edit
   open
+  close
 }
 
 App = Page
@@ -16,4 +17,5 @@ Item = Done | Todo
 toggle Id#i :: Items[i] => Item.Done -> Item.Todo
             :: Items[i] => Item.Todo -> Item.Done
 edit :: Page.Plan => Mode.View * Items -> Mode.Edit * Items'
-open :: App => Page.Plan => Mode.View -> Mode.Edit
+open :: App / Page.Plan => Mode.View -> Mode.Edit
+close :: App / Page.Plan / Items[i] => Item.Done -> Item.Todo

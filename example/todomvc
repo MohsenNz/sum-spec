@@ -99,14 +99,14 @@ addTodo
   // text != ""
   -> Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank
 
-  :: App
   => Screen.WithTodos * NewTodo.Typing(#text)
   // text != ""
   -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank
 
-toggleTodo TodoId#id 
-  :: Todos[id] => Completion.Active -> Completion.Completed
-  :: Todos[id] => Completion.Completed -> Completion.Active
+toggleTodo TodoId#id
+  :: Todos[id]
+  => Completion.Active -> Completion.Completed
+  => Completion.Completed -> Completion.Active
 
 toggleAll :: ToggleAll.NotAllDone -> ToggleAll.AllDone
           :: ToggleAll.AllDone -> ToggleAll.NotAllDone

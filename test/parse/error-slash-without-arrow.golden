@@ -1,0 +1,6 @@
+test/parse/error-slash-without-arrow.sumspec:9:10:
+  |
+9 | t :: App / X.Y -> X.U
+  |          ^^
+unexpected "/ "
+expecting "->", "//", '#', ''', '(', '.', or '['

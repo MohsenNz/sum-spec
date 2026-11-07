@@ -47,7 +47,8 @@ hasErrors = any ((== Error) . errorSeverity)
 -- no errors means the spec is valid. The file path is used for errors
 -- that have no place in the source, such as a missing @__init@. The source is
 -- the text the spec was parsed from, for the warnings about spacing. A
--- transition with shared paths (@=>@) is checked as its expanded form.
+-- transition with shared paths (@/@ and @=>@) is checked as its expanded
+-- form, one transition per branch.
 checkSpec :: FilePath -> Text -> Spec -> [CheckError]
 checkSpec file source spec =
   sortOn (position . errorPos) . nubOrdOn key $
@@ -69,7 +70,7 @@ checkSpec file source spec =
       , warnSuffixSpaces
           source
           ( mapMaybe eventInput rawEvents
-              <> concat [[from, to] | Flat _ _ from to _ <- concatMap flatten rawEvents]
+              <> concat [[from, to] | Flat _ _ from to _ _ <- concatMap flatten rawEvents]
           )
       ]
   where
@@ -327,14 +328,23 @@ newtypeCycle env (TypeDef start _) = go [nameText start] (nameText start)
 
 -- ---------- Transitions ----------
 
--- | One transition with its event's name and input (then its source and
--- target): what most checks look at.
-data Flat = Flat Name (Maybe Pattern) Pattern Pattern (Maybe Guard)
+-- | One transition with its event's name and input (then its source,
+-- target and guard): what most checks look at. The last name is where
+-- the transition is written: the head of its first source argument, so
+-- branches under one shared path are told apart.
+data Flat = Flat Name (Maybe Pattern) Pattern Pattern (Maybe Guard) Name
 
 flatten :: Event -> [Flat]
 flatten (Event n input transitions) =
-  [ Flat n input (expand paths from) (expand paths to) (expandGuard paths <$> guard)
-  | Transition paths from guard to <- NE.toList transitions
+  [ Flat
+      n
+      input
+      (expand paths from)
+      (expand paths to)
+      (expandGuard paths <$> guard)
+      (patternHead (NE.head from))
+  | Transition paths branches <- NE.toList transitions
+  , Branch from guard to <- NE.toList branches
   ]
 
 -- | A guard reads where the source's arguments go, so each pattern in it
@@ -401,7 +411,7 @@ checkEvents env spec events =
 checkTransitions :: Env -> [Flat] -> [CheckError]
 checkTransitions env = concatMap checkTransition
   where
-    checkTransition (Flat _ input from to _) =
+    checkTransition (Flat _ input from to _ _) =
       checkPrimes Source from
         <> checkPrimes Target to
         <> checkNamings input from to
@@ -580,7 +590,7 @@ checkListPlaces defs inits transitions =
     <> concatMap patternLists inits
     <> concat
       [ concatMap patternLists (maybe [] pure i <> [from, to])
-      | Flat _ i from to _ <- transitions
+      | Flat _ i from to _ _ <- transitions
       ]
   where
     report term = errorAt (termName term)
@@ -840,11 +850,12 @@ elaborateEvent env event =
     , eventTransitions = transition <$> eventTransitions event
     }
   where
-    transition t =
-      t
-        { transitionFrom = elaborate env <$> transitionFrom t
-        , transitionGuard = guard <$> transitionGuard t
-        , transitionTo = elaborate env <$> transitionTo t
+    transition t = t {transitionBranches = branch <$> transitionBranches t}
+    branch b =
+      b
+        { branchFrom = elaborate env <$> branchFrom b
+        , branchGuard = guard <$> branchGuard b
+        , branchTo = elaborate env <$> branchTo b
         }
     guard = \case
       GuardPattern p -> GuardPattern (elaborate env p)
@@ -860,7 +871,8 @@ eventPatterns (Event _ input transitions) =
   maybeToList input
     <> concat
       [ NE.toList from <> foldMap guardPatterns guard <> NE.toList to
-      | Transition _ from guard to <- NE.toList transitions
+      | Transition _ branches <- NE.toList transitions
+      , Branch from guard to <- NE.toList branches
       ]
 
 -- | @Head(#n)@ needs a head that holds one value.
@@ -1171,7 +1183,7 @@ listPlaces env root =
 warnListElements :: Env -> Maybe Text -> [Flat] -> [CheckError]
 warnListElements env root transitions =
   [ warningAt h (nameText n <> " " <> message)
-  | Flat n _ from _ _ <- transitions
+  | Flat n _ from _ _ _ <- transitions
   , PatternPath (h :| _) args <- [bare from]
   , Just message <- [firstJust (map (problem (nameText h) args) (placesOf (nameText h)))]
   ]
@@ -1381,10 +1393,10 @@ reachable env initial transitions = go (reach env Map.empty Nothing AnyValue ini
     go found =
       let found' = found <> foldMap fire [t | t <- transitions, enabled found t]
       in  if found' == found then found else go found'
-    enabled (labels, live) (Flat _ _ from _ _) =
+    enabled (labels, live) (Flat _ _ from _ _ _) =
       patternKey from `Set.member` live
         && sourceVariants env from `Set.isSubsetOf` labels
-    fire (Flat _ input from to _) =
+    fire (Flat _ input from to _ _) =
       reach
         env
         (Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from])
@@ -1425,9 +1437,9 @@ warnReachability env defs inits transitions = case inits of
             , maybe (Set.member (T.takeWhile (/= '.') label) live) (`Set.member` found) parent
             ]
           dead =
-            [ warningAt (patternHead from) $
+            [ warningAt at $
                 nameText n <> ": this transition can never happen: " <> reason
-            | Flat n _ from _ _ <- transitions
+            | Flat n _ from _ _ at <- transitions
             , Just reason <- [whyDead live (sourceVariants env from `Set.difference` found) from]
             ]
         in
@@ -1470,22 +1482,22 @@ variantNames defs =
 -- transition, naming the first one it overlaps.
 warnOverlaps :: Env -> [Flat] -> [CheckError]
 warnOverlaps env transitions =
-  [ warningAt (patternHead from) $
+  [ warningAt at $
       nameText n
         <> ": this transition and the one on line "
-        <> lineOf (patternHead earlierFrom)
+        <> lineOf earlierAt
         <> " can apply to the same state, and which one happens isn't said; "
         <> ( if isJust guard || isJust earlierGuard
                then "make their sources or guards exclude each other"
                else "give their sources different variants"
            )
-  | (i, t@(Flat n _ from _ guard)) <- indexed
-  , Just (Flat _ _ earlierFrom _ earlierGuard) <-
+  | (i, t@(Flat n _ _ _ guard at)) <- indexed
+  , Just (Flat _ _ _ _ earlierGuard earlierAt) <-
       [find (overlaps t) [e | (j, e) <- indexed, j < i]]
   ]
   where
     indexed = zip [0 :: Int ..] transitions
-    overlaps t@(Flat n _ from _ g) u@(Flat m _ other _ h) =
+    overlaps t@(Flat n _ from _ g _) u@(Flat m _ other _ h _) =
       nameText n == nameText m
         && patternKey from == patternKey other
         && not (excludes (variantsOf from) (variantsOf other))
@@ -1745,7 +1757,7 @@ guardsMayHold env (names1, g) (names2, h) =
 -- | The names a transition can use: the ones its input and its source
 -- bind, with the type of each.
 transitionNameMap :: Flat -> Names
-transitionNameMap (Flat _ input from _ _) =
+transitionNameMap (Flat _ input from _ _ _) =
   Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from]
 
 -- | A guard is read where the source is, so each pattern in it (already
@@ -1768,7 +1780,7 @@ checkGuards env transitions =
            ]
         <> concat [checkComparison env names op l r | (op, l, r) <- guardComparisons g]
         <> concat [checkMembership env names l ys | (l, ys) <- guardMemberships g]
-    | t@(Flat _ _ from _ (Just g)) <- transitions
+    | t@(Flat _ _ from _ (Just g) _) <- transitions
     , let names = transitionNameMap t
     ]
   where

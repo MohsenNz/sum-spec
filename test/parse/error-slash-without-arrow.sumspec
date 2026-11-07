@@ -1,0 +1,9 @@
+-- Shared paths joined with / are followed by =>.
+__atomics { }
+__events { t }
+
+App = X
+X = Y (A) | U
+A = B | C
+
+t :: App / X.Y -> X.U

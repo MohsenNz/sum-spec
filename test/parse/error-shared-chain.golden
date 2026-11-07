@@ -1,0 +1,6 @@
+test/parse/error-shared-chain.sumspec:10:15:
+   |
+10 | t :: X => X.Y => A.B -> A.C
+   |               ^^
+unexpected "=>"
+expecting "->", "//", '#', ''', '(', '*', '.', or '['

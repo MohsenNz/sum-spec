@@ -1,0 +1,33 @@
+-- Branches: after the shared paths, each transition starts with =>.
+-- One branch stays on the line of its shared paths; several go one per
+-- line, each => under the ::.
+__atomics { Id }
+__events { toggle edit pick open }
+
+App = Page
+Page = Home | Plan (Mode * Items)
+Mode = View | Edit
+Items = [Item by Id]
+Item = Done | Todo
+
+toggle Id#i :: Items[i] => Item.Done -> Item.Todo => Item.Todo -> Item.Done
+
+-- A guard in a branch, a chain of shared paths, and a comment between
+-- branches.
+edit Id#i
+  :: App / Page.Plan
+  => Mode.View * Items[i](Item.Done)
+  // Mode.View
+  -> Mode.Edit
+
+  -- the other branch
+  => Mode.Edit -> Mode.View
+
+-- Branches mixed with a plain transition.
+pick :: Page.Plan => Mode.View -> Mode.Edit
+                  => Mode.Edit -> Mode.View
+     :: Page.Home -> Page.Plan
+
+-- One branch is the plain shared path.
+open :: App
+     => Page.Home -> Page.Plan

@@ -1,30 +1,30 @@
-example/git:114:6:
+example/git:118:6:
     |
-114 |   :: FileState.Staged -> FileState.Unmodified
+118 |   :: FileState.Staged -> FileState.Unmodified
     |      ^
 warning: commit changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:132:6:
+example/git:136:6:
     |
-132 |   :: Repository.Initialized
+136 |   => Head.OnBranch * Operation.Idle
     |      ^
-warning: merge: this transition and the one on line 128 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: merge: this transition and the one on line 133 can apply to the same state, and which one happens isn't said; give their sources different variants
 
-example/git:138:6:
+example/git:141:6:
     |
-138 |   :: FileState.Unmodified -> FileState.Conflicted
+141 |   :: FileState.Unmodified -> FileState.Conflicted
     |      ^
 warning: merge changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:155:6:
+example/git:158:6:
     |
-155 |   :: FileState.Conflicted -> FileState.Unmodified
+158 |   :: FileState.Conflicted -> FileState.Unmodified
     |      ^
 warning: mergeAbort changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git:167:6:
+example/git:170:6:
     |
-167 |   :: Repository.Initialized
+170 |   => Head.Detached * Operation.Rebasing
     |      ^
-warning: rebaseContinue: this transition and the one on line 163 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: rebaseContinue: this transition and the one on line 167 can apply to the same state, and which one happens isn't said; give their sources different variants
 

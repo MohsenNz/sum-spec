@@ -59,6 +59,10 @@ Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
 - [x] `=>` (shared construction path).
 - [ ] Naming an element (`Todos[id]#t`).
+- [ ] Alternatives in a pattern (`Page(Home | Logs)`).
+- [x] Branches on a shared path (`:: App => A -> B => C -> D`), with `/`
+      chaining shared paths.
+- [ ] Branches on a guard (`f :: T(Int#i) // i < 10 -> ... // i >= 10 -> ...`).
 - [ ] Annotations (`__annotations`), also on transitions.
 - [ ] Dependent types and generic types.
 - [ ] Variant refinement (`PMode.ShowMission = ...`).

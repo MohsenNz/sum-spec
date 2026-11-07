@@ -184,18 +184,29 @@ eventDef =
     <*> optional (input <?> "input type")
     <*> ((:|) <$> transition <*> many transition)
 
--- transition = "::" , ( shared , "=>" , { shared , "=>" } , arguments ,
---                       "->" , arguments
---                     | pattern , "->" , pattern ) ;
+-- transition = "::" , ( shared , { "/" , shared } , branch , { branch }
+--                     | pattern , [ guard ] , "->" , pattern ) ;
 --
--- A shared path starts like a pattern; the "=>" after it tells them
--- apart.
+-- A shared path starts like a pattern; the "/" or "=>" after it tells
+-- them apart.
 transition :: Parser Transition
 transition = do
   _ <- symbol "::"
-  paths <- many (try (shared <* symbol "=>"))
-  let side = if null paths then (:| []) <$> pattern else arguments
-  Transition paths <$> side <*> optional guard <*> (symbol "->" *> side)
+  paths <- option [] (try (sepBy1 shared slash <* lookAhead (symbol "=>")))
+  case paths of
+    [] -> Transition [] . pure <$> plain
+    _ -> Transition paths <$> ((:|) <$> branch <*> many branch)
+  where
+    plain = Branch <$> one <*> optional guard <*> (symbol "->" *> one)
+    one = (:| []) <$> pattern
+
+-- branch = "=>" , arguments , [ guard ] , "->" , arguments ;
+branch :: Parser Branch
+branch =
+  Branch
+    <$> (symbol "=>" *> arguments)
+    <*> optional guard
+    <*> (symbol "->" *> arguments)
 
 -- guard = "//" , predicate ;
 guard :: Parser Guard

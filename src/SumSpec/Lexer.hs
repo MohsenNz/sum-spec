@@ -10,6 +10,7 @@ module SumSpec.Lexer
   , symbol
   , keyword
   , equals
+  , slash
   , upperName
   , lowerName
   , valueName
@@ -44,6 +45,11 @@ lexeme = L.lexeme spaceConsumer
 
 symbol :: Text -> Parser Text
 symbol = L.symbol spaceConsumer
+
+-- | @/@ between shared paths, never the start of @//@, which starts a
+-- guard.
+slash :: Parser ()
+slash = lexeme (try (char '/' *> notFollowedBy (char '/'))) <?> "'/'"
 
 -- | A word of the language, such as @by@ in @[T by K]@. It isn't reserved:
 -- it's read as a word only where the grammar expects it, and not when a

@@ -10,6 +10,7 @@ module SumSpec.Pretty
   , renderLiteral
   ) where
 
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -43,14 +44,24 @@ renderDefinition = \case
   DefEvent (Event name input transitions) ->
     heading
       <> T.intercalate
-        ("\n" <> T.replicate (T.length heading) " ")
+        indent
         (map renderTransition (NE.toList transitions))
     where
       heading = nameText name <> maybe "" ((" " <>) . renderPattern) input <> " "
-      renderTransition (Transition paths from guard to) =
-        ":: "
-          <> T.concat [renderShared p <> " => " | p <- paths]
-          <> renderSide from
+      indent = "\n" <> T.replicate (T.length heading) " "
+      -- One branch goes on the line of its shared paths; several go one
+      -- per line, each @=>@ under the @::@.
+      renderTransition (Transition paths branches) = case (paths, branches) of
+        ([], b :| _) -> ":: " <> renderBranch b
+        (_, b :| []) -> ":: " <> shared <> " => " <> renderBranch b
+        _ ->
+          ":: "
+            <> shared
+            <> T.concat [indent <> "=> " <> renderBranch b | b <- NE.toList branches]
+        where
+          shared = T.intercalate " / " (map renderShared paths)
+      renderBranch (Branch from guard to) =
+        renderSide from
           <> maybe "" ((" // " <>) . renderGuard) guard
           <> " -> "
           <> renderSide to

@@ -408,9 +408,32 @@ showMission :: Page.Plan
             -> PMode.ShowMission.List * Missions
 ```
 
-Shared paths chain, outermost first: `X => Y => a -> b` means `X(Y(a)) -> X(Y(b))`.
+Shared paths chain with `/`, outermost first: `X / Y => a -> b` means `X(Y(a)) -> X(Y(b))`. Spaces around `/` are optional; the canonical form has them.
 
 A shared path takes no arguments, prime or naming.
+
+#### Branches
+
+Several transitions of an event often share the same paths. Write the paths once after `::`, then one branch per transition, each starting with `=>`:
+
+```
+-- The same as:
+--   :: Files[p] => FileState.Untracked -> FileState.Staged
+--   :: Files[p] => FileState.Modified -> FileState.Staged
+add Path#p
+  :: Files[p]
+  => FileState.Untracked -> FileState.Staged
+  => FileState.Modified -> FileState.Staged
+```
+
+- Each branch is a transition of its own, `:: <shared paths> => <branch>`, and follows every rule of a transition. A branch may have a guard.
+- The shared paths are common to all the branches. A branch can't add paths of its own: write them out in its source and target, or start a new `::`.
+- The event's input is visible in every branch. A name a branch binds (`#t`) belongs to that branch only, so two branches may use the same name.
+- Branches have no order: they're the event's transitions, so two branches whose sources can apply to the same state get the overlap warning (see "Several transitions for one event").
+- `::` still starts a new transition, with its own shared paths, so an event may mix branches and other transitions.
+- A transition without a shared path has no branches: `:: A.B -> A.C => ...` is an error.
+
+The canonical form puts one branch on the line of its shared paths, and several one per line, each `=>` under the `::`.
 
 
 ## Named values (#name)

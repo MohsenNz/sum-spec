@@ -20,6 +20,7 @@ module SumSpec.Syntax
   , TypeTerm (..)
   , Event (..)
   , Transition (..)
+  , Branch (..)
   , Guard (..)
   , CompareOp (..)
   , compareWord
@@ -140,18 +141,27 @@ data Event = Event
   }
   deriving stock (Eq, Show)
 
--- | @:: from -> to@: one transition of an event. With shared paths,
--- @:: S1 => S2 => a * b -> c@ means @S1(S2(a * b)) -> S1(S2(c))@.
+-- | @:: from -> to@, or shared paths and their branches: what one @::@
+-- writes. @:: S1 / S2 => a * b -> c => d -> e@ is two transitions,
+-- @S1(S2(a * b)) -> S1(S2(c))@ and @S1(S2(d)) -> S1(S2(e))@.
 data Transition = Transition
   { transitionShared :: [Shared]
-  -- ^ The paths written once before @=>@, outermost first.
-  , transitionFrom :: NonEmpty Pattern
+  -- ^ The paths written once after @::@, outermost first.
+  , transitionBranches :: NonEmpty Branch
+  -- ^ One branch per transition, each after @=>@. Without a shared path
+  -- there is exactly one.
+  }
+  deriving stock (Eq, Show)
+
+-- | One transition under the shared paths of a 'Transition'.
+data Branch = Branch
+  { branchFrom :: NonEmpty Pattern
   -- ^ The source. Without a shared path it is one pattern; after one,
   -- it is the arguments of the innermost shared path.
-  , transitionGuard :: Maybe Guard
+  , branchGuard :: Maybe Guard
   -- ^ The condition after @//@, before @->@: the transition applies only
   -- while it holds.
-  , transitionTo :: NonEmpty Pattern
+  , branchTo :: NonEmpty Pattern
   -- ^ The target, written like the source.
   }
   deriving stock (Eq, Show)

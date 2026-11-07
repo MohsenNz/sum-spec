@@ -1,48 +1,48 @@
-test/check/warning-guard-in-overlaps.sumspec:17:6:
+test/check/warning-guard-in-overlaps.sumspec:17:13:
    |
 17 |   :: App => Ids#ids // i in ids -> Ids'
-   |      ^
+   |             ^
 warning: both: this transition and the one on line 16 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
 
-test/check/warning-guard-in-overlaps.sumspec:21:6:
+test/check/warning-guard-in-overlaps.sumspec:21:13:
    |
 21 |   :: App => Ids#ids * Id#j // not (j in ids) -> Ids'
-   |      ^
+   |             ^
 warning: left: this transition and the one on line 20 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
 
-test/check/warning-guard-in-overlaps.sumspec:25:6:
+test/check/warning-guard-in-overlaps.sumspec:25:13:
    |
 25 |   :: App => Others#ids // not (i in ids) -> Others'
-   |      ^
+   |             ^
 warning: list: this transition and the one on line 24 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
 
-test/check/warning-guard-in-overlaps.sumspec:29:6:
+test/check/warning-guard-in-overlaps.sumspec:29:13:
    |
 29 |   :: App => Levels#ls // not (2 in ls) -> Levels'
-   |      ^
+   |             ^
 warning: comparison: this transition and the one on line 28 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
 
-test/check/warning-guard-in-overlaps.sumspec:34:6:
+test/check/warning-guard-in-overlaps.sumspec:34:13:
    |
 34 |   :: App => Levels * Key#j // not Todos[j] -> Levels'
-   |      ^
+   |             ^
 warning: keys: this transition and the one on line 33 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
 
-test/check/warning-guard-in-overlaps.sumspec:38:6:
+test/check/warning-guard-in-overlaps.sumspec:38:13:
    |
 38 |   :: App => Levels * Key#j // not Todos[j](Mode.On) -> Levels'
-   |      ^
+   |             ^
 warning: variants: this transition and the one on line 37 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
 
-test/check/warning-guard-in-overlaps.sumspec:42:6:
+test/check/warning-guard-in-overlaps.sumspec:42:13:
    |
 42 |   :: App => Levels * Key#j // Todos[j](Mode.Off) -> Levels'
-   |      ^
+   |             ^
 warning: positive: this transition and the one on line 41 can apply to the same state, and which one happens isn't said; make their sources or guards exclude each other
 
-test/check/warning-guard-in-overlaps.sumspec:46:6:
+test/check/warning-guard-in-overlaps.sumspec:46:13:
    |
 46 |   :: App => Todos[j](Mode.Off) * Key#j -> Key'
-   |      ^
+   |             ^
 warning: sources: this transition and the one on line 45 can apply to the same state, and which one happens isn't said; give their sources different variants
 

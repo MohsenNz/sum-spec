@@ -14,7 +14,8 @@
 -- Files and Branches are keyed lists: a file is identified by its Path,
 -- and a branch by its BranchName. An event on one file takes a Path
 -- and picks the file with an element path, written once for both sides
--- with => (Files[p] => FileState.Staged -> FileState.Modified).
+-- with => (Files[p] => FileState.Staged -> FileState.Modified). Several
+-- transitions under the same path are branches, each starting with =>.
 
 __version 1.0
 
@@ -84,28 +85,31 @@ init
   -> Repository.Initialized(Head.Unborn * Operation.Idle)
 
 edit Path#p
-  :: Files[p] => FileState.Unmodified -> FileState.Modified
-  :: Files[p] => FileState.Staged -> FileState.StagedAndModified
+  :: Files[p]
+  => FileState.Unmodified -> FileState.Modified
+  => FileState.Staged -> FileState.StagedAndModified
 
 add Path#p
-  :: Files[p] => FileState.Untracked -> FileState.Staged
-  :: Files[p] => FileState.Modified -> FileState.Staged
-  :: Files[p] => FileState.StagedAndModified -> FileState.Staged
+  :: Files[p]
+  => FileState.Untracked -> FileState.Staged
+  => FileState.Modified -> FileState.Staged
+  => FileState.StagedAndModified -> FileState.Staged
 
 unstage Path#p
-  :: Files[p] => FileState.Staged -> FileState.Modified
-  :: Files[p] => FileState.StagedAndModified -> FileState.Modified
+  :: Files[p]
+  => FileState.Staged -> FileState.Modified
+  => FileState.StagedAndModified -> FileState.Modified
 
 restore Path#p
-  :: Files[p] => FileState.Modified -> FileState.Unmodified
-  :: Files[p] => FileState.StagedAndModified -> FileState.Staged
+  :: Files[p]
+  => FileState.Modified -> FileState.Unmodified
+  => FileState.StagedAndModified -> FileState.Staged
 
 commit
   :: Repository.Initialized
   => Head.Unborn * Operation.Idle
   -> Head.OnBranch * Branches' * Files'
 
-  :: Repository.Initialized
   => Head.OnBranch * Operation.Idle
   -> Branches' * Files'
 
@@ -129,7 +133,6 @@ merge
   => Head.OnBranch * Operation.Idle
   -> Branches' * Files'
 
-  :: Repository.Initialized
   => Head.OnBranch * Operation.Idle
   -> Files' * Operation.Merging
 
@@ -164,7 +167,6 @@ rebaseContinue
   => Head.Detached * Operation.Rebasing
   -> Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining')
 
-  :: Repository.Initialized
   => Head.Detached * Operation.Rebasing
   -> Head.OnBranch * Branches' * Operation.Idle
 

@@ -66,9 +66,15 @@ release" in `VERSIONING.md`).
   once, `Files[p] => FileState.Staged -> FileState.Modified` for
   `Files[p](FileState.Staged) -> Files[p](FileState.Modified)`. A
   shared path is a path or an element path, with no arguments, prime
-  or naming; shared paths chain (`X => Y => A -> B`), and after the
-  last one each side may be several factors
+  or naming; shared paths chain with `/` (`X / Y => A -> B`), and after
+  the last one each side may be several factors
   (`Page.Plan => PMode.JustMap * Missions -> ...`).
+- Branches: several transitions under the same shared paths write them
+  once, then one branch per transition, each starting with `=>`:
+  `:: Files[p]`, then `=> FileState.Untracked -> FileState.Staged` and
+  `=> FileState.Modified -> FileState.Staged`. Each branch is a
+  transition of its own, with its own names; the input is visible in
+  all. A transition without a shared path has no branches.
 - An event is defined once: its name and input, then all its
   transitions, each starting with `::`:
   `press :: A -> B`, then `:: C -> D` on the next line. Writing an
@@ -134,6 +140,12 @@ release" in `VERSIONING.md`).
   a shared path once. The examples use it: git's `Files[p]` and
   `Repository.Initialized` events, todomvc's `Todos[id]`, `App` and
   `Screen.WithTodos` events, and drone's `Page.Plan` events.
+- The parser, printer and checker read `/` and branches. The canonical
+  form puts one branch on the line of its shared paths, and several one
+  per line, each `=>` under the `::`. A warning about a transition
+  points at its source, after `=>`, so branches are told apart. git's
+  `Files[p]` and `Repository.Initialized` events and todomvc's
+  `addTodo` and `toggleTodo` use branches.
 - A warning for a transition that can never happen: its source needs a
   variant that is never reached, or its type is one no state holds.
 - The checker reports a missing or repeated `__init` (in place of the

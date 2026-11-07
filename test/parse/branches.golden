@@ -1,0 +1,27 @@
+__atomics {
+  Id
+}
+
+__events {
+  toggle
+  edit
+  pick
+  open
+}
+
+App = Page
+Page = Home | Plan (Mode * Items)
+Mode = View | Edit
+Items = [Item by Id]
+Item = Done | Todo
+toggle Id#i :: Items[i]
+            => Item.Done -> Item.Todo
+            => Item.Todo -> Item.Done
+edit Id#i :: App / Page.Plan
+          => Mode.View * Items[i](Item.Done) // Mode.View -> Mode.Edit
+          => Mode.Edit -> Mode.View
+pick :: Page.Plan
+     => Mode.View -> Mode.Edit
+     => Mode.Edit -> Mode.View
+     :: Page.Home -> Page.Plan
+open :: App => Page.Home -> Page.Plan

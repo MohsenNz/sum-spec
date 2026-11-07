@@ -1,0 +1,24 @@
+test/check/branches.sumspec:10:8:
+   |
+10 | Page = Home | Plan (Mode * Items)
+   |        ^
+warning: Page.Home is never reached: neither __init nor any transition that can happen puts the app there
+
+test/check/branches.sumspec:27:56:
+   |
+27 |   => Mode.View * Items[i](State.Todo) -> Items[i](Name(t))
+   |                                                        ^
+unknown name t; name a value with #t in the input or on the source side
+
+test/check/branches.sumspec:33:6:
+   |
+33 |   => Mode.View -> Items'
+   |      ^
+warning: overlap: this transition and the one on line 32 can apply to the same state, and which one happens isn't said; give their sources different variants
+
+test/check/branches.sumspec:37:6:
+   |
+37 |   :: Nope
+   |      ^
+unknown type Nope; declare it in __atomics or define it
+
