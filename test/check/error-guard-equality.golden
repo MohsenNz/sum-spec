@@ -1,0 +1,90 @@
+test/check/error-guard-equality.sumspec:13:15:
+   |
+13 | Round = Shape.Circle
+   |               ^
+Shape.Circle has a payload, so it can't be written as a value; test it with a pattern
+
+test/check/error-guard-equality.sumspec:15:32:
+   |
+15 | order Box#a :: App => Box#b // a < b -> Box'
+   |                                ^
+ordering needs a number or an enumeration, but a is a Box (neither a number, text nor an enumeration)
+
+test/check/error-guard-equality.sumspec:15:36:
+   |
+15 | order Box#a :: App => Box#b // a < b -> Box'
+   |                                    ^
+ordering needs a number or an enumeration, but b is a Box (neither a number, text nor an enumeration)
+
+test/check/error-guard-equality.sumspec:16:30:
+   |
+16 | listorder :: App => Ids#a // a >= a -> Ids'
+   |                              ^
+ordering needs a number or an enumeration, but a is a Ids (neither a number, text nor an enumeration)
+
+test/check/error-guard-equality.sumspec:16:35:
+   |
+16 | listorder :: App => Ids#a // a >= a -> Ids'
+   |                                   ^
+ordering needs a number or an enumeration, but a is a Ids (neither a number, text nor an enumeration)
+
+test/check/error-guard-equality.sumspec:17:31:
+   |
+17 | sumorder :: App => Shape#s // s > s -> Shape'
+   |                               ^
+ordering needs a number or an enumeration, but s is a Shape (neither a number, text nor an enumeration)
+
+test/check/error-guard-equality.sumspec:17:35:
+   |
+17 | sumorder :: App => Shape#s // s > s -> Shape'
+   |                                   ^
+ordering needs a number or an enumeration, but s is a Shape (neither a number, text nor an enumeration)
+
+test/check/error-guard-equality.sumspec:18:35:
+   |
+18 | variantorder :: App => Shape#s // s < Shape.Square -> Shape'
+   |                                   ^
+ordering needs a number or an enumeration, but s is a Shape (neither a number, text nor an enumeration)
+
+test/check/error-guard-equality.sumspec:18:39:
+   |
+18 | variantorder :: App => Shape#s // s < Shape.Square -> Shape'
+   |                                       ^
+ordering needs a number or an enumeration, but Shape.Square is a Shape (neither a number, text nor an enumeration)
+
+test/check/error-guard-equality.sumspec:19:41:
+   |
+19 | payload :: App => Shape#s // s == Shape.Circle -> Shape'
+   |                                         ^
+Shape.Circle has a payload, so it can't be written as a value; test it with a pattern
+
+test/check/error-guard-equality.sumspec:20:48:
+   |
+20 | unknownvariant :: App => Shape#s // s == Shape.Oval -> Shape'
+   |                                                ^
+Oval is not a variant of Shape
+
+test/check/error-guard-equality.sumspec:21:39:
+   |
+21 | types Other#a :: App => Box#b // a == b -> Box'
+   |                                       ^
+cannot compare a (a Other) with b (a Box); they are different types
+
+test/check/error-guard-equality.sumspec:22:43:
+   |
+22 | newtype Box#a :: App => Wrapped#b // a == b -> Wrapped'
+   |                                           ^
+cannot compare a (a Box) with b (a Wrapped); they are different types
+
+test/check/error-guard-equality.sumspec:23:33:
+   |
+23 | literal :: App => Box#b // b == 3 -> Box'
+   |                                 ^
+b is a Box (neither a number, text nor an enumeration), so it can't be compared with the integer 3
+
+test/check/error-guard-equality.sumspec:24:30:
+   |
+24 | bare :: App => Box#b // b == Box -> Box'
+   |                              ^
+a variant to compare is written Type.Variant, where Type is a sum; Box is not
+

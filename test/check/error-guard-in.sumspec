@@ -1,6 +1,6 @@
 -- Memberships that break the rules.
 __atomics { Id  Other  Percent = __float  Name = __text  Key }
-__events { notlist unknownlist unknownleft wrongelement wrongitem keyedproducts literal variant products nested text }
+__events { notlist unknownlist unknownleft wrongelement wrongitem literal variant literalproduct text }
 
 __init :: App
 
@@ -20,9 +20,7 @@ unknownlist Id#i :: App => Ids // i in nope -> Ids'
 unknownleft :: App => Ids#ids // nope in ids -> Ids'
 wrongelement Other#o :: App => Ids#ids // o in ids -> Ids'
 wrongitem Key#k :: App => Labels#ls // k in ls -> Labels'
-keyedproducts Todo#t :: App => Todos#ts // t in ts -> Todos'
 literal :: App => Ids#ids // 3 in ids -> Ids'
 variant :: App => Names#ns // Missing.Value in ns -> Names'
-products Box#b :: App => Boxes#bs // b in bs -> Boxes'
-nested Id#i :: App => Nest#n // i in n -> Nest'
+literalproduct :: App => Boxes#bs // 3 in bs -> Boxes'
 text :: App => Names#ns // 3 in ns -> Names'

@@ -267,7 +267,7 @@ character     = ? any Unicode character ? ;
    - no type is both atomic and defined, and no type is defined twice;
    - a named constant has a known type, and its literal fits it (an
      integer an __int or a __float, a decimal only a __float, a string
-     only a __text) or its variant is one of a sum without payloads. A
+     only a __text) or its variant is one of a sum, with no payload. A
      constant shares its name space with the types: it can't have the
      name of a type, an atomic or another constant. A constant is a
      value, not a type: it is only a side of a comparison, never a
@@ -311,17 +311,16 @@ character     = ? any Unicode character ? ;
      variant that fits it. A name is a value the transition binds, and
      its type resolves through newtypes to an atomic with a base
      (__int, __float, __text), to a sum without payloads (an
-     enumeration, ordered by its variants, first smallest), or to an
-     atomic with no base. An integer literal fits an __int or a
-     __float, a decimal only a __float, a string only a __text, and a
-     variant a value of its sum. < <= > >= need a number or an
-     enumeration; == and != also take text and an atomic with no base
-     (name against name). "not", "and", "or" and "in" are not value names
+     enumeration, ordered by its variants, first smallest), or to
+     anything else. An integer literal fits an __int or a __float, a
+     decimal only a __float, a string only a __text, and a variant
+     without a payload a value of its sum. < <= > >= need a number or an
+     enumeration; == and != take every type, by structure. "not", "and", "or" and "in" are not value names
      in a condition. A constant stands for its value, with the type it names.
      See "Comparing values" in spec-v1.md;
    - x in ys: ys is a name whose type resolves through newtypes to a
-     list type, keyed or not. x has its element type, which == must
-     compare; a literal fits as in a comparison. A key is tested with an
+     list type, keyed or not. x has its element type; a literal fits as
+     in a comparison. A key is tested with an
      element path. See "Membership" in spec-v1.md;
    - Head(#n) needs a head that holds one value: a newtype, a variant
      carrying one type, or an element that isn't a product. It means

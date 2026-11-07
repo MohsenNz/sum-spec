@@ -244,7 +244,7 @@ checkConsts env consts =
   | (ConstDef n _ _, ConstDef first _ _) <- repeats (nameText . constName) consts
   ]
     <> concatMap clash (firsts (nameText . constName) consts)
-    <> concatMap checkValue consts
+    <> concatMap (constValueErrors env) consts
   where
     clash c
       | Map.member (nameText n) (envTypes env) =
@@ -255,23 +255,27 @@ checkConsts env consts =
       | otherwise = []
       where
         n = constName c
-    checkValue (ConstDef _ ty value)
-      | not (isKnownType env (nameText ty)) = [unknownType env ty]
-      | otherwise = case value of
-          ConstLiteral pos lit
-            | literalFits (kindOf env (nameText ty)) lit -> []
-            | otherwise ->
-                [ errorAtPos pos $
-                    nameText ty
-                      <> " is "
-                      <> describeKind (kindOf env (nameText ty))
-                      <> ", so "
-                      <> renderLiteral lit
-                      <> " doesn't fit it"
-                ]
-          ConstVariant v -> case Map.lookup (nameText ty) (envTypes env) of
-            Just (TypeSum variants) -> variantRefErrors variants ty v
-            _ -> [notAnEnumeration "a constant variant" ty]
+
+-- | The problems with a constant's value: its type is known, and its
+-- literal or variant fits that type.
+constValueErrors :: Env -> ConstDef -> [CheckError]
+constValueErrors env (ConstDef _ ty value)
+  | not (isKnownType env (nameText ty)) = [unknownType env ty]
+  | otherwise = case value of
+      ConstLiteral pos lit
+        | literalFits (kindOf env (nameText ty)) lit -> []
+        | otherwise ->
+            [ errorAtPos pos $
+                nameText ty
+                  <> " is "
+                  <> describeKind (kindOf env (nameText ty))
+                  <> ", so "
+                  <> renderLiteral lit
+                  <> " doesn't fit it"
+            ]
+      ConstVariant v -> case Map.lookup (nameText ty) (envTypes env) of
+        Just (TypeSum variants) -> variantRefErrors variants ty v
+        _ -> [notASum "a constant variant" ty]
 
 -- | Whether a literal fits a value of this kind: an integer an @__int@ or a
 -- @__float@, a decimal only a @__float@, a string only a @__text@.
@@ -1817,7 +1821,7 @@ guardMemberships = \case
 -- | What a value is, as far as a comparison goes. A type resolves through
 -- newtypes to an atomic with a base, to a sum without payloads (an
 -- enumeration, ordered by the order of its variants), to an atomic with no
--- base (equality only), or to something that can't be compared.
+-- base, or to anything else: these two have equality only.
 data Kind = KInt | KFloat | KText | KEnum | KOpaque | KOther
   deriving stock (Eq)
 
@@ -1869,11 +1873,10 @@ resolveSide env names = \case
   OperandVariant (h :| [])
     | Just c <- Map.lookup (nameText h) (envConsts env) ->
         let ty = nameText (constType c)
-        in  case kindOf env ty of
-              -- An unknown type, or one with no values to compare: the
-              -- constant's own definition reports the problem.
-              KOther -> Left []
-              kind -> Right (CmpSide (namePos h) (nameText h) (Just ty) (OfType kind))
+        in  case constValueErrors env c of
+              [] -> Right (CmpSide (namePos h) (nameText h) (Just ty) (OfType (kindOf env ty)))
+              -- The constant's own definition reports the problem.
+              _ -> Left []
   OperandVariant (h :| rest) -> case (Map.lookup (nameText h) (envTypes env), rest) of
     (Just (TypeSum variants), [v]) -> case variantRefErrors variants h v of
       [] ->
@@ -1882,39 +1885,38 @@ resolveSide env names = \case
               (namePos h)
               (nameText h <> "." <> nameText v)
               (Just (nameText h))
-              (OfType KEnum)
+              (OfType (kindOf env (nameText h)))
           )
       errors -> Left errors
     _
-      | isKnownType env (nameText h) -> Left [notAnEnumeration "a variant to compare" h]
+      | isKnownType env (nameText h) -> Left [notASum "a variant to compare" h]
       | Map.member (nameText h) (envConsts env) ->
           Left [errorAt h (nameText h <> " is a constant, so it has no variants")]
       | otherwise -> Left [unknownType env h]
 
 -- | The problems with @Type.Variant@ used as a value, where @Type@ is a sum:
--- it must have no payload, and the variant must be one of its.
+-- the variant must be one of its, and have no payload, which has no form as
+-- a value.
 variantRefErrors :: [Variant] -> Name -> Name -> [CheckError]
-variantRefErrors variants h v
-  | any (isJust . variantPayload) variants =
-      [ errorAt
-          h
-          (nameText h <> " has variants with a payload, so its variants can't be compared")
-      ]
-  | nameText v `notElem` map (nameText . variantName) variants =
-      [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
-  | otherwise = []
+variantRefErrors variants h v = case find ((== nameText v) . nameText . variantName) variants of
+  Nothing -> [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
+  Just (Variant _ (Just _)) ->
+    [ errorAt v $
+        nameText h
+          <> "."
+          <> nameText v
+          <> " has a payload, so it can't be written as a value; test it with a pattern"
+    ]
+  Just (Variant _ Nothing) -> []
 
-notAnEnumeration :: Text -> Name -> CheckError
-notAnEnumeration what h =
+notASum :: Text -> Name -> CheckError
+notASum what h =
   errorAt h $
-    what
-      <> " is written Type.Variant, where Type is a sum without payloads; "
-      <> nameText h
-      <> " is not"
+    what <> " is written Type.Variant, where Type is a sum; " <> nameText h <> " is not"
 
 -- | A comparison of two values of one type, or of a value and a literal or
 -- variant that fits it. The ordering operators need numbers or an
--- enumeration; @==@ and @!=@ also take text and atomics.
+-- enumeration; @==@ and @!=@ take every type.
 checkComparison :: Env -> Names -> CompareOp -> Operand -> Operand -> [CheckError]
 checkComparison env names op l r =
   case (resolveSide env names l, resolveSide env names r) of
@@ -1932,10 +1934,6 @@ checkComparison env names op l r =
         , k `notElem` [KInt, KFloat, KEnum] ->
             [ errorAtPos (sideAt side) $
                 "ordering needs a number or an enumeration, but " <> describeSide side
-            ]
-        | k == KOther ->
-            [ errorAtPos (sideAt side) $
-                describeSide side <> ", which can't be compared"
             ]
       LiteralText
         | ordering ->
@@ -2008,8 +2006,8 @@ memberType = \case
   (TermName element, _) -> Just (nameText element)
   (TermList _ _, _) -> Nothing
 
--- | @x in ys@: @ys@ is a name of a list type, and @x@ has its element type,
--- which @==@ must compare. A key is tested with an element path instead.
+-- | @x in ys@: @ys@ is a name of a list type, and @x@ has its element type.
+-- A key is tested with an element path instead.
 checkMembership :: Env -> Names -> Operand -> Name -> [CheckError]
 checkMembership env names l ys = case Map.lookup (nameText ys) names of
   Nothing -> either id (const []) left <> [unknownName ys]
@@ -2018,30 +2016,10 @@ checkMembership env names l ys = case Map.lookup (nameText ys) names of
       [ errorAt ys $
           nameText ys <> " is a " <> list <> ", not a list, so nothing can be in it"
       ]
-    Just body@(element, key)
-      | Just ty <- memberType body
-      , kindOf env ty /= KOther ->
-          either id (relateSides (side ty)) left
-      | otherwise ->
-          [ errorAt ys $
-              nameText ys
-                <> " is a list of "
-                <> termKey element
-                <> ", and a "
-                <> termKey element
-                <> " can't be compared with =="
-                <> advice
-          ]
-      where
-        elementIsList = maybe True (isJust . listBody env) (memberType body)
-        advice
-          | elementIsList = ""
-          | otherwise =
-              "; to test for an element, "
-                <> (if isJust key then "" else "give the list a key and ")
-                <> "use an element path, such as "
-                <> list
-                <> "[k]"
+    Just body -> case memberType body of
+      Just ty -> either id (relateSides (side ty)) left
+      -- A list directly inside a list is reported by 'checkListPlaces'.
+      Nothing -> []
   where
     left = resolveSide env names l
     side ty =

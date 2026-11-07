@@ -1,0 +1,28 @@
+-- == and != take every type, by structure.
+__atomics { Id  Name = __text  Key }
+__events { product list keyed payload variant constant newtype items keyeditems nested }
+
+__init :: App
+
+App = Box * Ids * Todos * Shape * Wrapped * Boxes * Nest * Rows
+Box = Id * Name
+Ids = [Id]
+Todo = Id * Name
+Todos = [Todo by Key]
+Shape = Circle Id | Square
+Wrapped = Box
+Boxes = [Box]
+Nest = [Ids]
+Rows = [Box by Key]
+Flat = Shape.Square
+
+product Box#a :: App => Box#b // a == b -> Box'
+list Ids#a :: App => Ids#b // a != b -> Ids'
+keyed Todos#a :: App => Todos#b // a == b -> Todos'
+payload Shape#a :: App => Shape#b // a != b -> Shape'
+variant :: App => Shape#s // s == Shape.Square -> Shape'
+constant :: App => Shape#s // Flat != s -> Shape'
+newtype Wrapped#a :: App => Wrapped#b // a == b -> Wrapped'
+items Box#b :: App => Boxes#bs // not (b in bs) -> Boxes'
+keyeditems Box#b :: App => Rows#rs // b in rs -> Rows'
+nested Ids#i :: App => Nest#n // i in n -> Nest'

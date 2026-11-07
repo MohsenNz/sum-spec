@@ -46,17 +46,17 @@ test/check/error-constants.sumspec:25:18:
    |                  ^
 Missing is not a variant of Gps
 
-test/check/error-constants.sumspec:26:18:
+test/check/error-constants.sumspec:26:24:
    |
-26 | PayloadVariant = Shape.Square
-   |                  ^
-Shape has variants with a payload, so its variants can't be compared
+26 | PayloadVariant = Shape.Circle
+   |                        ^
+Shape.Circle has a payload, so it can't be written as a value; test it with a pattern
 
 test/check/error-constants.sumspec:27:11:
    |
 27 | NotASum = Count.Zero
    |           ^
-a constant variant is written Type.Variant, where Type is a sum without payloads; Count is not
+a constant variant is written Type.Variant, where Type is a sum; Count is not
 
 test/check/error-constants.sumspec:28:14:
    |

@@ -60,15 +60,15 @@ t is a Tag (an atomic with no base), so it can't be compared with the integer 3
 
 test/check/error-guard-compare.sumspec:30:28:
    |
-30 | product :: App => Box#x // x == x -> Box'
+30 | product :: App => Box#x // x < x -> Box'
    |                            ^
-x is a Box (neither a number, text nor an enumeration), which can't be compared
+ordering needs a number or an enumeration, but x is a Box (neither a number, text nor an enumeration)
 
-test/check/error-guard-compare.sumspec:30:33:
+test/check/error-guard-compare.sumspec:30:32:
    |
-30 | product :: App => Box#x // x == x -> Box'
-   |                                 ^
-x is a Box (neither a number, text nor an enumeration), which can't be compared
+30 | product :: App => Box#x // x < x -> Box'
+   |                                ^
+ordering needs a number or an enumeration, but x is a Box (neither a number, text nor an enumeration)
 
 test/check/error-guard-compare.sumspec:31:34:
    |
@@ -80,7 +80,7 @@ test/check/error-guard-compare.sumspec:32:36:
    |
 32 | payloadsum :: App => Gps#g // g == Shape.Square -> Gps'
    |                                    ^
-Shape has variants with a payload, so its variants can't be compared
+cannot compare g (a Gps) with Shape.Square (a Shape); they are different types
 
 test/check/error-guard-compare.sumspec:33:40:
    |

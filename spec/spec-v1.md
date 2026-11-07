@@ -287,9 +287,9 @@ startMission :: App
              -> ...
 ```
 
-- A side is a **name** (`c`: a value bound with `#c` in the input or source), a **literal**, a **variant** of a sum without payloads (`GPSFix.Fix3D`), or a **constant** (`BatteryLowThreshold`, see "Named constants").
+- A side is a **name** (`c`: a value bound with `#c` in the input or source), a **literal**, a **variant** without a payload (`GPSFix.Fix3D`), or a **constant** (`BatteryLowThreshold`, see "Named constants").
 - A literal is an integer (`15`, `-1`), a decimal (`1.5`) or a string (`"abc"`, no escapes, no quote or line break inside). A `-` touches its digits.
-- The type of a name resolves through newtypes: to an atomic with a base (`__int`, `__float`, `__text`), to a sum without payloads (an enumeration), or to an atomic with no base. Nothing else compares (a product, a list, a sum with payloads): test it with a pattern.
+- The type of a name resolves through newtypes: to an atomic with a base (`__int`, `__float`, `__text`), to a sum without payloads (an enumeration), to an atomic with no base, or to anything else (a product, a list, a sum with payloads).
 - Two values compare only if they have the same type: `Meters` and `Seconds` do not, though both are `__float`. A name compares with a literal or a variant that fits it:
 
   | The value is | A literal that fits | Operators |
@@ -299,7 +299,12 @@ startMission :: App
   | `__text` | string | `==` `!=` |
   | a sum without payloads | a variant of that sum | all |
   | an atomic with no base | none (name against name only) | `==` `!=` |
+  | a sum with payloads | a variant of that sum without a payload | `==` `!=` |
+  | a product or a list | none (name against name only) | `==` `!=` |
 
+- `==` and `!=` compare every type, by structure. Two values of a product are equal when every factor is equal, and two of a sum when they are the same variant with equal payloads. Two values of a list `[T]` are equal when they have the same items in the same order, and two of a keyed list `[T by K]` when they have the same keys with equal elements, in any order. A number inside a value compares as it does alone.
+- A variant with a payload can't be written as a value (`Shape.Circle` is an error here): test it with a pattern.
+- A comparison says less than a pattern about what matters. When one part decides, compare that part (`Id#a ... a == b`) rather than the whole value.
 - A sum without payloads is **ordered by the order of its variants, the first being the smallest**: with `GPSFix = NoFix | Fix2D | Fix3D | DGPS | RTKFix`, `g >= GPSFix.Fix3D` holds for `Fix3D`, `DGPS` and `RTKFix`. Reordering its variants changes what a guard means, so keep the order meaningful once a guard compares it.
 - A variant has the type of its sum, so a newtype of that sum doesn't compare with it directly. Name the base value inside the newtype instead: with `Primary = GPSFix`, write `Primary(GPSFix#g) // g >= GPSFix.Fix3D`, or `Primary(#g)` for short (see "Bare binding").
 - `not`, `and`, `or` and `in` can't be value names in a condition.
@@ -335,8 +340,8 @@ unselect Id#i :: App => Ids#ids // i in ids       -> Ids'
 
 - The right side is a name whose type resolves through newtypes to a list type (keyed or not).
 - The left side is any side of a comparison: a name, a literal, a variant or a constant. It has the same type rules as `==`.
-- The left side has the element type, which must be a type `==` compares: a number, text, an enumeration or an atomic. `==` doesn't compare products or lists, so `in` can't test their items.
-- `in` always tests an item, also in a keyed list. To test a key, use an element path (see "Guards"): `Todos[k]`, or `not Todos[k]`.
+- The left side has the element type. Items compare as `==` does.
+- `in` always tests an item, also in a keyed list, where it ignores the keys: two elements with different keys can be equal items. To test a key, use an element path (see "Guards"): `Todos[k]`, or `not Todos[k]`.
 
 
 ### Several transitions for one event

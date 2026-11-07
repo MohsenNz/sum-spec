@@ -90,8 +90,7 @@ update before any code:
       `spec/spec-v1.md`).
 - [x] Membership in guards (`i in ids`): in v1 (see "Membership" in
       `spec/spec-v1.md`).
-- [ ] Equality on every type (`==` and `!=` on products, lists and sums
-      with payloads; see `spec/proposals.md`).
+- [x] Equality on every type (`==` and `!=` on products, lists and sums
+      with payloads): in v1 (see "Comparing values" in `spec/spec-v1.md`).
 - [ ] Arithmetic in targets, and in guards with the same expression
       language (see "Arithmetic in targets" in `spec/proposals.md`).
-- [ ] add arithmetic for named value on targets

@@ -24,12 +24,17 @@ release" in `VERSIONING.md`).
 - Named constants: `BatteryLowThreshold = BatteryCharge(15)` or
   `MinimumFix = GPSFix.Fix3D` defines a fixed value with a name, used as
   either side of a comparison in a guard (`c <= BatteryLowThreshold`).
-  The body is a type with one literal in parentheses, or a variant of a
-  sum without payloads; the literal fits the type as in a comparison.
+  The body is a type with one literal in parentheses, or a variant
+  without a payload; the literal fits the type as in a comparison.
   A constant has the type it names, so `c` must be a `BatteryCharge`.
   It is a value, not a type: never a factor, payload, pattern, input or
   list element. It shares its name space with the types. The overlap
   warning reads a constant as its value.
+- Equality on every type: `==` and `!=` now compare products, lists and
+  sums with payloads, by structure, so `in` works on any list. A list
+  compares in order, and a keyed list by its keys, in any order. A
+  variant without a payload is a value of any sum (`x == Shape.Square`).
+  `< <= > >=` still need a number or an enumeration.
 - Membership in guards: `x in ys` holds when a value is an item of a list
   value, and `not (x in ys)` when it isn't. The right side is a name of a
   list type, keyed or not; the left side is a name, a literal, a variant

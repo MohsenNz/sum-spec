@@ -1,0 +1,24 @@
+-- What equality on every type still rejects.
+__atomics { Id  Name = __text }
+__events { order listorder sumorder variantorder payload unknownvariant types newtype literal bare }
+
+__init :: App
+
+App = Box * Other * Ids * Shape * Wrapped
+Box = Id * Name
+Other = Id * Name
+Ids = [Id]
+Shape = Circle Id | Square
+Wrapped = Box
+Round = Shape.Circle
+
+order Box#a :: App => Box#b // a < b -> Box'
+listorder :: App => Ids#a // a >= a -> Ids'
+sumorder :: App => Shape#s // s > s -> Shape'
+variantorder :: App => Shape#s // s < Shape.Square -> Shape'
+payload :: App => Shape#s // s == Shape.Circle -> Shape'
+unknownvariant :: App => Shape#s // s == Shape.Oval -> Shape'
+types Other#a :: App => Box#b // a == b -> Box'
+newtype Box#a :: App => Wrapped#b // a == b -> Wrapped'
+literal :: App => Box#b // b == 3 -> Box'
+bare :: App => Box#b // b == Box -> Box'

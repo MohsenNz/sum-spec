@@ -28,39 +28,27 @@ test/check/error-guard-in.sumspec:22:40:
    |                                        ^
 cannot compare an element of ls (a Name) with k (a Key); they are different types
 
-test/check/error-guard-in.sumspec:23:49:
+test/check/error-guard-in.sumspec:23:30:
    |
-23 | keyedproducts Todo#t :: App => Todos#ts // t in ts -> Todos'
-   |                                                 ^
-ts is a list of Todo, and a Todo can't be compared with ==; to test for an element, use an element path, such as Todos[k]
-
-test/check/error-guard-in.sumspec:24:30:
-   |
-24 | literal :: App => Ids#ids // 3 in ids -> Ids'
+23 | literal :: App => Ids#ids // 3 in ids -> Ids'
    |                              ^
 an element of ids is a Id (an atomic with no base), so it can't be compared with the integer 3
 
-test/check/error-guard-in.sumspec:25:31:
+test/check/error-guard-in.sumspec:24:31:
    |
-25 | variant :: App => Names#ns // Missing.Value in ns -> Names'
+24 | variant :: App => Names#ns // Missing.Value in ns -> Names'
    |                               ^
 unknown type Missing; declare it in __atomics or define it
 
-test/check/error-guard-in.sumspec:26:43:
+test/check/error-guard-in.sumspec:25:38:
    |
-26 | products Box#b :: App => Boxes#bs // b in bs -> Boxes'
-   |                                           ^
-bs is a list of Box, and a Box can't be compared with ==; to test for an element, give the list a key and use an element path, such as Boxes[k]
-
-test/check/error-guard-in.sumspec:27:38:
-   |
-27 | nested Id#i :: App => Nest#n // i in n -> Nest'
+25 | literalproduct :: App => Boxes#bs // 3 in bs -> Boxes'
    |                                      ^
-n is a list of Ids, and a Ids can't be compared with ==
+an element of bs is a Box (neither a number, text nor an enumeration), so it can't be compared with the integer 3
 
-test/check/error-guard-in.sumspec:28:28:
+test/check/error-guard-in.sumspec:26:28:
    |
-28 | text :: App => Names#ns // 3 in ns -> Names'
+26 | text :: App => Names#ns // 3 in ns -> Names'
    |                            ^
 an element of ns is a Name (a __text), so it can't be compared with the integer 3
 

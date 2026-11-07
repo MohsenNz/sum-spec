@@ -24,9 +24,9 @@ ordtag :: App => Tag#t // t == Gps.Fix3D -> Tag'
 lone :: App => Gps#g // Fix -> Gps'
 broken :: App => Percent#p // p < Bad and Off2 == Fix -> Percent'
 
--- A constant with no value to compare is reported once, at its definition.
+-- A constant that isn't valid is reported once, at its definition.
 Shape = Circle Percent | Square
-BadVariant = Shape.Square
+BadVariant = Shape.Circle
 BadProduct = App(1)
 
 cascade :: App => Percent#p // BadVariant == BadVariant or BadProduct == BadProduct -> Percent'

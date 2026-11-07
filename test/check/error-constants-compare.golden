@@ -58,11 +58,11 @@ test/check/error-constants-compare.sumspec:25:51:
    |                                                   ^
 cannot compare Off2 (a Other) with Fix (a Gps); they are different types
 
-test/check/error-constants-compare.sumspec:29:14:
+test/check/error-constants-compare.sumspec:29:20:
    |
-29 | BadVariant = Shape.Square
-   |              ^
-Shape has variants with a payload, so its variants can't be compared
+29 | BadVariant = Shape.Circle
+   |                    ^
+Shape.Circle has a payload, so it can't be written as a value; test it with a pattern
 
 test/check/error-constants-compare.sumspec:30:18:
    |
