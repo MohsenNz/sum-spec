@@ -213,6 +213,10 @@ The full specs are in `example/`:
   about before writing code, and the checker answers questions like
   "can this state ever be reached?".
 
+## Tutorial
+
+Check out `./spec/spec-v1.md`
+
 ## Influences
 
 - [**Haskell**](https://en.wikipedia.org/wiki/Haskell) and the ML family: for syntax.
