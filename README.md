@@ -12,10 +12,10 @@ transitions (like in [finite-state machine](https://en.wikipedia.org/wiki/Finite
 
 In AI agents era, spec-driven development has become popular more and more:
 write the specification first, have a human approve it, and let an agent
-generate the code from it. But the spec is usually prose: Markdown
-documents that are long, ambiguous, and hard to keep consistent as they
-grow. Nothing tells you that two sections contradict each other, that a
-state has no way out, or that a rename missed a paragraph.
+generate the code from it. But markdown documents are long, ambiguous,
+and hard to keep consistent as they grow. Nothing tells you that two
+sections contradict each other, that a state has no way out, or that a
+rename missed a paragraph.
 
 SumSpec keeps the workflow and changes the spec. The specification is
 written in a type-safe language instead of human language:
@@ -42,9 +42,7 @@ add Path#p
   => FileState.{Untracked | Modified | StagedAndModified} -> FileState.Staged
 ```
 
-Checkout `./example/git.sumspec` for the full git specification example.
-
-**We can describe UI**, for example I gave this to Opus 4.5 and it generates the below design in [Penpot](https://penpot.app/?utm_red=g&utm_group=&gad_source=1&gad_campaignid=23620085724) (open-source Figma alternative) for me:
+**We can describe UI too**, for example I gave this to Opus 4.5 and it generates the below design in [Penpot](https://penpot.app/?utm_red=g&utm_group=&gad_source=1&gad_campaignid=23620085724) (open-source Figma alternative) for me:
 
 ```haskell
 App = Map * Plots * NewPlot
