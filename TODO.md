@@ -67,25 +67,6 @@ update before any code:
 - [x] Named constants (`BatteryLowThreshold = BatteryCharge(15)`): in
       v1 as comparison sides in guards (see "Named constants" in
       `spec/spec-v1.md`).
-- [ ] Literal patterns (`Count(0)`, `Name("main")`; proposal in
-      `spec/proposals.md`, decisions in `spec/literal-patterns.md`).
-  - [x] Answer the 13 open questions in `spec/literal-patterns.md`.
-  - [x] Write the proposals "Literal patterns" and "Arithmetic in
-        targets" (version impact: additive).
-  - [ ] Grammar: a literal inside a type pattern; keep `A(1)` apart
-        from a payload pattern.
-  - [ ] Checker: the literal fits the type; relate a literal pattern
-        to `Count` (superset) and to another literal (disjoint or
-        equal) in the overlap and shadowing analysis; input heads.
-        (Idea: read a literal pattern in a test as a bound name plus
-        `== literal`, to reuse the comparison machinery.)
-  - [ ] Allow a named constant in pattern position.
-  - [ ] Tests (parse, round trip, check, overlap warnings), an
-        example in `example/`, `spec-v1.md` and `CHANGES.md`.
-  - [ ] Later: value reachability (see question 8): per type, a finite
-        set of literals or "any"; a warning only when a source literal
-        is never given to the type. Needs literals and arithmetic in
-        targets first.
 - [x] Bare binding (`Attempts(#n)`): in v1 (see "Bare binding" in
       `spec/spec-v1.md`).
 - [x] Membership in guards (`i in ids`): in v1 (see "Membership" in
