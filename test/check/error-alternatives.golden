@@ -1,0 +1,60 @@
+test/check/error-alternatives.sumspec:6:15:
+  |
+6 | __init :: App(Page.{Home | Logs} * Link.On)
+  |               ^
+the initial state is one state, so it has no alternatives; pick one variant
+
+test/check/error-alternatives.sumspec:10:19:
+   |
+10 | Link = On | Off | Lost
+   |                   ^
+warning: Link.Lost is never reached: neither __init nor any transition that can happen puts the app there
+
+test/check/error-alternatives.sumspec:14:31:
+   |
+14 | target :: App => Page.Home -> Page.{Logs | Plan}
+   |                               ^
+a target sets one state, so it has no alternatives; pick one variant
+
+test/check/error-alternatives.sumspec:15:7:
+   |
+15 | input Page.{Home | Logs} :: App => Link.On -> Link.Off
+   |       ^
+an input is one value, so it has no alternatives; pick one variant
+
+test/check/error-alternatives.sumspec:16:37:
+   |
+16 | twice :: App => Page.{Home | Logs | Home} -> Page.Plan
+   |                                     ^
+Page.Home is written twice in these alternatives
+
+test/check/error-alternatives.sumspec:17:29:
+   |
+17 | bound :: App => Mode.{Edit(#t) | View} -> Mode.View
+   |                             ^
+an alternative binds no value, since the other alternatives don't have it; write a transition for it, or name the value outside the alternatives
+
+test/check/error-alternatives.sumspec:18:32:
+   |
+18 | unknown :: App => Page.{Home | Nope} -> Page.Plan
+   |                                ^
+Nope is not a variant of Page
+
+test/check/error-alternatives.sumspec:19:25:
+   |
+19 | notsum :: App => Label.{A | B} -> Page.Plan
+   |                         ^
+Label has no variants, so .A is invalid
+
+test/check/error-alternatives.sumspec:19:29:
+   |
+19 | notsum :: App => Label.{A | B} -> Page.Plan
+   |                             ^
+Label has no variants, so .B is invalid
+
+test/check/error-alternatives.sumspec:21:27:
+   |
+21 | dead :: App => Link.{On | Lost} -> Link.Off
+   |                           ^
+warning: dead: this transition can never happen: its source needs Link.Lost, which is never reached
+

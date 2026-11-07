@@ -1,0 +1,18 @@
+-- Alternatives: S.{A | B} is one of these variants of the sum at S. An
+-- alternative is written from S, may take arguments, and may hold more
+-- alternatives: for a named payload (FPhase.{...}) or an inline one
+-- (Flying.{...}).
+__atomics { }
+__events { lose land fail check }
+
+App = Page * Link
+Page = Home | Logs | Plan (Flight)
+Flight = Arming | Failed | Flying (FPhase) | Landed (Spot | Field)
+FPhase = Approaching | Holding | Spraying
+Link = On | Off
+
+lose :: App => Page.{Home | Logs} * Link.On -> Link.Off
+land :: Flight.{Arming | Flying(FPhase.{Approaching | Holding})} -> Flight.Failed
+fail :: Flight.Landed.{Spot|Field}#f -> Flight.Arming
+-- Spaces are free; the canonical form has none around .{ and one around |.
+check :: App => Link . { On|Off } // Page.Plan(Flight.{Arming | Failed}) -> Link.On

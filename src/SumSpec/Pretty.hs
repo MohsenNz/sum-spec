@@ -132,6 +132,11 @@ renderPattern = \case
   PatternName name -> nameText name
   PatternNamed p name -> renderPattern p <> "#" <> nameText name
   PatternBound name -> "#" <> nameText name
+  PatternAlts names alts ->
+    renderPath names
+      <> ".{"
+      <> T.intercalate " | " (map renderPattern (NE.toList alts))
+      <> "}"
   PatternPrimed _ p -> renderPattern p <> "'"
   where
     renderPath = T.intercalate "." . map nameText . NE.toList

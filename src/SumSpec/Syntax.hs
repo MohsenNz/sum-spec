@@ -237,6 +237,12 @@ data Pattern
     -- @Head@ without writing its type. The checker reads it as the explicit
     -- @Head(T#x)@.
     PatternBound Name
+  | -- | @S.{A | B(...)}@: the sum at the path @S@ is one of these
+    -- variants. Each alternative is written from @S@: a path with its
+    -- arguments, or more alternatives (@Flying.{X | Y}@ for an inline
+    -- payload). There are at least two. The checker expands a source into
+    -- one transition per alternative, and a guard pattern into an @or@.
+    PatternAlts (NonEmpty Name) (NonEmpty Pattern)
   | -- | A pattern followed by a prime, @A'@: a new value, set by the
     -- transition. The position is the prime's. The parser accepts a prime
     -- after any pattern; the checker allows it only on a bare type name on

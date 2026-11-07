@@ -188,6 +188,31 @@ showMission :: Page.Plan(PMode.JustMap * Missions)
 
 Here the target is `List.Empty` or `List.NonEmpty(...)`: `List` is a new state (see "Source and target"), so either variant is possible.
 
+### Alternatives
+
+A source that applies to some variants of a sum, but not all, names them between `.{` and `}`, separated by `|`:
+
+```haskell
+-- The same as two transitions, from Flight.Arming and from Flight.Flying.
+flightFailed FailureReason#r :: Flight.{Arming | Flying} -> Flight.Failed(r)
+```
+
+`S.{A | B}` means `S.A` or `S.B`, as `S.A` picks one variant. Each alternative is written from `S`, may take arguments, and may hold more alternatives, for a named payload or an inline one:
+
+```haskell
+MissionFlight.{Arming | Failed
+  | Flying(FPhase.{Approaching | Holding | Returning | PilotControl})}
+
+Flight.Landed.{Spot | Field}
+```
+
+- There are at least two alternatives, each written once: `Page.{Home}` is an error; write `Page.Home`. Only alternatives go between `.{` and `}`: a factor beside them goes outside (`Page.{Home | Logs} * Link.On`).
+- Alternatives go only in a source and in a pattern in a guard. A target sets one state, and an input and `__init` are one value, so they have none.
+- A source with alternatives is one transition per alternative, with the same target; with alternatives in two parts, one per combination. Each is checked on its own: the target must fit every alternative, and a part keeps its value only where every alternative fixes its path. Alternatives of one group pick different variants, so they don't overlap each other.
+- In a guard, `S.{A | B}` means `S.A or S.B`.
+- An alternative binds no value: the other alternatives don't have it. `Mode.{Edit(#t) | View}` is an error; write a transition for each.
+- Alternatives pick variants only; a literal such as `Count(0)` has none.
+
 ### Arguments in state patterns
 
 In a state pattern, the arguments are what goes inside the parentheses after a type or variant.
@@ -200,7 +225,7 @@ When arguments are written, they must fit what they follow:
 - A product, or a variant carrying a product, takes some or all of its factors, in any order, each at most once: `Z(C * Y.V1)`, `Z(C)`.
 - A variant carrying one type takes one argument headed by that type: `Y.V3(A)`, `Plot.Drawn(Boundary)`.
 - A newtype takes one argument headed by its base type. With `Boundary = Ring`, write `Boundary(Ring.Enclosed)`, not `Boundary.Enclosed`.
-- A sum takes no arguments; pick a variant with `.` instead.
+- A sum takes no arguments; pick a variant with `.` instead, or several with `.{` (see "Alternatives").
 - An atomic type, and a variant without a payload, take no arguments.
 - A list type takes no arguments; pick an element with an element path instead (`Todos[id](...)`).
 

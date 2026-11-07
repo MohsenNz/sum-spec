@@ -18,7 +18,7 @@ import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Maybe (fromMaybe, isJust, isNothing, mapMaybe, maybeToList)
+import Data.Maybe (fromMaybe, isJust, isNothing, listToMaybe, mapMaybe, maybeToList)
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
@@ -57,6 +57,7 @@ checkSpec file source spec =
       , concatMap
           (checkBoundHeads env)
           (map snd rawInits <> concatMap eventPatterns rawEvents)
+      , checkAlternatives (map snd rawInits) rawEvents
       , checkInit file env inits
       , checkTypeDefs env typeDefs
       , checkConsts env consts
@@ -85,7 +86,7 @@ checkSpec file source spec =
     -- Every check but the spacing warning reads @Head(#n)@ as @Head(T#n)@.
     events = map (elaborateEvent env) rawEvents
     transitions = concatMap flatten events
-    inits = [(k, elaborate env p) | (k, p) <- rawInits]
+    inits = [(k, collapseAlts (elaborate env p)) | (k, p) <- rawInits]
     -- The type of every state: the head type of the initial state.
     root = case inits of
       (_, p) : _ | isKnownType env (patternKey p) -> Just (patternKey p)
@@ -184,6 +185,7 @@ checkInit file env inits = case inits of
       PatternElement {} -> []
       q -> checkPattern env Map.empty (withoutValues q)
     initValues = \case
+      PatternAlts {} -> [] -- expanded before this check (see 'expandAlts')
       PatternPrimed pos inner ->
         errorAtPos
           pos
@@ -338,21 +340,143 @@ flatten :: Event -> [Flat]
 flatten (Event n input transitions) =
   [ Flat
       n
-      input
-      (expand paths from)
-      (expand paths to)
+      (collapseAlts <$> input)
+      (expand paths (NE.fromList source))
+      (expand paths (collapseAlts <$> to))
       (expandGuard paths <$> guard)
-      (patternHead (NE.head from))
+      (fromMaybe (patternHead (NE.head from)) (listToMaybe picked))
   | Transition paths branches <- NE.toList transitions
   , Branch from guard to <- NE.toList branches
+  , (source, picked) <- expandSide from
   ]
+  where
+    expandSide side =
+      [ (map fst combo, concatMap snd combo)
+      | combo <- traverse expandAlts (NE.toList side)
+      ]
+
+-- | A pattern with alternatives (@S.{A | B}@) as the patterns it stands
+-- for, one per combination of alternatives, each with the alternatives it
+-- picked (outermost first), so a warning can point at them.
+expandAlts :: Pattern -> [(Pattern, [Name])]
+expandAlts = \case
+  PatternAlts prefix alts ->
+    [ (q, patternHead alt : picked)
+    | alt <- firsts (nameText . patternHead) (NE.toList alts)
+    , (q, picked) <- expandAlts (under prefix (unbind alt))
+    ]
+  PatternPath names args -> [(PatternPath names qs, picked) | (qs, picked) <- each args]
+  PatternElement names key args ->
+    [(PatternElement names key qs, picked) | (qs, picked) <- each args]
+  PatternNamed p n -> [(PatternNamed q n, picked) | (q, picked) <- expandAlts p]
+  PatternPrimed pos p -> [(PatternPrimed pos q, picked) | (q, picked) <- expandAlts p]
+  p -> [(p, [])]
+  where
+    each args = [(map fst combo, concatMap snd combo) | combo <- traverse expandAlts args]
+    -- A repeated alternative and a binding inside one are reported by
+    -- 'checkAlternatives'; the expansion leaves them out.
+    unbind = \case
+      PatternNamed p _ -> unbind p
+      PatternPath names [PatternBound _] -> PatternPath names []
+      PatternElement names key [PatternBound _] -> PatternElement names key []
+      PatternPath names args -> PatternPath names (map unbind args)
+      PatternElement names key args -> PatternElement names key (map unbind args)
+      PatternAlts names alts -> PatternAlts names (fmap unbind alts)
+      PatternPrimed pos p -> PatternPrimed pos (unbind p)
+      p -> p
+    -- An alternative is written from the prefix: @Flying(...)@ in
+    -- @MissionFlight.{...}@ is @MissionFlight.Flying(...)@.
+    under prefix = \case
+      PatternPath names args -> PatternPath (prefix <> names) args
+      PatternAlts names alts -> PatternAlts (prefix <> names) alts
+      p -> p
+
+-- | Alternatives (@S.{A | B}@) go only in a source and in a guard, which
+-- can test for several states; a target, an input and an @__init@ each
+-- give one. An alternative is written once in its group, and binds no
+-- value: the other alternatives don't have it.
+checkAlternatives :: [Pattern] -> [Event] -> [CheckError]
+checkAlternatives inits events =
+  concat
+    [ misplaced
+        "the initial state is one state, so it has no alternatives; pick one variant"
+        p
+    | p <- inits
+    ]
+    <> concat
+      [ misplaced "an input is one value, so it has no alternatives; pick one variant" p
+      | Event _ (Just p) _ <- events
+      ]
+    <> concat
+      [ misplaced "a target sets one state, so it has no alternatives; pick one variant" p
+      | Event _ _ transitions <- events
+      , Transition _ branches <- NE.toList transitions
+      , Branch _ _ to <- NE.toList branches
+      , p <- NE.toList to
+      ]
+    <> concatMap inGroups (inits <> concatMap eventPatterns events)
+  where
+    misplaced message p = [errorAt (NE.head prefix) message | prefix <- outermost p]
+    outermost = \case
+      PatternAlts prefix _ -> [prefix]
+      PatternPath _ args -> concatMap outermost args
+      PatternElement _ _ args -> concatMap outermost args
+      PatternNamed p _ -> outermost p
+      PatternPrimed _ p -> outermost p
+      _ -> []
+    inGroups p =
+      concat
+        [ [ errorAt (patternHead alt) $
+              renderAlt prefix alt <> " is written twice in these alternatives"
+          | (alt, _) <- repeats (nameText . patternHead) (NE.toList alts)
+          ]
+            <> [ errorAt n $
+                   "an alternative binds no value, since the other alternatives don't have it; "
+                     <> "write a transition for it, or name the value outside the alternatives"
+               | alt <- NE.toList alts
+               , n <- bindings alt
+               ]
+        | (prefix, alts) <- groups p
+        ]
+    renderAlt prefix alt =
+      T.intercalate "." (map nameText (NE.toList prefix))
+        <> "."
+        <> nameText (patternHead alt)
+    -- Every group of alternatives, with its prefix, at any depth.
+    groups = \case
+      PatternAlts prefix alts ->
+        (prefix, alts) : concatMap groups (NE.toList alts)
+      PatternPath _ args -> concatMap groups args
+      PatternElement _ _ args -> concatMap groups args
+      PatternNamed p _ -> groups p
+      PatternPrimed _ p -> groups p
+      _ -> []
+    bindings = \case
+      PatternNamed p n -> n : bindings p
+      PatternBound n -> [n]
+      PatternPath _ args -> concatMap bindings args
+      PatternElement _ _ args -> concatMap bindings args
+      PatternPrimed _ p -> bindings p
+      PatternAlts _ alts -> concatMap bindings alts
+      _ -> []
+
+-- | Alternatives where they aren't allowed (a target, an input, an
+-- @__init@) are reported by 'checkAlternatives' and then read as their
+-- first alternative, so nothing else is reported about them.
+collapseAlts :: Pattern -> Pattern
+collapseAlts p = case expandAlts p of
+  (q, _) : _ -> q
+  [] -> p
 
 -- | A guard reads where the source's arguments go, so each pattern in it
 -- gets the shared paths around it, as the source does: after @App =>@,
 -- @Link.Off@ is @App(Link.Off)@.
 expandGuard :: [Shared] -> Guard -> Guard
 expandGuard paths = \case
-  GuardPattern p -> GuardPattern (expand paths (p :| []))
+  GuardPattern p -> case [GuardPattern (expand paths (q :| [])) | (q, _) <- expandAlts p] of
+    [g] -> g
+    g : gs -> GuardOr (g :| gs)
+    [] -> GuardPattern (expand paths (p :| []))
   g@(GuardCompare {}) -> g
   g@(GuardIn {}) -> g
   GuardNot g -> GuardNot (expandGuard paths g)
@@ -457,6 +581,7 @@ warnSuffixSpaces source patterns =
   where
     sourceLines = T.lines source
     suffixes = \case
+      PatternAlts _ alts -> concatMap suffixes alts
       PatternPrimed pos inner -> (pos, primeMessage inner) : suffixes inner
       PatternNamed inner n -> (hashPos n, namingMessage inner n) : suffixes inner
       PatternPath _ args -> concatMap suffixes args
@@ -517,6 +642,7 @@ checkNewStatePrimes from to
     fixed = fixedVariants from
     -- @new@ is the enclosing new state, as written (@Page.Plan@).
     go at new = \case
+      PatternAlts {} -> [] -- expanded before this check (see 'expandAlts')
       PatternPrimed pos (PatternPath (n :| []) []) ->
         [ errorAtPos pos $
             label
@@ -549,6 +675,7 @@ fixedVariants :: Pattern -> Set Position
 fixedVariants = go []
   where
     go at = \case
+      PatternAlts {} -> Set.empty -- expanded before this check (see 'expandAlts')
       PatternPath (h :| path) args ->
         let steps = variantSteps at h path
         in  Set.fromList (map fst steps)
@@ -617,6 +744,7 @@ checkListPlaces defs inits transitions =
               <> "such as Row = [Cell]"
         ]
     patternLists = \case
+      PatternAlts _ alts -> concatMap patternLists alts
       PatternList t key ->
         [ report (TermList t key) $
             "a list isn't written in a pattern; give it a type name, such as "
@@ -639,6 +767,7 @@ transitionNames input from = concatMap namings input <> namings from
 -- error, so it gives no type here.
 namings :: Pattern -> [(Name, Text)]
 namings = \case
+  PatternAlts _ alts -> concatMap namings alts
   PatternNamed (PatternName _) _ -> []
   -- Naming an element is an error, so it gives no type either.
   PatternNamed p@PatternElement {} _ -> namings p
@@ -653,6 +782,7 @@ namings = \case
 -- | The keys of the element paths in a pattern (@id@ in @Todos[id]@).
 elementKeys :: Pattern -> [Name]
 elementKeys = \case
+  PatternAlts _ alts -> concatMap elementKeys alts
   PatternElement _ k args -> k : concatMap elementKeys args
   PatternPath _ args -> concatMap elementKeys args
   PatternNamed p _ -> elementKeys p
@@ -664,6 +794,7 @@ elementKeys = \case
 -- | The element paths in a pattern, as the list type and the key.
 elementPaths :: Pattern -> [(Text, Name)]
 elementPaths = \case
+  PatternAlts _ alts -> concatMap elementPaths alts
   PatternElement (h :| _) k args -> (nameText h, k) : concatMap elementPaths args
   PatternPath _ args -> concatMap elementPaths args
   PatternNamed p _ -> elementPaths p
@@ -698,6 +829,7 @@ checkNamings input from to =
 -- | Every @P#x@ in a pattern, as @P@ and @x@.
 named :: Pattern -> [(Pattern, Name)]
 named = \case
+  PatternAlts _ alts -> concatMap named alts
   PatternNamed p n -> (p, n) : named p
   PatternPath _ args -> concatMap named args
   PatternElement _ _ args -> concatMap named args
@@ -715,6 +847,7 @@ data Side = Source | Target
 -- would say nothing new: the written variant already gives the value.
 checkPrimes :: Side -> Pattern -> [CheckError]
 checkPrimes side = \case
+  PatternAlts _ alts -> concatMap (checkPrimes side) alts
   PatternPrimed pos inner ->
     [ errorAtPos pos "a prime (') marks a new value, so it can only be on the target side"
     | Source <- [side]
@@ -839,6 +972,8 @@ elaborate env = \case
   PatternElement names key args -> PatternElement names key (map (elaborate env) args)
   PatternNamed p n -> PatternNamed (elaborate env p) n
   PatternPrimed pos p -> PatternPrimed pos (elaborate env p)
+  -- A binding inside alternatives is an error ('checkAlternatives'), so
+  -- they hold no @#n@ to read.
   p -> p
   where
     explicit base n = PatternNamed (PatternPath (Name (namePos n) (nameText base) :| []) []) n
@@ -846,7 +981,7 @@ elaborate env = \case
 elaborateEvent :: Env -> Event -> Event
 elaborateEvent env event =
   event
-    { eventInput = elaborate env <$> eventInput event
+    { eventInput = collapseAlts . elaborate env <$> eventInput event
     , eventTransitions = transition <$> eventTransitions event
     }
   where
@@ -899,6 +1034,7 @@ type Names = Map Text Text
 -- checked like the pattern inside.
 checkPattern :: Env -> Names -> Pattern -> [CheckError]
 checkPattern env names = \case
+  PatternAlts {} -> [] -- expanded before this check (see 'expandAlts')
   PatternPrimed _ inner -> checkPattern env names inner
   PatternNamed inner _ -> checkPattern env names inner
   PatternName n -> [unknownName n | nameText n `Map.notMember` names]
@@ -1247,6 +1383,7 @@ warnListElements env root transitions =
 -- | The names a pattern uses (@x@), not the ones it gives (@#x@).
 nameUses :: Pattern -> [Name]
 nameUses = \case
+  PatternAlts _ alts -> concatMap nameUses alts
   PatternName n -> [n]
   PatternNamed p _ -> nameUses p
   PatternPath _ args -> concatMap nameUses args
@@ -1310,6 +1447,7 @@ reach
 reach env names fixed = goPattern []
   where
     goPattern at fill = \case
+      PatternAlts {} -> mempty -- expanded before this check (see 'expandAlts')
       PatternPrimed _ p -> anyOf (patternKey p)
       PatternNamed p _ -> goPattern at fill p
       PatternName n -> maybe mempty anyOf (Map.lookup (nameText n) names)
@@ -2096,6 +2234,7 @@ termKey = \case
 
 patternHead :: Pattern -> Name
 patternHead = \case
+  PatternAlts (h :| _) _ -> h
   PatternPath (h :| _) _ -> h
   PatternElement (h :| _) _ _ -> h
   PatternList t _ -> termName t
@@ -2109,6 +2248,7 @@ patternHead = \case
 -- @A@. For a name (@x@) it is the name itself; see 'argKey' for its type.
 patternKey :: Pattern -> Text
 patternKey = \case
+  PatternAlts (h :| _) _ -> nameText h
   PatternPath (h :| _) _ -> nameText h
   PatternElement (h :| _) _ _ -> nameText h
   PatternList t key -> termKey (TermList t key)

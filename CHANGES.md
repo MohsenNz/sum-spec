@@ -69,6 +69,14 @@ release" in `VERSIONING.md`).
   or naming; shared paths chain with `/` (`X / Y => A -> B`), and after
   the last one each side may be several factors
   (`Page.Plan => PMode.JustMap * Missions -> ...`).
+- Alternatives: `S.{A | B}` in a source or a guard pattern picks some
+  variants of the sum at `S`: `Flight.{Arming | Flying} -> ...`. Each
+  alternative is written from `S`, may take arguments and hold more
+  alternatives (`Flying(FPhase.{Approaching | Holding})`). A source is
+  checked as one transition per alternative, a guard pattern as an `or`.
+  There are at least two, each written once; none binds a value; a
+  target, an input and `__init` have none. `example/drone`'s
+  `flightFailed` uses it.
 - Branches: several transitions under the same shared paths write them
   once, then one branch per transition, each starting with `=>`:
   `:: Files[p]`, then `=> FileState.Untracked -> FileState.Staged` and
@@ -140,6 +148,9 @@ release" in `VERSIONING.md`).
   a shared path once. The examples use it: git's `Files[p]` and
   `Repository.Initialized` events, todomvc's `Todos[id]`, `App` and
   `Screen.WithTodos` events, and drone's `Page.Plan` events.
+- The parser, printer and checker read alternatives. A warning about a
+  transition from a source with alternatives points at the alternative
+  it comes from.
 - The parser, printer and checker read `/` and branches. The canonical
   form puts one branch on the line of its shared paths, and several one
   per line, each `=>` under the `::`. A warning about a transition

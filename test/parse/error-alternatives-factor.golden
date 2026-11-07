@@ -1,0 +1,6 @@
+test/parse/error-alternatives-factor.sumspec:9:31:
+  |
+9 | t :: App => Page.{Home | Logs * Link.On} -> Link.Off
+  |                               ^
+unexpected '*'
+expecting '(', '.', '|', or '}'

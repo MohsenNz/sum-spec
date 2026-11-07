@@ -46,7 +46,7 @@ examples, the golden tests and `CHANGES.md` together.
       `in` moved to "Later".
 - [x] 3b. Named constants: `BatteryLowThreshold = BatteryCharge(15)` as
       a side of a comparison.
-- [ ] 4. (Optional, later) Prelude: an embedded `.sumspec` with
+- [ ] 4. {Optional, later} Prelude: an embedded `.sumspec` with
       `Bool = True | False`, `Int = __int`, `Float = __float` and
       `Text = __text`; a definition of the same name in the user's spec
       replaces it.
@@ -59,7 +59,7 @@ Not part of v1. Each one changes the semantics, so it needs a spec
 update before any code:
 - [x] `=>` (shared construction path).
 - [ ] Naming an element (`Todos[id]#t`).
-- [ ] Alternatives in a pattern (`Page(Home | Logs)`).
+- [x] Alternatives in a pattern (`Page.{Home | Logs}`).
 - [x] Branches on a shared path (`:: App => A -> B => C -> D`), with `/`
       chaining shared paths.
 - [ ] Branches on a guard (`f :: T(Int#i) // i < 10 -> ... // i >= 10 -> ...`).

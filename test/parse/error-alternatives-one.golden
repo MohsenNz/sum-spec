@@ -1,0 +1,6 @@
+test/parse/error-alternatives-one.sumspec:8:16:
+  |
+8 | t :: Page.{Home} -> Page.Logs
+  |                ^
+unexpected '}'
+expecting "|" (alternatives need at least two variants), '(', or '.'

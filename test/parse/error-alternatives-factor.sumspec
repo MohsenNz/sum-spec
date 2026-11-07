@@ -1,0 +1,9 @@
+-- Only alternatives go between .{ and }: a factor goes outside.
+__atomics { }
+__events { t }
+
+App = Page * Link
+Page = Home | Logs
+Link = On | Off
+
+t :: App => Page.{Home | Logs * Link.On} -> Link.Off

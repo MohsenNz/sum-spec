@@ -1,0 +1,8 @@
+-- Alternatives need at least two variants: write Page.Home for one.
+__atomics { }
+__events { t }
+
+App = Page
+Page = Home | Logs
+
+t :: Page.{Home} -> Page.Logs

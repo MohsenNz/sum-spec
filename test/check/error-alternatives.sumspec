@@ -1,0 +1,21 @@
+-- Alternatives go only in a source or a guard, each once, and bind no
+-- value. Each alternative is checked as the path it expands to.
+__atomics { Text = __text }
+__events { target input twice bound unknown notsum dead }
+
+__init :: App(Page.{Home | Logs} * Link.On)
+
+App = Page * Link * Mode * Label
+Page = Home | Logs | Plan
+Link = On | Off | Lost
+Mode = View | Edit (Text)
+Label = Text
+
+target :: App => Page.Home -> Page.{Logs | Plan}
+input Page.{Home | Logs} :: App => Link.On -> Link.Off
+twice :: App => Page.{Home | Logs | Home} -> Page.Plan
+bound :: App => Mode.{Edit(#t) | View} -> Mode.View
+unknown :: App => Page.{Home | Nope} -> Page.Plan
+notsum :: App => Label.{A | B} -> Page.Plan
+-- Link.Lost is never reached, so that alternative can never happen.
+dead :: App => Link.{On | Lost} -> Link.Off

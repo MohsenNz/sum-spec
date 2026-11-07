@@ -1,0 +1,36 @@
+-- Alternatives are expanded: a source into one transition per
+-- alternative (every combination, with two groups), a guard pattern into
+-- an or. Alternatives of one group exclude each other, so they don't
+-- overlap.
+__atomics { Id }
+__events { lose land reset toggle fly reach }
+
+__init :: App(Page.Home * Link.On)
+
+App = Page * Link
+Page = Home | Logs | Plan (Flight * Count)
+Flight = Arming | Failed | Flying (FPhase) | Landed (Spot | Field)
+FPhase = Approaching | Holding | Spraying
+Link = On | Off | Lost
+Count = Low | High
+
+lose :: App => Page.{Home | Logs} * Link.On -> Link.Off
+land :: App => Page.Plan(Flight.{Arming | Flying(FPhase.{Approaching | Holding})})
+            -> Page.Plan(Flight.Failed)
+reset :: App => Page.{Logs | Plan} * Link.{On | Off} -> Page.Home * Link.On
+
+-- The guards exclude each other: Link.On or Link.Off, against Link.Lost.
+toggle :: App
+       => Page.Home // Link.{On | Off} -> Page.Logs
+       => Page.Home // Link.Lost -> Page.Plan(Flight.Arming * Count.Low)
+
+-- Count keeps its value: every alternative fixes Page.Plan.
+fly :: App => Page.Plan(Flight.{Arming | Landed.{Spot | Field}} * Count)
+           -> Page.Plan(Flight.Flying(FPhase.Spraying) * Count)
+
+reach :: Flight.Arming -> Flight.Flying(FPhase.Approaching)
+      :: FPhase.Approaching -> FPhase.Holding
+      :: Flight.Failed -> Flight.Landed.Spot
+      :: Flight.Landed.Spot -> Flight.Landed.Field
+      :: Count.Low -> Count.High
+      :: Link.Off -> Link.Lost

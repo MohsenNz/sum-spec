@@ -177,12 +177,21 @@ input         = type_pattern , [ NAMING ] ;
      Attempts(#n)        means  Attempts(Int#n)
    An element_key after a path picks one element of a list type by key
    (see "Element paths" in spec-v1.md):
-     Projects[p](Todos[t](Completion.Active))                           *)
+     Projects[p](Todos[t](Completion.Active))
+   ".{" after a path names some variants of the sum there, each written
+   from it (see "Alternatives" in spec-v1.md):
+     Flight.{Arming | Flying(FPhase.{Approaching | Holding})}          *)
 pattern       = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
 
-type_pattern  = path , [ element_key ] ,
+type_pattern  = path , "." , "{" , alternatives , "}"
+              | path , [ element_key ] ,
                 [ "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ]
               | "[" , type_term , [ "by" , UPPER ] , "]" ;
+
+alternatives  = alternative , "|" , alternative , { "|" , alternative } ;
+
+alternative   = path , [ "." , "{" , alternatives , "}"
+                       | "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ] ;
 
 element_key   = "[" , LOWER , "]" ;
 
@@ -261,6 +270,10 @@ character     = ? any Unicode character ? ;
    these). A transition with shared paths is checked as its expanded
    form, one transition per branch (S => a -> b as S(a) -> S(b)), and a
    problem in a shared path is reported once:
+   - alternatives (S.{A | B}) go only in a source or a pattern in a
+     guard, each written once in its group, and bind no value. A source
+     with alternatives is checked as one transition per alternative (per
+     combination), and a guard pattern as an "or" of its alternatives;
    - __init is written exactly once. Its head type is the root, the
      type of every state; App is an ordinary name. Its pattern is checked
      like a target, but it's a whole new state with no input: it has no

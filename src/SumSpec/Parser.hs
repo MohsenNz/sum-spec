@@ -298,7 +298,8 @@ pattern = do
   primes <- many (getSourcePos <* symbol "'")
   withNaming (foldl (flip PatternPrimed) base primes)
 
--- type_pattern = path , [ element_key ] ,
+-- type_pattern = path , "." , "{" , alternatives , "}"
+--              | path , [ element_key ] ,
 --                [ "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ]
 --              | "[" , type_term , "]" ;
 typePattern :: Parser Pattern
@@ -307,12 +308,37 @@ typePattern =
     [ uncurry PatternList <$> listTerm
     , do
         names <- path
-        key <- optional elementKey
-        args <- option [] (parens (bound <|> sepBy1 pattern (symbol "*")))
-        pure (maybe (PatternPath names args) (\k -> PatternElement names k args) key)
+        choice
+          [ PatternAlts names <$> (symbol "." *> braces alternatives)
+          , do
+              key <- optional elementKey
+              args <- option [] argumentList
+              pure (maybe (PatternPath names args) (\k -> PatternElement names k args) key)
+          ]
     ]
+
+-- "(" , ( NAMING | pattern , { "*" , pattern } ) , ")"
+argumentList :: Parser [Pattern]
+argumentList = parens (bound <|> sepBy1 pattern (symbol "*"))
   where
     bound = pure . PatternBound <$> naming
+
+-- alternatives = alternative , "|" , alternative , { "|" , alternative } ;
+alternatives :: Parser (NonEmpty Pattern)
+alternatives = do
+  first <- alternative
+  _ <- symbol "|" <?> "\"|\" (alternatives need at least two variants)"
+  (first :|) <$> sepBy1 alternative (symbol "|")
+
+-- alternative = path , [ "." , "{" , alternatives , "}"
+--                      | "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ] ;
+alternative :: Parser Pattern
+alternative = do
+  names <- path
+  choice
+    [ PatternAlts names <$> (symbol "." *> braces alternatives)
+    , PatternPath names <$> option [] argumentList
+    ]
 
 -- element_key = "[" , LOWER , "]" ;
 elementKey :: Parser Name
@@ -324,4 +350,4 @@ withNaming p = maybe p (PatternNamed p) <$> optional naming
 
 -- path = UPPER , { "." , UPPER } ;
 path :: Parser (NonEmpty Name)
-path = (:|) <$> upperName <*> many (symbol "." *> upperName)
+path = (:|) <$> upperName <*> many (try (symbol "." *> upperName))

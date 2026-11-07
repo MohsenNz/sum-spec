@@ -65,8 +65,7 @@ selectMission :: Page.Plan => PMode.ShowMission.List.NonEmpty -> PMode.ShowMissi
 editMission :: Page.Plan => PMode.ShowMission.Selected(Mission(Plot#p)) -> PMode.Plot(PlotOrigin.Editing * p)
 startFlight :: Page.Plan => PMode.Plot(Plot.Drawn(Boundary(Ring.Enclosed))) -> PMode.Flight(Flight.Arming)
 takeOff :: App => Page.Plan(PMode.Flight(Flight.Arming)) * BatteryCharge#c // c >= MinTakeoffCharge -> Page.Plan(PMode.Flight(Flight.Flying))
-flightFailed FailureReason#r :: Flight.Arming -> Flight.Failed(r)
-                             :: Flight.Flying -> Flight.Failed(r)
+flightFailed FailureReason#r :: Flight.{Arming | Flying} -> Flight.Failed(r)
 landed :: Page.Plan => PMode.Flight(Flight.Flying) -> PMode.JustMap * Missions'
 dismissFailure :: Page.Plan => PMode.Flight(Flight.Failed) -> PMode.JustMap
 batteryChanged :: App => BatteryCharge -> BatteryCharge'

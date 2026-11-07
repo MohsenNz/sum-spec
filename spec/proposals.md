@@ -353,7 +353,7 @@ cases:
       @unless ...AircraftLink.Disconnected   =>  AircraftLink.Connected
       @unless ...ArmState.Armed              =>  ArmState.Disarmed
       @unless ...BatteryReserve.Low          =>  BatteryReserve.Enough
-      @unless ...GPSFix(NoFix | Fix2D)       =>  GPSFix(Fix3D | DGPS | RTKFix)
+      @unless ...GPSFix.{NoFix | Fix2D}      =>  GPSFix.{Fix3D | DGPS | RTKFix}
 
   So a guard is not needed where a variant pattern says it:
 
@@ -407,74 +407,6 @@ Version impact: additive.
 
 `L[x]#t` names the element, with the element type (`Todo`), not the
 list type. Not allowed yet.
-
-## Alternatives in a pattern
-
-Version impact: additive.
-
-`Sum(A | B)` says "the sum is one of these variants". It's for a source
-that applies to some variants of a sum but not all, which today takes one
-transition per variant:
-
-    linkLossEvent
-      :: App
-      => Page(Home | Devices | Logs)
-       * AircraftLink.Connected(Aircraft(Feed.Stale))
-      -> AircraftLink.Disconnected
-
-An alternative is a variant of the sum, without the sum's name, and may
-have arguments, which may hold alternatives of their own:
-
-    MissionFlight(Arming | Failed
-      | Flying(FPhase(Approaching | Holding | Returning | PilotControl)))
-
-Gains: `linkLossEvent` in `temp.sumspec` is five transitions with
-alternatives and fourteen without. The conversion of `@unless` under
-"Guard on data" also needs it (`GPSFix(Fix3D | DGPS | RTKFix)`).
-
-Syntax:
-
-- Inside the parentheses after a sum, two or more alternatives separated
-  by `|`. `Page(Home)` stays an error: write `Page.Home`.
-- Nothing else goes at that level: `Page(Home | Logs * Link.On)` is an
-  error. A factor beside it goes outside the parentheses, as in the
-  example above.
-- `|` in a pattern is a syntax error today, and a sum with arguments is a
-  type error, so no spec changes meaning.
-
-Sketch of the grammar: `type_pattern` gets one more form of argument.
-
-    alternatives  = alternative , "|" , alternative , { "|" , alternative } ;
-    alternative   = UPPER , [ "(" , ( NAMING | pattern , { "*" , pattern }
-                                    | alternatives ) , ")" ] ;
-
-Meaning: a source with alternatives is one transition per alternative,
-with the same target. In a guard, `G(A | B)` means `G.A or G.B`. The
-checker works on the expanded transitions, so overlap, reachability and
-"can never happen" need nothing new. With alternatives in two parts of a
-source, the expansion takes every combination.
-
-Rules:
-
-- The head resolves to a sum, and each alternative is a variant of it,
-  written once. An unknown or repeated variant is an error. Arguments
-  must fit the variant, as in "Arguments in state patterns".
-- Only in a source and in a pattern in a guard. Not in a target (it sets
-  one state) or in an `__init`, an input or a shared path.
-- The target must be valid for every alternative. A part keeps its value
-  only where the source fixes the same variants along its path, and each
-  alternative is read on its own. An error found in several alternatives
-  is reported once.
-- No names inside alternatives: `Mode(Editing(#t) | Viewing)` is an error,
-  because `t` has no value in `Viewing`. Write two transitions.
-- Variants only: `Count(0 | 1)` stays out, as in "Literal patterns".
-
-Open:
-
-- A name bound in every alternative with one type
-  (`Mode(Editing(#t) | Reviewing(#t))`), if a spec needs it.
-- A way to name a set of variants once, if the same alternatives repeat
-  across events.
 
 ## Branches on a guard
 

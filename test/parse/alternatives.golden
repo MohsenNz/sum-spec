@@ -1,0 +1,19 @@
+__atomics {
+}
+
+__events {
+  lose
+  land
+  fail
+  check
+}
+
+App = Page * Link
+Page = Home | Logs | Plan Flight
+Flight = Arming | Failed | Flying FPhase | Landed (Spot | Field)
+FPhase = Approaching | Holding | Spraying
+Link = On | Off
+lose :: App => Page.{Home | Logs} * Link.On -> Link.Off
+land :: Flight.{Arming | Flying(FPhase.{Approaching | Holding})} -> Flight.Failed
+fail :: Flight.Landed.{Spot | Field}#f -> Flight.Arming
+check :: App => Link.{On | Off} // Page.Plan(Flight.{Arming | Failed}) -> Link.On
