@@ -140,7 +140,7 @@ Open:
   an error.
 - An input on a dispatched event: how the UI passes a value it binds
   (`>> core.select(id)`).
-- Splitting `example/drone` into a core and a UI to try it.
+- Splitting `example/drone.sumspec` into a core and a UI to try it.
 
 ## Checking `@default` and `@range`
 

@@ -246,7 +246,7 @@ A new state didn't exist before the transition, so nothing in it can keep its va
 
 A part keeps its value only where the source fixes the same variants along its path. In `Page -> Page.Plan(PMode.JustMap)`, the source may have been `Page.Home`, so `Plan` is a new state.
 
-Examples, with the types of `example/drone`:
+Examples, with the types of `example/drone.sumspec`:
 
 ```haskell
 -- Only the mode changes; Missions keeps its value.
@@ -742,7 +742,7 @@ trans1 :: Y.V1 -> Y.V3(A)
 trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
 ```
 
-The root is `Z`. In `example/drone`, the app starts on the home page:
+The root is `Z`. In `example/drone.sumspec`, the app starts on the home page:
 
 ```
 __init :: App(Page.Home)
@@ -750,7 +750,7 @@ __init :: App(Page.Home)
 
 ## Warnings
 
-Transitions of one event on different types describe its effect on different parts, and all of them happen (`commit` in `example/git` changes the branch and the files). Two transitions on the same type should have sources that exclude each other: somewhere, they pick different variants. Otherwise one state can match both, and the spec doesn't say which happens; the type checker warns:
+Transitions of one event on different types describe its effect on different parts, and all of them happen (`commit` in `example/git.sumspec` changes the branch and the files). Two transitions on the same type should have sources that exclude each other: somewhere, they pick different variants. Otherwise one state can match both, and the spec doesn't say which happens; the type checker warns:
 
 ```
 -- Warned: Level is left out of the second source, so it may be Low.

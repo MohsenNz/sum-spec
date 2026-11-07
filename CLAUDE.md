@@ -15,9 +15,9 @@ ones as the work changes.
   implementation; don't change it without being asked.
 - Example specs, in `example/` at the project root. Each must parse and
   type-check with no errors:
-  - `example/drone`: the reference example (a drone mission planner app).
-  - `example/todomvc`: a UI, TodoMVC.
-  - `example/git`: an application core, a local Git repository.
+  - `example/drone.sumspec`: the reference example (a drone mission planner app).
+  - `example/todomvc.sumspec`: a UI, TodoMVC.
+  - `example/git.sumspec`: an application core, a local Git repository.
 - `spec/proposals.md`: future features that are **not** in v1. Don't
   implement them unless asked. Each says whether it's additive or
   breaking.

@@ -22,7 +22,7 @@ import SumSpec
   , renderParseError
   , renderSpec
   )
-import System.FilePath (replaceExtension, takeBaseName, takeFileName, (</>))
+import System.FilePath (replaceExtension, takeBaseName, (</>))
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.Golden (findByExtension, goldenVsString)
 
@@ -44,11 +44,11 @@ corpus :: FilePath -> IO [(FilePath, FilePath)]
 corpus dir = do
   files <- findByExtension [".sumspec"] dir
   pure $
-    [(file, dir </> "example-" <> takeFileName file <> ".golden") | file <- examples]
+    [(file, dir </> "example-" <> takeBaseName file <> ".golden") | file <- examples]
       <> [(file, replaceExtension file ".golden") | file <- files]
 
 examples :: [FilePath]
-examples = ["example/drone", "example/todomvc", "example/git"]
+examples = ["example/drone.sumspec", "example/todomvc.sumspec", "example/git.sumspec"]
 
 golden :: (FilePath -> Text -> Text) -> (FilePath, FilePath) -> TestTree
 golden run (file, goldenFile) =

@@ -215,7 +215,7 @@ To decide:
   are tried in order, and the first whose source matches applies (as in
   a Haskell `case`). The checker then warns about a transition an
   earlier one covers, as it can never apply. Transitions on different
-  types still all happen (`commit` in `example/git`). Not before
+  types still all happen (`commit` in `example/git.sumspec`). Not before
   guards: every overlap in the examples has identical sources
   (`deleteTodo`, `clearCompleted`, `merge`, `rebaseContinue`), so the
   second transition of each would never apply. The transitions of an

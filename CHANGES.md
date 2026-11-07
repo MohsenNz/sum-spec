@@ -60,7 +60,7 @@ release" in `VERSIONING.md`).
   opaque. It is still a leaf: it takes no arguments, and can be an
   event's input or a list's key type. A primitive is written only there,
   and an atomic takes no annotations (a type that needs more is a newtype
-  of it). Literals and operations come with guards. `example/todomvc`
+  of it). Literals and operations come with guards. `example/todomvc.sumspec`
   gives `Count` and `Text` a base this way.
 - Shared path: `=>` writes a path both sides of a transition share
   once, `Files[p] => FileState.Staged -> FileState.Modified` for
@@ -75,7 +75,7 @@ release" in `VERSIONING.md`).
   alternatives (`Flying(FPhase.{Approaching | Holding})`). A source is
   checked as one transition per alternative, a guard pattern as an `or`.
   There are at least two, each written once; none binds a value; a
-  target, an input and `__init` have none. `example/drone`'s
+  target, an input and `__init` have none. `example/drone.sumspec`'s
   `flightFailed` uses it.
 - Branches: several transitions under the same shared paths write them
   once, then one branch per transition, each starting with `=>`:
@@ -90,7 +90,7 @@ release" in `VERSIONING.md`).
   names are visible in every transition.
 - Initial state: `__init :: P` gives the state the app starts in, once
   per spec. Its head type is the root, the type of every state, so `App`
-  is no longer required or special (`example/git` drops
+  is no longer required or special (`example/git.sumspec` drops
   `App = Repository` for `__init :: Repository.Uninitialized`). `P` is a
   whole new state: no prime, name or element path in it.
 - Events: the lowercase name before `::` is an event, listed in
@@ -127,9 +127,9 @@ release" in `VERSIONING.md`).
   (`Points = [Point]`), so every list has a type name. A list isn't a
   factor, a payload or a pattern, and its element is a type name
   (`Row = [Cell]`, `Grid = [Row]`). A list type takes no arguments.
-- The examples use these: `example/todomvc` and `example/git` have keyed
+- The examples use these: `example/todomvc.sumspec` and `example/git.sumspec` have keyed
   lists (`Todos`, `Files`, `Branches`) and element paths, and
-  `example/drone` names its lists (`Points`, `MissionSummaries`).
+  `example/drone.sumspec` names its lists (`Points`, `MissionSummaries`).
 - Annotations: `@name args` is metadata for the target, which gives it
   its meaning. The names a spec uses are listed in an `__annotations`
   block. An annotation goes after a type's name (or a newtype's body),
@@ -137,11 +137,15 @@ release" in `VERSIONING.md`).
   target. Its arguments are opaque text up to the end of the line, a
   comment, or one of `@ = | * ::` outside brackets; brackets may span
   lines. The header blocks (`__atomics`, `__events`, `__annotations`)
-  now come in any order. `example/drone` uses `@control`, `@default`,
+  now come in any order. `example/drone.sumspec` uses `@control`, `@default`,
   `@status` and `@effect`.
 
 ### Tool
 
+- The example specs have the `.sumspec` extension
+  (`example/drone.sumspec`, `example/todomvc.sumspec`,
+  `example/git.sumspec`), like the test corpora, so editors can detect
+  them.
 - The parser, printer and checker read annotations. The canonical form
   puts a type's annotations after its name and writes each
   annotation's arguments on one line. The checker reports an annotation
@@ -152,9 +156,9 @@ release" in `VERSIONING.md`).
   keyed lists, element paths and `__init`.
 - Warnings for a variant the app never reaches from `__init`, and for
   two transitions of one event, on the same type, whose sources can
-  match the same state (`example/todomvc` warns about `deleteTodo` and
-  `clearCompleted`, and `example/git` about `merge` and
-  `rebaseContinue`). `example/drone` gains `selectMission`,
+  match the same state (`example/todomvc.sumspec` warns about `deleteTodo` and
+  `clearCompleted`, and `example/git.sumspec` about `merge` and
+  `rebaseContinue`). `example/drone.sumspec` gains `selectMission`,
   `editMission`, `startFlight`, `takeOff`, `flightFailed`, `landed` and
   `dismissFailure`, so every variant is reached; its `PMode.Flight`
   now carries `Flight`.
@@ -217,7 +221,7 @@ Language version 1.0.
   - the `__atomics` and `__txs` headers, the `App` entry point, and
     `--` line comments;
   - the optional `__version 1.0` header; no header means 1.0.
-- Example specs: `example/drone`, `example/todomvc`, `example/git`.
+- Example specs: `example/drone.sumspec`, `example/todomvc.sumspec`, `example/git.sumspec`.
 
 ### Tool
 

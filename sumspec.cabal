@@ -15,9 +15,9 @@ extra-doc-files:
   CHANGES.md
   README.md
 extra-source-files:
-  example/drone
-  example/git
-  example/todomvc
+  example/drone.sumspec
+  example/git.sumspec
+  example/todomvc.sumspec
   spec/grammar.ebnf
 
 common common

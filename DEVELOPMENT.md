@@ -19,7 +19,7 @@ git-ignored; copy `.env.example` to start one.
 Inside `nix develop`, build and run the CLI with cabal:
 
 ```
-cabal run sumspec -- check example/drone
+cabal run sumspec -- check example/drone.sumspec
 ```
 
 To install `sumspec` instead, into cabal's `installdir` (`~/.local/bin` by

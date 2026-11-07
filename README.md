@@ -42,7 +42,7 @@ add Path#p
   => FileState.{Untracked | Modified | StagedAndModified} -> FileState.Staged
 ```
 
-Checkout `./example/git` for the full git specification example.
+Checkout `./example/git.sumspec` for the full git specification example.
 
 **We can describe UI**, for example I gave this to Opus 4.5 and it generates the below design in [Penpot](https://penpot.app/?utm_red=g&utm_group=&gad_source=1&gad_campaignid=23620085724) (open-source Figma alternative) for me:
 
@@ -119,11 +119,11 @@ because a type system and real language tools look after it.
 
 Tip: For frontend development it is the best practice to follow TEA (The Elm Architecture) as far as this language is close to it.
 
-## A first spec
+## More examples
 
 A network link that connects, fails and retries:
 
-```
+```haskell
 __atomics {
   Session
   Reason = __text
@@ -161,38 +161,11 @@ connecting. Each line at the bottom is an event and its transition:
 `connected` event brings, and `Link.Online(s)` stores it. The comment
 (`--`) carries what the types can't: why the link behaves this way.
 
-## More examples
-
-**Git's file life cycle.** `Files` is a list of file states, keyed by
-path. `Files[p]` picks one file, and each `=>` is one case of the event:
-
-```
-Repository
-  = Uninitialized
-  | Initialized (Head * Branches * Files * Operation)
-
-Files = [FileState by Path]
-
-FileState
-  = Untracked
-  | Unmodified
-  | Modified
-  | Staged
-  | StagedAndModified
-  | Conflicted
-
-add Path#p
-  :: Files[p]
-  => FileState.Untracked -> FileState.Staged
-  => FileState.Modified -> FileState.Staged
-  => FileState.StagedAndModified -> FileState.Staged
-```
-
 **TodoMVC.** A product (`*`) holds everything on the screen at once. A
 guard (`//`) adds a condition: an empty title is not added. A prime
 (`Todos'`) marks a part that gets a new value:
 
-```
+```haskell
 App
   = Screen
   * NewTodo
@@ -224,9 +197,9 @@ toggleTodo TodoId#id
 
 The full specs are in `example/`:
 
-- `example/drone`: a drone mission planner app.
-- `example/todomvc`: the user interface of [TodoMVC](https://todomvc.com).
-- `example/git`: the core of a local [Git](https://git-scm.com) repository.
+- `example/drone.sumspec`: a drone mission planner app.
+- `example/todomvc.sumspec`: the user interface of [TodoMVC](https://todomvc.com).
+- `example/git.sumspec`: the core of a local [Git](https://git-scm.com) repository.
 
 ## Where it's useful
 
