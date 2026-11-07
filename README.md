@@ -63,11 +63,11 @@ RouteSettings           @view form
   * ObstacleBoundary    @control stepper
   * SingleSideSpraying  @control toggle
 
-RouteSpacing        = Meter
-FieldMargin         = Meter
-StartPoint          = Point
-ObstacleBoundary    = Meter
-SingleSideSpraying  = Bool
+RouteSpacing        = Meter @default 8
+FieldMargin         = Meter @default 1.5
+StartPoint          = Point @default first_point
+ObstacleBoundary    = Meter @default 1.5
+SingleSideSpraying  = Bool  @default False
 
 CoverageArea
   = RouteOnly
