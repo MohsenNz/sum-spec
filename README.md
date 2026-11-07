@@ -215,7 +215,7 @@ The full specs are in `example/`:
 
 ## Tutorial
 
-Check out `./spec/spec-v1.md`
+Check out `./spec/spec-v1.md`.
 
 ## Influences
 

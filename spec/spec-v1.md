@@ -97,6 +97,41 @@ trans3
 
 **Argument:** a pattern inside the parentheses after a type or variant, saying which inner state must be there.
 
+## Quick Start Example
+
+```
+__atomics {
+  A
+  B
+  C
+}
+
+__events {
+  trans1
+  trans2
+}
+
+-- The app starts with Y at V1; C may have any value.
+__init :: Z(Y.V1)
+
+Z = Y * C
+
+Y = V1
+  | V2
+  | V3 A
+
+trans1 :: Y.V1 -> Y.V3(A)
+
+trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
+```
+
+The root is `Z`. In `example/drone.sumspec`, the app starts on the home page:
+
+```
+__init :: App(Page.Home)
+```
+
+
 ## Types, more
 
 ### Products are keyed by type
@@ -705,47 +740,15 @@ doesn't check the arguments.
 
 ## Summary:
 
-`=`  used for type definition
-`|`  sum type
-`*`  product type
-`.`  selects a variant of a sum type
-`::` starts a transition
-`->` state transition
-`=>` a path both sides of a transition share
-`@`  an annotation: metadata for the target
-
-## Example
-
 ```
-__atomics {
-  A
-  B
-  C
-}
-
-__events {
-  trans1
-  trans2
-}
-
--- The app starts with Y at V1; C may have any value.
-__init :: Z(Y.V1)
-
-Z = Y * C
-
-Y = V1
-  | V2
-  | V3 A
-
-trans1 :: Y.V1 -> Y.V3(A)
-
-trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
-```
-
-The root is `Z`. In `example/drone.sumspec`, the app starts on the home page:
-
-```
-__init :: App(Page.Home)
+=  used for type definition
+|  sum type
+*  product type
+.  selects a variant of a sum type
+:: starts a transition
+-> state transition
+=> a path both sides of a transition share
+@  an annotation: metadata for the target
 ```
 
 ## Warnings
