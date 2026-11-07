@@ -51,6 +51,17 @@ examples, the golden tests and `CHANGES.md` together.
       `Text = __text`; a definition of the same name in the user's spec
       replaces it.
 
+### Editor support
+The plan is in `docs/lsp.md`. In order:
+- [ ] Ranges on errors and tokens (start and end).
+- [ ] Parse recovery per definition (every parse error, partial AST).
+- [ ] `sumspec lsp` with diagnostics (the `lsp` package).
+- [ ] Document symbols, go-to-definition, references.
+- [ ] Semantic tokens; fallback grammars for Neovim and VS Code.
+- [ ] A resolved model (`SumSpec.Model`), then hover and completion.
+- [ ] Formatting, once the AST keeps comments.
+- [ ] {Optional, later} A tree-sitter grammar.
+
 ### Versioning
 - [ ] Release 0.1.0.0: date it in `CHANGES.md`, then tag `v0.1.0.0`.
 
