@@ -84,6 +84,70 @@ cancelPlot :: App => NewPlot.Open -> NewPlot.Closed
 
 ![Image](images/penpot-pic.png)
 
+## Core concepts
+
+In SumSpec we express state with type, so a type here is equivalent to a state in state-machine.
+
+### Product Type
+
+```haskell
+T = A * B
+```
+
+This is a type named T that is a product of A and B.
+
+### Sum Type
+
+```haskell
+Y = V1 | V2
+```
+
+The type Y has two variants V1 and V2. Each variant can carry one optional Type too.
+
+```haskell
+Y = V1
+  | V2
+  | V3 A
+```
+
+Now Y is a sum of V1, V2 and `V3 A`.
+
+### State Transitions
+
+```haskell
+t :: A -> B
+```
+
+This is a transition of the event `t`: when `t` happens, the app moves from state A (Type A) to state B (Type B).
+
+We show a state (in a transition) like this:
+
+```haskell
+trans1 :: Y.V1 -> Y.V3(A)
+
+Z = Y * C
+
+trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
+```
+
+The transition of trans1 changes state Y.V1 to Y.V3(A). We show the state of product types with parenthesis: `Z(...)`, and refer to sum types with dot `Y.V1`. The State of a variant with a value is shown like a product type, `Y.V3(A)`.
+
+**More Examples:**
+
+```haskell
+T2 = A
+   | B (X * Y * Z)
+   | C
+
+trans3 :: T2.A -> T2.B(X * Y * Z)
+```
+
+## Examples
+
+- `example/drone.sumspec`: a drone mission planner app.
+- `example/todomvc.sumspec`: the user interface of [TodoMVC](https://todomvc.com).
+- `example/git.sumspec`: the core of a local [Git](https://git-scm.com) repository.
+
 ## Workflow
 
 - **Types at the core, prose where it helps.** The states and
@@ -114,88 +178,6 @@ In short: spec-driven development, where the spec is easier to maintain
 because a type system and real language tools look after it.
 
 Tip: For frontend development it is the best practice to follow TEA (The Elm Architecture) as far as this language is close to it.
-
-## More examples
-
-A network link that connects, fails and retries:
-
-```haskell
-__atomics {
-  Session
-  Reason = __text
-}
-
-__events {
-  connect
-  connected
-  failed
-  retry
-  disconnect
-}
-
-__init :: Link.Offline
-
--- The app is useful offline too, so it never connects on its own:
--- the user asks for it, and after a failure the user decides to retry.
-Link
-  = Offline
-  | Connecting
-  | Online Session
-  | Failed Reason
-
-connect              :: Link.Offline    -> Link.Connecting
-connected Session#s  :: Link.Connecting -> Link.Online(s)
-failed Reason#r      :: Link.Connecting -> Link.Failed(r)
-retry                :: Link.Failed     -> Link.Connecting
-disconnect           :: Link.Online     -> Link.Offline
-```
-
-`Link` is a sum: the link is in exactly one of four states, and only
-`Online` has a `Session`, so no code can read a session while
-connecting. Each line at the bottom is an event and its transition:
-`retry` exists only from `Failed`. `Session#s` names the value the
-`connected` event brings, and `Link.Online(s)` stores it. The comment
-(`--`) carries what the types can't: why the link behaves this way.
-
-**TodoMVC.** A product (`*`) holds everything on the screen at once. A
-guard (`//`) adds a condition: an empty title is not added. A prime
-(`Todos'`) marks a part that gets a new value:
-
-```haskell
-App
-  = Screen
-  * NewTodo
-  * Filter
-
-NewTodo
-  = Blank
-  | Typing Text
-
-Screen
-  = NoTodos
-  | WithTodos (Todos * ToggleAll * Footer)
-
-addTodo
-  :: App
-  => Screen.NoTodos * NewTodo.Typing(#text)
-  // text != ""
-  -> Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank
-
-  => Screen.WithTodos * NewTodo.Typing(#text)
-  // text != ""
-  -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank
-
-toggleTodo TodoId#id
-  :: Todos[id]
-  => Completion.Active -> Completion.Completed
-  => Completion.Completed -> Completion.Active
-```
-
-The full specs are in `example/`:
-
-- `example/drone.sumspec`: a drone mission planner app.
-- `example/todomvc.sumspec`: the user interface of [TodoMVC](https://todomvc.com).
-- `example/git.sumspec`: the core of a local [Git](https://git-scm.com) repository.
 
 ## Where it's useful
 
