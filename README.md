@@ -37,7 +37,8 @@ FileState
 
 add Path#p
   :: Files[p]
-  => FileState.{Untracked | Modified | StagedAndModified} -> FileState.Staged
+  => FileState.{Untracked | Modified | StagedAndModified}
+  -> FileState.Staged
 ```
 
 **We can describe UI too**, for example I gave this to Opus 4.5 and it generates the below design in [Penpot](https://penpot.app/?utm_red=g&utm_group=&gad_source=1&gad_campaignid=23620085724) for me:
