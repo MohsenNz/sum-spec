@@ -100,3 +100,4 @@ fourmolu -i src app test
 - `CHANGES.md`: every user-visible change, under **Unreleased**.
 - `VERSIONING.md`: the language version and the tool version.
 - `docs/lsp.md`: the plan for the language server.
+- `docs/sumspec-vs-quint-tla.md`: how SumSpec relates to Quint and TLA+.
