@@ -12,7 +12,6 @@ module SumSpec.Lsp
   ) where
 
 import Control.Monad.IO.Class (liftIO)
-import Data.Char (isAlphaNum)
 import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -22,13 +21,12 @@ import Language.LSP.Protocol.Types
 import Language.LSP.Server
 import Language.LSP.VFS (virtualFileText, virtualFileVersion)
 import SumSpec (CheckError (..), Severity (..), checkSpec, parseSpec)
+import SumSpec.Lsp.Position (tokenRange)
 import Text.Megaparsec
   ( ParseErrorBundle (..)
-  , SourcePos (..)
   , attachSourcePos
   , errorOffset
   , parseErrorTextPretty
-  , unPos
   )
 
 -- | Runs the server on stdin and stdout; returns the exit code.
@@ -139,42 +137,3 @@ diagnose path source = case parseSpec path source of
         , _relatedInformation = Nothing
         , _data_ = Nothing
         }
-
--- | The range of the token that starts at this position: a name (with its
--- @\@@ or @#@, if any), or else one character; empty at the end of a line.
--- Errors carry a position only, so this is a stand-in until they carry a
--- range of their own.
-tokenRange :: Text -> SourcePos -> Range
-tokenRange source pos =
-  Range (Position line (utf16 before)) (Position line (utf16 (before <> token)))
-  where
-    lineNo = unPos (sourceLine pos) - 1
-    line = fromIntegral lineNo
-    text = case drop lineNo (T.lines source) of
-      l : _ -> l
-      [] -> ""
-    (before, rest) = T.splitAt (codePoints (unPos (sourceColumn pos)) text) text
-    token = case T.uncons rest of
-      Nothing -> ""
-      Just (c, cs)
-        | isNameChar c || c == '@' || c == '#' -> T.cons c (T.takeWhile isNameChar cs)
-        | otherwise -> T.singleton c
-    isNameChar c = isAlphaNum c || c == '_' || c == '\''
-    -- LSP counts UTF-16 code units.
-    utf16 =
-      fromIntegral
-        . sum
-        . map (\c -> if fromEnum c > 0xFFFF then 2 else 1 :: Int)
-        . T.unpack
-
--- | The number of characters before a megaparsec column, which moves a
--- tab to the next multiple of 8 (plus one).
-codePoints :: Int -> Text -> Int
-codePoints column = go 1 0 . T.unpack
-  where
-    go col n cs
-      | col >= column = n
-      | otherwise = case cs of
-          [] -> n
-          '\t' : rest -> go (((col - 1) `div` 8 + 1) * 8 + 1) (n + 1) rest
-          _ : rest -> go (col + 1) (n + 1) rest

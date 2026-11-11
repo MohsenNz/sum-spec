@@ -51,7 +51,12 @@ library sumspec-lsp
   import:          common
   hs-source-dirs:  lsp
   exposed-modules: SumSpec.Lsp
+  other-modules:
+    SumSpec.Lsp.Index
+    SumSpec.Lsp.Position
+
   build-depends:
+    , containers    >=0.7  && <0.9
     , lsp           >=2.7  && <2.9
     , lsp-types     >=2.3  && <2.5
     , megaparsec    >=9.7  && <10
