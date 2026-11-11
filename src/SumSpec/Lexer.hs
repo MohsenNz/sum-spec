@@ -20,6 +20,8 @@ module SumSpec.Lexer
   , numberLiteral
   , stringLiteral
   , compareOp
+  , additiveOp
+  , timesOp
   , versionNumber
   , parens
   , brackets
@@ -30,7 +32,13 @@ import Data.Char (isAsciiLower, isAsciiUpper, isDigit, isSpace)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
-import SumSpec.Syntax (Annotation (..), CompareOp (..), Literal (..), Name (..))
+import SumSpec.Syntax
+  ( Annotation (..)
+  , ArithOp (..)
+  , CompareOp (..)
+  , Literal (..)
+  , Name (..)
+  )
 import SumSpec.Version (LanguageVersion (..))
 import Text.Megaparsec
 import Text.Megaparsec.Char (char, digitChar, space1)
@@ -218,6 +226,24 @@ compareOp =
         ]
     )
     <?> "comparison operator"
+
+-- | @+@ or @-@ between two values, with its position. A @-@ is never the
+-- start of @->@ (or of @--@, which the space before it already skipped).
+additiveOp :: Parser (SourcePos, ArithOp)
+additiveOp =
+  lexeme
+    ( (,)
+        <$> getSourcePos
+        <*> choice
+          [ OpAdd <$ char '+'
+          , OpSub <$ try (char '-' <* notFollowedBy (char '>' <|> char '-'))
+          ]
+    )
+    <?> "\"+\" or \"-\""
+
+-- | @*@ between two values, inside parentheses, with its position.
+timesOp :: Parser (SourcePos, ArithOp)
+timesOp = lexeme ((,) <$> getSourcePos <*> (OpMul <$ char '*')) <?> "\"*\""
 
 parens, brackets, braces :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")

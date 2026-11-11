@@ -1,0 +1,66 @@
+test/check/error-arithmetic-type.sumspec:16:40:
+   |
+16 | whole :: App => Attempts#a -> Attempts(a + 1)
+   |                                        ^
+a has type Attempts, but Int is expected here
+
+test/check/error-arithmetic-type.sumspec:18:52:
+   |
+18 | mix :: App => Height(#h) * Delay(#d) -> Height(h + d)
+   |                                                    ^
+d has type Seconds, but Meters is expected here
+
+test/check/error-arithmetic-type.sumspec:19:47:
+   |
+19 | wrongconst :: App => Height(#h) -> Height(h + Wait)
+   |                                               ^
+Wait is a constant of type Delay, but Meters is expected here
+
+test/check/error-arithmetic-type.sumspec:21:38:
+   |
+21 | textual :: App => Name(#t) -> Name(t + "x")
+   |                                      ^
++ needs a number, but Text is a __text
+
+test/check/error-arithmetic-type.sumspec:22:40:
+   |
+22 | literal :: App => Attempts -> Attempts(1.5) * Name(3)
+   |                                        ^
+Int is an __int, so 1.5 doesn't fit it
+
+test/check/error-arithmetic-type.sumspec:22:52:
+   |
+22 | literal :: App => Attempts -> Attempts(1.5) * Name(3)
+   |                                                    ^
+Text is a __text, so 3 doesn't fit it
+
+test/check/error-arithmetic-type.sumspec:23:39:
+   |
+23 | opaque :: App => Thing(#o) -> Thing(o + o)
+   |                                       ^
++ needs a number, but Opaque is an atomic with no base
+
+test/check/error-arithmetic-type.sumspec:24:25:
+   |
+24 | list :: App => Ids#i -> Ids(1)
+   |                         ^
+Ids is a list type and takes no arguments; pick an element with Ids[x](...)
+
+test/check/error-arithmetic-type.sumspec:25:23:
+   |
+25 | sum :: App => Mode -> Mode(1)
+   |                       ^
+Mode is a sum; pick a variant with "." instead of arguments
+
+test/check/error-arithmetic-type.sumspec:26:49:
+   |
+26 | named :: App => Attempts(#n) -> Attempts(n + 1)#m
+   |                                                 ^
+a value is named only in the input or on the source side; on the target side, write the name alone: m
+
+test/check/error-arithmetic-type.sumspec:27:40:
+   |
+27 | textmul :: App => Name(#a) -> Name(a * a)
+   |                                        ^
+* needs a number, but Text is a __text
+

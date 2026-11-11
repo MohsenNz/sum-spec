@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Parser for SumSpec v1. Each parser follows the rule of the same name
@@ -11,6 +12,7 @@ module SumSpec.Parser
 import Control.Monad (unless, void)
 import Data.List (intercalate)
 import Data.List.NonEmpty (NonEmpty (..))
+import Data.List.NonEmpty qualified as NE
 import Data.Maybe (fromMaybe, isJust)
 import Data.Text (Text)
 import Data.Void (Void)
@@ -346,24 +348,98 @@ operands join item word = do
 shared :: Parser Shared
 shared = Shared <$> path <*> optional elementKey
 
--- arguments = pattern , { "*" , pattern } ;
+-- arguments = arg_term , { ( "+" | "-" ) , arg_term } ;
+-- arg_term  = pattern , { "*" , pattern } ;
+--
+-- Without "+" or "-", the patterns of the one arg_term are the
+-- arguments, joined by "*": factors of a product, or, under a head that
+-- holds one value, a multiplication (the checker tells them apart by the
+-- head). With "+" or "-", they are one computed value, and every pattern
+-- in it must be a value: a name, a literal, a constant or "(arith)".
 arguments :: Parser (NonEmpty Pattern)
-arguments = (:|) <$> pattern <*> many (symbol "*" *> pattern)
+arguments = do
+  first <- argTerm
+  rest <- many ((,) <$> additiveOp <*> argTerm)
+  case rest of
+    [] -> pure (fmap snd (fst first :| map (\(_, o, p) -> (o, p)) (snd first)))
+    _ -> do
+      e <- termExpr first
+      es <- traverse (\(op, t) -> (op,) <$> termExpr t) rest
+      pure (PatternExpr (joinOps e es) :| [])
+  where
+    argTerm = do
+      o <- getOffset
+      p <- pattern
+      more <- many ((,,) <$> (fst <$> timesOp) <*> getOffset <*> pattern)
+      pure ((o, p), more)
+    termExpr ((o, p), more) = do
+      e <- value o p
+      es <- traverse (\(pos, o', p') -> (,) (pos, OpMul) <$> value o' p') more
+      pure (joinOps e es)
+    value o = \case
+      PatternName n -> pure (ExprName n)
+      PatternPath (c :| []) [] -> pure (ExprConst c)
+      PatternExpr e -> pure e
+      _ -> do
+        setOffset o
+        fail $
+          "only a name, a literal, a constant or a value in parentheses goes in a "
+            <> "computed value, not a type pattern, a naming or a prime"
 
 -- input = type_pattern , [ NAMING ] ;
 input :: Parser Pattern
 input = withNaming =<< typePattern
 
--- pattern = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
+-- pattern = ( type_pattern | LOWER | literal | "(" , arith , ")" ) ,
+--           { "'" } , [ NAMING ] ;
+--
+-- A lone name in parentheses is a 'PatternName', and a lone constant a
+-- 'PatternPath', as without them.
 pattern :: Parser Pattern
 pattern = do
-  base <- typePattern <|> PatternName <$> valueName
+  base <-
+    choice
+      [ exprPattern <$> (literalAtom <|> parens arithFull)
+      , typePattern
+      , PatternName <$> valueName
+      ]
   primes <- many (getSourcePos <* symbol "'")
   withNaming (foldl (flip PatternPrimed) base primes)
+  where
+    exprPattern = \case
+      ExprName n -> PatternName n
+      ExprConst c -> PatternPath (c :| []) []
+      e -> PatternExpr e
+
+-- arith_atom = LOWER | literal | UPPER | "(" , arith , ")" ;
+arithAtom :: Parser Expr
+arithAtom =
+  choice
+    [ literalAtom
+    , ExprName <$> valueName
+    , ExprConst <$> upperName
+    , parens arithFull
+    ]
+    <?> "a value, a literal, a constant or \"(\""
+
+literalAtom :: Parser Expr
+literalAtom = uncurry ExprLit <$> (numberLiteral <|> stringLiteral) <?> "literal"
+
+-- arith = arith_product , { ( "+" | "-" ) , arith_product } ;
+arithFull :: Parser Expr
+arithFull = joinOps <$> arithMul <*> many ((,) <$> additiveOp <*> arithMul)
+
+-- arith_product = arith_atom , { "*" , arith_atom } ;
+arithMul :: Parser Expr
+arithMul = joinOps <$> arithAtom <*> many ((,) <$> timesOp <*> arithAtom)
+
+-- Joins operands left to right: a - b - c is (a - b) - c.
+joinOps :: Expr -> [((SourcePos, ArithOp), Expr)] -> Expr
+joinOps = foldl (\left ((pos, op), right) -> ExprBin op pos left right)
 
 -- type_pattern = path , "." , "{" , alternatives , "}"
 --              | path , [ element_key ] ,
---                [ "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ]
+--                [ "(" , ( NAMING | arguments ) , ")" ]
 --              | "[" , type_term , "]" ;
 typePattern :: Parser Pattern
 typePattern =
@@ -380,9 +456,9 @@ typePattern =
           ]
     ]
 
--- "(" , ( NAMING | pattern , { "*" , pattern } ) , ")"
+-- "(" , ( NAMING | arguments ) , ")"
 argumentList :: Parser [Pattern]
-argumentList = parens (bound <|> sepBy1 pattern (symbol "*"))
+argumentList = parens (bound <|> NE.toList <$> arguments)
   where
     bound = pure . PatternBound <$> naming
 
@@ -394,7 +470,7 @@ alternatives = do
   (first :|) <$> sepBy1 alternative (symbol "|")
 
 -- alternative = path , [ "." , "{" , alternatives , "}"
---                      | "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ] ;
+--                      | "(" , ( NAMING | arguments ) , ")" ] ;
 alternative :: Parser Pattern
 alternative = do
   names <- path

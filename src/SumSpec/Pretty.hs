@@ -8,6 +8,8 @@
 module SumSpec.Pretty
   ( renderSpec
   , renderLiteral
+  , renderArith
+  , renderValue
   ) where
 
 import Data.List.NonEmpty (NonEmpty (..))
@@ -71,7 +73,7 @@ renderDefinition = \case
           <> " -> "
           <> renderSide to
           <> renderAnnotations notes
-      renderSide = T.intercalate " * " . map renderPattern . NE.toList
+      renderSide = renderArguments . NE.toList
       renderShared (Shared names key) =
         T.intercalate "." (map nameText (NE.toList names))
           <> maybe "" (\k -> "[" <> nameText k <> "]") key
@@ -157,7 +159,50 @@ renderPattern = \case
       <> T.intercalate " | " (map renderPattern (NE.toList alts))
       <> "}"
   PatternPrimed _ p -> renderPattern p <> "'"
+  PatternExpr e -> renderArith e
   where
     renderPath = T.intercalate "." . map nameText . NE.toList
     renderArgs [] = ""
-    renderArgs args = "(" <> T.intercalate " * " (map renderPattern args) <> ")"
+    renderArgs args = "(" <> renderArguments args <> ")"
+
+-- | Arguments joined by "*". Beside other arguments, a computed value is
+-- written in parentheses, so its "+" and "-" don't read as joining them.
+renderArguments :: [Pattern] -> Text
+renderArguments = \case
+  [arg] -> renderPattern arg
+  args -> T.intercalate " * " (map factor args)
+  where
+    factor = \case
+      PatternExpr e@ExprBin {} -> "(" <> renderExpr 0 e <> ")"
+      p -> renderPattern p
+
+-- | An expression where a pattern goes, with the parentheses its
+-- structure needs. A multiplication at the top is kept in parentheses:
+-- without them, @n * 2@ there is read as two arguments, which the checker
+-- reads as a multiplication only under a head that holds one value.
+renderArith :: Expr -> Text
+renderArith = \case
+  e@(ExprBin OpMul _ _ _) -> "(" <> renderExpr 0 e <> ")"
+  e -> renderExpr 0 e
+
+-- | An expression on its own, as in a message: @n * 2@.
+renderValue :: Expr -> Text
+renderValue = renderExpr 0
+
+-- | An expression, with the parentheses its structure needs: "*" binds tighter than "+" and "-", and both group from the
+-- left, so a right operand of the same precedence is parenthesized.
+renderExpr :: Int -> Expr -> Text
+renderExpr outer = \case
+  ExprName n -> nameText n
+  ExprLit _ lit -> renderLiteral lit
+  ExprConst c -> nameText c
+  ExprBin op _ left right ->
+    let
+      p = precedence op
+      body = renderExpr p left <> " " <> arithWord op <> " " <> renderExpr (p + 1) right
+    in
+      if p < outer then "(" <> body <> ")" else body
+  where
+    precedence = \case
+      OpMul -> 7
+      _ -> 6

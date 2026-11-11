@@ -1,0 +1,6 @@
+test/parse/error-arithmetic-dangling.sumspec:3:36:
+  |
+3 | inc :: Attempts(#n) -> Attempts(n +)
+  |                                    ^
+unexpected ')'
+expecting '(', '[', literal, type or variant name, or value name

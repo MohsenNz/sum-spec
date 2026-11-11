@@ -28,6 +28,9 @@ module SumSpec.Syntax
   , compareWord
   , Operand (..)
   , Literal (..)
+  , Expr (..)
+  , ArithOp (..)
+  , arithWord
   , Shared (..)
   , Pattern (..)
   , Name (..)
@@ -243,6 +246,30 @@ data Literal
     LitText Text
   deriving stock (Eq, Show)
 
+-- | A value computed in a target: names the transition binds, literals,
+-- named constants, and @+ - *@. Parentheses aren't kept; the printer
+-- writes those the structure needs.
+data Expr
+  = -- | @x@: a value named in the input or on the source side.
+    ExprName Name
+  | -- | A literal, with the position it starts at.
+    ExprLit SourcePos Literal
+  | -- | @C@: a named constant.
+    ExprConst Name
+  | -- | @a op b@, with the position of the operator.
+    ExprBin ArithOp SourcePos Expr Expr
+  deriving stock (Eq, Show)
+
+data ArithOp = OpAdd | OpSub | OpMul
+  deriving stock (Eq, Show)
+
+-- | How an arithmetic operator is written.
+arithWord :: ArithOp -> Text
+arithWord = \case
+  OpAdd -> "+"
+  OpSub -> "-"
+  OpMul -> "*"
+
 -- | @P =>@ or @L[x] =>@: a path, with an optional element key, that both
 -- sides of a transition share. It takes no arguments, prime or naming.
 data Shared = Shared (NonEmpty Name) (Maybe Name)
@@ -279,6 +306,10 @@ data Pattern
     -- after any pattern; the checker allows it only on a bare type name on
     -- the target side.
     PatternPrimed SourcePos Pattern
+  | -- | A value computed by the transition, such as @n + 1@ or @0@. The
+    -- parser gives a lone name as 'PatternName', never as an expression.
+    -- The checker allows it only on the target side and in @__init@.
+    PatternExpr Expr
   deriving stock (Eq, Show)
 
 -- | An identifier and where it was written.

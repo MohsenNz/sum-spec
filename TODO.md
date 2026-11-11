@@ -19,14 +19,16 @@ Decide on each gap, one at a time, then move it to `proposals.md`:
       transitions).
 - [ ] Guards on data: see "Guards on data, in steps" below.
 - [x] How updates change values, Part A: named values.
-- [ ] How updates change values, Part B: derived values (replaced by
-      arithmetic in targets; see `spec/literal-patterns.md`, question 13).
+- [x] How updates change values, Part B: derived values (replaced by
+      arithmetic in targets, now in v1: "Computed values" in
+      `spec/spec-v1.md`).
 - [ ] How updates change values, Part C: list updates (form chosen:
       an action clause, `// __remove ts[id]`).
 - [ ] Nondeterminism between transitions: first match, once guards
       exist (see gap 5).
 - [ ] Values inside a new state (decided in part: see `spec/efsm-gaps.md`
-      gap 7; waits for the literal-pattern and arithmetic proposals).
+      gap 7; literals and arithmetic in targets are in v1, the warning
+      for a part nothing sets is open).
 
 ### Guards on data, in steps
 The design is in `spec/proposals.md` ("Guard on data", "Prelude"). Do
@@ -94,5 +96,11 @@ update before any code:
       `spec/spec-v1.md`).
 - [x] Equality on every type (`==` and `!=` on products, lists and sums
       with payloads): in v1 (see "Comparing values" in `spec/spec-v1.md`).
-- [ ] Arithmetic in targets, and in guards with the same expression
-      language (see "Arithmetic in targets" in `spec/proposals.md`).
+- [x] Arithmetic in targets (`Attempts(n + 1)`, `Attempts(0)`,
+      `Attempts(n * 2)`, inside a head that holds one value): in v1 (see "Computed values" in
+      `spec/spec-v1.md`).
+- [ ] Arithmetic in guards, with the same expressions (see "Arithmetic,
+      more" in `spec/proposals.md`).
+- [ ] Literal patterns in sources, guards and inputs (see "Literal
+      patterns" in `spec/proposals.md`); decide whether a literal may be
+      a variant's payload directly, as a value in a target already is.

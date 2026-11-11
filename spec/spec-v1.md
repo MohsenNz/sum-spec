@@ -275,7 +275,7 @@ The two sides of a transition are states of the same type: they're headed by the
 The two sides of a transition are read differently:
 
 - The **source** side is a precondition. A part that is left out may have any value.
-- The **target** side is the effect. A part that is left out, or written without a prime, keeps its value. A primed part, `A'`, gets a new value, set by the transition; a prime goes only on a part that keeps its place, not inside a new state. A part whose variant differs from the source's is a **new state**.
+- The **target** side is the effect. A part that is left out, or written without a prime, keeps its value. A primed part, `A'`, gets a new value, set by the transition; a prime goes only on a part that keeps its place, not inside a new state. A name or a computed value (`Attempts(n + 1)`, `Attempts(0)`) sets the part to that value. A part whose variant differs from the source's is a **new state**.
 
 A new state didn't exist before the transition, so nothing in it can keep its value: inside a new state, a part that is left out, or written without a prime, may have any value, and nothing takes a prime.
 
@@ -382,7 +382,7 @@ batteryLow :: App => Battery(BatteryCharge#c) // c <= BatteryLowThreshold -> ...
 start      :: App => GPSFix#g                 // g >= MinimumFix         -> ...
 ```
 
-- A constant is a value, not a type. It is a side of a comparison, either side, and nothing else: not a factor of a product, a payload, an input, a list element or a pattern. Write a test that needs the value as a guard (`// c == BatteryLowThreshold`).
+- A constant is a value, not a type. It is a side of a comparison, either side, or a value in a target or `__init` (see "Computed values"), and nothing else: not a type of a factor or a payload, an input, a list element, or a pattern on the source side. Write a test that needs the value as a guard (`// c == BatteryLowThreshold`).
 - A constant of a constant (`Low = BatteryLowThreshold`) is not allowed: that is a newtype of a constant, and a constant is not a type.
 
 The overlap warning reads a constant as the literal or variant it stands for: `c < Low` and `c >= 15` exclude each other when `Low` is `Percent(15)`.
@@ -532,6 +532,8 @@ startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
   startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
   ```
 
+- **On the target side**, a value may also be computed from names,
+  literals and constants: `Attempts(n + 1)`. See "Computed values".
 - Names belong to one transition. Two transitions of an event may name
   their input differently.
 
@@ -554,6 +556,49 @@ submit :: NewTodo.Typing(#t) -> NewTodo.Blank
 - It is an error on a head with several parts or no single value: a product, a variant carrying a product, a sum, a list type, an atomic or a variant without a payload.
 - A newtype of a newtype binds the next value, not the innermost: with `A = B` and `B = Int`, `A(#n)` gives `n` the type `B`. To reach the `Int`, write `A(B(#n))`.
 - `#n` is the whole argument: `Head(#n * C)` is a syntax error. Write `Head(T#n * C)`.
+
+### Computed values
+
+A target may set a value computed from the values the transition names, with `+`, `-` and `*`. A counter and its reset read in two lines:
+
+```
+__atomics { Int = __int }
+
+Attempts = Int
+
+retry   :: App => Link.Failed * Attempts(#n)
+                -> Link.Connecting * Attempts(n + 1)
+
+connect :: App => Link.Connecting
+                -> Link.Up * Attempts(0)
+```
+
+A computed value is built from:
+
+- names the transition gives (`#n` in the input or the source);
+- literals (`0`, `-1`, `1.5`, `"main"`, as in "Comparing values") and named constants (`Count(c + Step)`);
+- `+`, `-` and `*`, and parentheses. `*` binds tighter than `+` and `-`, and all three group from the left: `Attempts(n * 2 + 1)` is `(n * 2) + 1`.
+
+No division, no function calls and no operations on text. Overflow and rounding are the target's own; the spec promises nothing.
+
+**Where it goes.** A computed value is always the whole argument of the type it sets, so the reader sees which part changes. That type is a head that holds one value, the same heads as in "Bare binding":
+
+```
+Link  = Off | Connecting | Up | Failed Attempts
+Tries = Off | Counting Int
+Scores = [Int by Id]
+
+fail  :: App => Link.Connecting * Attempts(#a)
+             -> Link.Failed(Attempts(a + 1)) * Attempts(a - 1)  -- a newtype
+count :: App => Tries.Counting(#n) -> Tries.Counting(n + 1)     -- a variant carrying one type
+score Id#id :: Scores[id](#s) -> Scores[id](s * 2)              -- an element
+```
+
+- It is never a factor or a whole side by itself: `Link.Up * (a - 1)` and `-> (a + 1)` are errors. Write the type around it: `Attempts(a - 1)`.
+- It goes only on the target side and in `__init`, where a value is set. A source, an input or a guard tests a value instead: name it and compare it in a guard (`Attempts(#n) // n < 3`).
+- A plain literal or constant is a value too, in the same place: `Attempts(0)`, `Count(Start)`. A lone constant may also stand as a factor, as a name of its type does: `Link.Off * MaxTries` with `MaxTries = Attempts(5)`.
+
+**Why `*` is not ambiguous.** In the arguments of a pattern, `*` separates factors (`Item(i * State.Off)`). A head that holds one value takes no factors, so under such a head, values joined by `*` are a multiplication: `Attempts(n * 2)`. Under a product, they are factors, and a value in them (`Item(a * 2)`) is the error above. With `+` or `-`, the arguments are one computed value, whatever the head: `Attempts(n + 1 * 2)` is `n + (1 * 2)`.
 
 ## List
 
@@ -663,7 +708,7 @@ how versions are numbered.
 
 - A part that is left out may have any value.
 - Nothing in it takes a prime (`__init :: App(Mode')` is an error).
-- Nothing in it is named or uses a name (`Text#t`, `x`), and it has no element path (`Todos[id]`).
+- Nothing in it is named or uses a name (`Text#t`, `x`), and it has no element path (`Todos[id]`). It may give a value with literals and constants: `Attempts(0)`, `Count(Start + 1)` (see "Computed values").
 - `__init` isn't listed in `__events`, and no `->` follows the `::`.
 
 `__atomics` and `__events` are written before any type, transition or `__init`.
@@ -743,7 +788,8 @@ doesn't check the arguments.
 ```
 =  used for type definition
 |  sum type
-*  product type
+*  product type; or multiplication inside a head that holds one value
++  addition in a computed value; - subtraction
 .  selects a variant of a sum type
 :: starts a transition
 -> state transition

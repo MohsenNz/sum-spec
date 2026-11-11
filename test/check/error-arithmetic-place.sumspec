@@ -1,0 +1,11 @@
+-- A computed value goes only on the target side.
+__atomics { Int = __int  Meters = __float  Seconds = __float  Text = __text  Opaque }
+__events { source input guard }
+__init :: App
+App = Attempts * Link
+Attempts = Int
+Link = Off | On
+
+source :: App => Attempts(1 + 1) -> Attempts'
+input Attempts(n + 1) :: App => Link.Off -> Link.On
+guard :: App => Attempts(#n) // Attempts(n + 1) -> Attempts(n + 1)

@@ -55,7 +55,8 @@ init_state    = "__init" , "::" , pattern ;
 type_def      = UPPER , { annotation } , "=" , type_expr ;
 
 (* A named constant: a fixed value with a name, used as a side of a
-   comparison in a guard (see "Named constants" in spec-v1.md). The
+   comparison in a guard or as a value in a target (see "Named
+   constants" in spec-v1.md). The
    value is a literal of a type, or a variant of a sum:
      BatteryLowThreshold = BatteryCharge(15)
      MinimumFix          = GPSFix.Fix3D                                 *)
@@ -176,7 +177,19 @@ literal       = INTEGER | DECIMAL | STRING ;
 
 shared        = path , [ element_key ] ;
 
-arguments     = pattern , { "*" , pattern } ;
+(* The arguments of a pattern or a side. Without "+" or "-", the
+   patterns of the one arg_term are the arguments, joined by "*": the
+   factors of a product, or, under a head that holds one value, a
+   multiplication (the type checker tells them apart by the head). With
+   "+" or "-", the whole is one computed value, and every pattern in it
+   is a value: a LOWER, a literal, a lone UPPER (a constant) or a
+   parenthesized arith. See "Computed values" in spec-v1.md:
+     Item(i * State.Off)       factors
+     Attempts(n * 2)           a multiplication: Attempts holds one Int
+     Attempts(n + 1 * 2)       n + (1 * 2)                              *)
+arguments     = arg_term , { ( "+" | "-" ) , arg_term } ;
+
+arg_term      = pattern , { "*" , pattern } ;
 
 input         = type_pattern , [ NAMING ] ;
 
@@ -204,17 +217,30 @@ input         = type_pattern , [ NAMING ] ;
    ".{" after a path names some variants of the sum there, each written
    from it (see "Alternatives" in spec-v1.md):
      Flight.{Arming | Flying(FPhase.{Approaching | Holding})}          *)
-pattern       = ( type_pattern | LOWER ) , { "'" } , [ NAMING ] ;
+(* A literal or a parenthesized arith is a value, set on the target side
+   (see "Computed values" in spec-v1.md). A lone LOWER in parentheses is
+   a name, and a lone UPPER a constant or a type, as without them.
+   Inside parentheses "*" multiplies and binds tighter than "+" and "-";
+   all three group from the left:
+     Attempts(0)    Attempts((n * 2))    Count(c - (Start * 2))          *)
+pattern       = ( type_pattern | LOWER | literal | "(" , arith , ")" ) ,
+                { "'" } , [ NAMING ] ;
+
+arith         = arith_product , { ( "+" | "-" ) , arith_product } ;
+
+arith_product = arith_atom , { "*" , arith_atom } ;
+
+arith_atom    = LOWER | literal | UPPER | "(" , arith , ")" ;
 
 type_pattern  = path , "." , "{" , alternatives , "}"
               | path , [ element_key ] ,
-                [ "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ]
+                [ "(" , ( NAMING | arguments ) , ")" ]
               | "[" , type_term , [ "by" , UPPER ] , "]" ;
 
 alternatives  = alternative , "|" , alternative , { "|" , alternative } ;
 
 alternative   = path , [ "." , "{" , alternatives , "}"
-                       | "(" , ( NAMING | pattern , { "*" , pattern } ) , ")" ] ;
+                       | "(" , ( NAMING | arguments ) , ")" ] ;
 
 element_key   = "[" , LOWER , "]" ;
 
@@ -308,6 +334,13 @@ character     = ? any Unicode character ? ;
    type_def. A payload in parentheses starts with a type, never with a
    literal.
 
+   Arithmetic: after a value, "-" is an operator, so "n-1" is n, "-", 1;
+   a negative literal is read only where a value starts ("n - -1"). A "-"
+   followed by ">" is "->", never an operator. A pattern is read before
+   it is known to be a value: a "+" or "-" after an arg_term makes its
+   patterns values, and a parser reports one that isn't (a type pattern,
+   a naming or a prime).
+
    Shared path: at the start of a transition, a shared path and a
    pattern begin with the same path and element_key; a parser reads
    them and then decides by whether "/" or "=>" follows. A "/" is never
@@ -339,9 +372,10 @@ character     = ? any Unicode character ? ;
      only a __text) or its variant is one of a sum, with no payload. A
      constant shares its name space with the types: it can't have the
      name of a type, an atomic or another constant. A constant is a
-     value, not a type: it is only a side of a comparison, never a
-     factor, a payload, a pattern, an input or a list element. See
-     "Named constants" in spec-v1.md;
+     value, not a type: it is only a side of a comparison or a value
+     on the target side or in __init, never a factor, a payload, a
+     pattern, an input or a list element. See "Named constants" in
+     spec-v1.md;
    - no name is listed twice in __atomics, __events or __annotations;
    - every annotation used is listed in __annotations (a spec without
      the block uses none). Its arguments are not checked. See
@@ -402,6 +436,21 @@ character     = ? any Unicode character ? ;
      the target side, outside a new state (a variant the source doesn't
      fix, as Plan in Page -> Page.Plan(PMode')). See "Source and target"
      in spec-v1.md;
+   - values joined by "*" (names, literals, constants, parenthesized
+     ariths) under a head that holds one value (a newtype, a variant
+     carrying one type, an element that isn't a product) are a
+     multiplication, since such a head takes no factors;
+   - a computed value (an arith, a literal, or arguments with an
+     operator) is the whole argument of a head that holds one value,
+     never a factor or a whole side, and goes only on the target side
+     and in __init, never in an input, a source or a pattern in a guard.
+     Each name in it is named in the transition (__init names none), and
+     each name and constant has the type the head holds; each literal
+     fits that type as in a comparison, and an operator needs a type
+     that resolves to an __int or a __float. A lone constant on the
+     target side or in __init is a value, as the whole argument of a
+     head or, like a name, as the factor of its type. See "Computed
+     values" in spec-v1.md;
    - a list ([T], [T by K]) is only the whole body of a type definition
      (Points = [Point]); its element is a type name; it isn't a factor,
      a payload or a pattern (in an input or on a side). A list type

@@ -24,7 +24,7 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
-import SumSpec.Pretty (renderLiteral)
+import SumSpec.Pretty (renderArith, renderLiteral, renderValue)
 import SumSpec.Syntax
 import Text.Megaparsec (SourcePos (..), initialPos, mkPos, sourcePosPretty, unPos)
 
@@ -88,7 +88,7 @@ checkSpec file source spec =
     -- Every check but the spacing warning reads @Head(#n)@ as @Head(T#n)@.
     events = map (elaborateEvent env) rawEvents
     transitions = concatMap flatten events
-    inits = [(k, collapseAlts (elaborate env p)) | (k, p) <- rawInits]
+    inits = [(k, collapseAlts (elaborateValues env (elaborate env p))) | (k, p) <- rawInits]
     -- The type of every state: the head type of the initial state.
     root = case inits of
       (_, p) : _ | isKnownType env (patternKey p) -> Just (patternKey p)
@@ -219,6 +219,7 @@ checkInit file env inits = case inits of
     plain p = case bare p of
       PatternName _ -> []
       PatternElement {} -> []
+      PatternExpr e | not (null (exprNames e)) -> []
       q -> checkPattern env Map.empty (withoutValues q)
     initValues = \case
       PatternAlts {} -> [] -- expanded before this check (see 'expandAlts')
@@ -251,6 +252,13 @@ checkInit file env inits = case inits of
       PatternPath _ args -> concatMap initValues args
       PatternList _ _ -> []
       PatternBound _ -> []
+      PatternExpr e ->
+        [ errorAt n $
+            "the initial state takes no input, so there's no value named "
+              <> nameText n
+              <> " to use"
+        | n <- exprNames e
+        ]
     -- Drops what 'initValues' reports, so it isn't reported again.
     withoutValues = \case
       PatternPath names args ->
@@ -259,6 +267,7 @@ checkInit file env inits = case inits of
     keep = \case
       PatternName _ -> False
       PatternElement {} -> False
+      PatternExpr e -> null (exprNames e)
       _ -> True
 
 -- ---------- Type definitions ----------
@@ -557,6 +566,7 @@ checkEvents env spec events =
     defined = Set.fromList (map (nameText . eventName) events)
     checkInput input =
       checkPrimes Source input
+        <> misplacedExprs input
         <> [ errorAt k "an element path goes on the source or target side, not in the input"
            | k <- elementKeys input
            ]
@@ -574,6 +584,7 @@ checkTransitions env = concatMap checkTransition
     checkTransition (Flat _ input from to _ _) =
       checkPrimes Source from
         <> checkPrimes Target to
+        <> misplacedExprs from
         <> checkNamings input from to
         <> checkPattern env names from
         <> checkPattern env names to
@@ -596,8 +607,8 @@ checkSides env names from to =
         <> ") is a state of "
         <> fromKey
         <> "; both sides of a transition are states of the same type"
-  | Just fromKey <- [argKey names from]
-  , Just toKey <- [argKey names to]
+  | Just fromKey <- [argKey env names from]
+  , Just toKey <- [argKey env names to]
   , isKnownType env fromKey
   , isKnownType env toKey
   , fromKey /= toKey
@@ -625,6 +636,7 @@ warnSuffixSpaces source patterns =
       PatternList _ _ -> []
       PatternName _ -> []
       PatternBound _ -> []
+      PatternExpr _ -> []
     -- The @#@ is right before the name: no space can go between them.
     hashPos n =
       let pos = namePos n
@@ -704,6 +716,7 @@ checkNewStatePrimes from to
       PatternList _ _ -> []
       PatternName _ -> []
       PatternBound _ -> []
+      PatternExpr _ -> []
 
 -- | The variant positions a pattern writes: each variant of a dotted path,
 -- at every depth.
@@ -722,6 +735,7 @@ fixedVariants = go []
       PatternList _ _ -> Set.empty
       PatternName _ -> Set.empty
       PatternBound _ -> Set.empty
+      PatternExpr _ -> Set.empty
 
 -- | Each variant of the path @h.V1.V2@ at @at@: its position, and the path
 -- up to it as written (@h.V1@).
@@ -792,6 +806,7 @@ checkListPlaces defs inits transitions =
       PatternPrimed _ p -> patternLists p
       PatternName _ -> []
       PatternBound _ -> []
+      PatternExpr _ -> []
 
 -- | The names a transition gives, with their types: in its input and on
 -- its source side.
@@ -805,6 +820,7 @@ namings :: Pattern -> [(Name, Text)]
 namings = \case
   PatternAlts _ alts -> concatMap namings alts
   PatternNamed (PatternName _) _ -> []
+  PatternNamed (PatternExpr _) _ -> []
   -- Naming an element is an error, so it gives no type either.
   PatternNamed p@PatternElement {} _ -> namings p
   PatternNamed p n -> (n, patternKey p) : namings p
@@ -814,6 +830,7 @@ namings = \case
   PatternList _ _ -> []
   PatternName _ -> []
   PatternBound _ -> []
+  PatternExpr _ -> []
 
 -- | The keys of the element paths in a pattern (@id@ in @Todos[id]@).
 elementKeys :: Pattern -> [Name]
@@ -826,6 +843,7 @@ elementKeys = \case
   PatternList _ _ -> []
   PatternName _ -> []
   PatternBound _ -> []
+  PatternExpr _ -> []
 
 -- | The element paths in a pattern, as the list type and the key.
 elementPaths :: Pattern -> [(Text, Name)]
@@ -838,6 +856,7 @@ elementPaths = \case
   PatternList _ _ -> []
   PatternName _ -> []
   PatternBound _ -> []
+  PatternExpr _ -> []
 
 -- | Where names may be given: once each, in the input or on the source
 -- side, and only to a type pattern. On the target side a name is only
@@ -873,6 +892,7 @@ named = \case
   PatternList _ _ -> []
   PatternName _ -> []
   PatternBound _ -> []
+  PatternExpr _ -> []
 
 -- | The side of a transition a pattern is on: the source is a
 -- precondition, the target is the effect.
@@ -909,6 +929,7 @@ checkPrimes side = \case
   PatternList _ _ -> []
   PatternName _ -> []
   PatternBound _ -> []
+  PatternExpr _ -> []
 
 -- | What a position in a pattern stands for: a type or a variant, with a
 -- label for messages (@Page.Plan@) and the type expression its path and
@@ -1004,8 +1025,16 @@ elaborate env = \case
   PatternElement names key [PatternBound n] -> case elementBound env names key of
     BoundValue base -> PatternElement names key [explicit base n]
     _ -> PatternElement names key []
-  PatternPath names args -> PatternPath names (map (elaborate env) args)
-  PatternElement names key args -> PatternElement names key (map (elaborate env) args)
+  PatternPath names args
+    | BoundValue _ <- pathBound env names
+    , Just e <- multiplied args ->
+        PatternPath names [PatternExpr e]
+    | otherwise -> PatternPath names (map (elaborate env) args)
+  PatternElement names key args
+    | BoundValue _ <- elementBound env names key
+    , Just e <- multiplied args ->
+        PatternElement names key [PatternExpr e]
+    | otherwise -> PatternElement names key (map (elaborate env) args)
   PatternNamed p n -> PatternNamed (elaborate env p) n
   PatternPrimed pos p -> PatternPrimed pos (elaborate env p)
   -- A binding inside alternatives is an error ('checkAlternatives'), so
@@ -1013,6 +1042,39 @@ elaborate env = \case
   p -> p
   where
     explicit base n = PatternNamed (PatternPath (Name (namePos n) (nameText base) :| []) []) n
+    -- A head that holds one value takes no factors, so values joined by
+    -- "*" under it (@Attempts(n * 2)@) are a multiplication. The operator's
+    -- position is where its right operand starts.
+    multiplied = \case
+      first : rest@(_ : _) -> do
+        e <- value first
+        es <- traverse value rest
+        pure (foldl (\l r -> ExprBin OpMul (exprPos r) l r) e es)
+      _ -> Nothing
+    value = \case
+      PatternName n -> Just (ExprName n)
+      PatternPath (c :| []) [] -> Just (ExprConst c)
+      PatternExpr e -> Just e
+      _ -> Nothing
+
+-- | Reads a constant as an argument of a target or @__init@ as the value it
+-- names (@Attempts(MaxTries)@): the parser can't tell it from a type.
+elaborateValues :: Env -> Pattern -> Pattern
+elaborateValues env = \case
+  PatternPath names args -> PatternPath names (map (valueArg env) args)
+  PatternElement names key args -> PatternElement names key (map (valueArg env) args)
+  PatternNamed p n -> PatternNamed (elaborateValues env p) n
+  PatternPrimed pos p -> PatternPrimed pos (elaborateValues env p)
+  p -> p
+
+-- | One argument of a target, read by 'elaborateValues'.
+valueArg :: Env -> Pattern -> Pattern
+valueArg env = \case
+  PatternPath (c :| []) []
+    | Map.member (nameText c) (envConsts env)
+    , not (isKnownType env (nameText c)) ->
+        PatternExpr (ExprConst c)
+  p -> elaborateValues env p
 
 elaborateEvent :: Env -> Event -> Event
 elaborateEvent env event =
@@ -1021,12 +1083,16 @@ elaborateEvent env event =
     , eventTransitions = transition <$> eventTransitions event
     }
   where
-    transition t = t {transitionBranches = branch <$> transitionBranches t}
-    branch b =
+    transition t =
+      t {transitionBranches = branch (null (transitionShared t)) <$> transitionBranches t}
+    -- Under a shared path, each side of a branch is arguments.
+    branch whole b =
       b
         { branchFrom = elaborate env <$> branchFrom b
         , branchGuard = guard <$> branchGuard b
-        , branchTo = elaborate env <$> branchTo b
+        , branchTo =
+            (if whole then elaborateValues env else valueArg env) . elaborate env
+              <$> branchTo b
         }
     guard = \case
       GuardPattern p -> GuardPattern (elaborate env p)
@@ -1075,6 +1141,9 @@ checkPattern env names = \case
   PatternNamed inner _ -> checkPattern env names inner
   PatternName n -> [unknownName n | nameText n `Map.notMember` names]
   PatternBound _ -> []
+  -- A lone constant stands for the value of its type, as a name does.
+  PatternExpr e@(ExprConst _) -> maybe [] (\key -> checkExpr env names key e) (argKey env names (PatternExpr e))
+  PatternExpr e -> [notInHead e "a whole state"]
   PatternList term key -> checkTerm env (TermList term key)
   PatternPath (h :| path) args -> case typeNode env (nameText h) of
     Nothing -> [unknownType env h]
@@ -1246,6 +1315,10 @@ checkArgs env names node at args = case nodeBody node of
 checkFactors :: Env -> Names -> Node -> [TypeTerm] -> [Pattern] -> [CheckError]
 checkFactors env names node factors args =
   [unknownName n | (a, Nothing) <- keyed, PatternName n <- [bare a]]
+    <> [ notInHead e ("a factor of " <> nodeLabel node)
+       | (a, Nothing) <- keyed
+       , PatternExpr e <- [bare a]
+       ]
     <> [ errorAt (patternHead a) $
            if Map.member key (envConsts env)
              then constantNotType key
@@ -1269,7 +1342,7 @@ checkFactors env names node factors args =
       ]
   where
     byKey = Map.fromList [(termKey f, f) | f <- factors]
-    keyed = [(a, argKey names a) | a <- args]
+    keyed = [(a, argKey env names a) | a <- args]
     known = [(a, key) | (a, Just key) <- keyed]
 
 -- | An argument where the type @term@ is expected: a pattern headed by
@@ -1278,6 +1351,10 @@ checkArg :: Env -> Names -> TypeTerm -> Pattern -> [CheckError]
 checkArg env names term arg = case (term, arg) of
   (_, PatternPrimed _ inner) -> checkArg env names term inner
   (_, PatternNamed inner _) -> checkArg env names term inner
+  (TermName expected, PatternExpr e) -> checkExpr env names (nameText expected) e
+  (TermList _ _, PatternExpr e) ->
+    [ errorAtPos (exprPos e) ("expected " <> termKey term <> " here, not a computed value")
+    ]
   (_, PatternName n) -> case Map.lookup (nameText n) names of
     Nothing -> [unknownName n]
     Just key
@@ -1301,6 +1378,117 @@ checkArg env names term arg = case (term, arg) of
     [ errorAt (patternHead arg) $
         "expected " <> termKey term <> " here, not " <> patternKey arg
     ]
+
+-- ---------- Computed values ----------
+
+-- | A computed value goes only where a new value is set: on the target
+-- side and in @__init@. In a source, an input or a guard it is an error.
+misplacedExprs :: Pattern -> [CheckError]
+misplacedExprs p =
+  [ errorAtPos (exprPos e) $
+      "a computed value ("
+        <> renderValue e
+        <> ") goes only on the target side; "
+        <> "to test a value, name it (T#x) and compare it in a guard (// x == ...)"
+  | e <- patternExprs p
+  ]
+
+-- | Every expression in a pattern.
+patternExprs :: Pattern -> [Expr]
+patternExprs = \case
+  PatternExpr e -> [e]
+  PatternPath _ args -> concatMap patternExprs args
+  PatternElement _ _ args -> concatMap patternExprs args
+  PatternAlts _ alts -> concatMap patternExprs alts
+  PatternNamed p _ -> patternExprs p
+  PatternPrimed _ p -> patternExprs p
+  PatternList _ _ -> []
+  PatternName _ -> []
+  PatternBound _ -> []
+
+-- | An expression where a value of type @key@ is expected: every name and
+-- constant in it has that type, every literal fits it, and an operator
+-- needs a number (an @__int@ or a @__float@, or a newtype of one).
+checkExpr :: Env -> Names -> Text -> Expr -> [CheckError]
+checkExpr env names key e =
+  concatMap leaf (exprLeaves e)
+    <> [ errorAtPos pos $
+           arithWord op
+             <> " needs a number, but "
+             <> key
+             <> " is "
+             <> describeKind kind
+       | (op, pos) <- take 1 (exprOps e)
+       , kind `notElem` [KInt, KFloat]
+       ]
+  where
+    kind = kindOf env key
+    expected = ", but " <> key <> " is expected here"
+    leaf = \case
+      ExprName n -> case Map.lookup (nameText n) names of
+        Nothing -> [unknownName n]
+        Just k
+          | k == key -> []
+          | otherwise -> [errorAt n (nameText n <> " has type " <> k <> expected)]
+      ExprConst c -> case Map.lookup (nameText c) (envConsts env) of
+        Nothing
+          | isKnownType env (nameText c) ->
+              [errorAt c (nameText c <> " is a type, not a value; write a value of it")]
+          | otherwise -> [errorAt c ("unknown constant " <> nameText c)]
+        Just def
+          -- A constant that doesn't fit its own type is reported there.
+          | not (null (constValueErrors env def)) -> []
+          | nameText (constType def) == key -> []
+          | otherwise ->
+              [ errorAt c $
+                  nameText c <> " is a constant of type " <> nameText (constType def) <> expected
+              ]
+      ExprLit pos lit
+        | literalFits kind lit -> []
+        | otherwise ->
+            [ errorAtPos pos $
+                key
+                  <> " is "
+                  <> describeKind kind
+                  <> ", so "
+                  <> renderLiteral lit
+                  <> " doesn't fit it"
+            ]
+      ExprBin {} -> []
+
+-- | A computed value is the whole argument of the type it sets, so it
+-- shows which part it sets; it isn't a factor or a whole state.
+notInHead :: Expr -> Text -> CheckError
+notInHead e what =
+  errorAtPos (exprPos e) $
+    "the value "
+      <> renderValue e
+      <> " goes inside the type it sets, as its whole argument (such as T(n + 1)), "
+      <> "not as "
+      <> what
+
+-- | The names, literals and constants of an expression, left to right.
+exprLeaves :: Expr -> [Expr]
+exprLeaves = \case
+  ExprBin _ _ l r -> exprLeaves l <> exprLeaves r
+  e -> [e]
+
+-- | The operators of an expression, left to right, with their positions.
+exprOps :: Expr -> [(ArithOp, SourcePos)]
+exprOps = \case
+  ExprBin op pos l r -> exprOps l <> [(op, pos)] <> exprOps r
+  _ -> []
+
+exprNames :: Expr -> [Name]
+exprNames e = [n | ExprName n <- exprLeaves e]
+
+-- | Where an expression starts.
+exprPos :: Expr -> SourcePos
+exprPos = \case
+  ExprName n -> namePos n
+  ExprLit pos _ -> pos
+  ExprConst c -> namePos c
+  ExprBin _ _ l _ -> exprPos l
 
 -- ---------- Warnings ----------
 
@@ -1427,6 +1615,7 @@ nameUses = \case
   PatternPrimed _ p -> nameUses p
   PatternList _ _ -> []
   PatternBound _ -> []
+  PatternExpr e -> exprNames e
 
 -- | A variant, named by the type it belongs to and the path to it
 -- (@PMode.ShowMission.List@). Variants are named by type, not by where
@@ -1489,6 +1678,8 @@ reach env names fixed = goPattern []
       PatternName n -> maybe mempty anyOf (Map.lookup (nameText n) names)
       PatternBound _ -> mempty
       PatternList _ _ -> mempty
+      -- A computed value is any value of its type, like a name's.
+      PatternExpr e -> maybe mempty anyOf (argKey env names (PatternExpr e))
       PatternPath (h :| path) args ->
         typeOnly (nameText h)
           <> walkVariants
@@ -1536,7 +1727,7 @@ reach env names fixed = goPattern []
         | null args, fill == AnyValue -> anyExpr label expr
         | otherwise -> mempty
       Just (TypeProduct (map factorTerm -> factors)) ->
-        let given = Map.fromList [(k, a) | a <- args, Just k <- [argKey names a]]
+        let given = Map.fromList [(k, a) | a <- args, Just k <- [argKey env names a]]
         in  mconcat
               [ case Map.lookup (termKey factor) given of
                   Just a -> goPattern at fill a
@@ -1546,6 +1737,8 @@ reach env names fixed = goPattern []
               | factor <- factors
               ]
       Just (TypeTerm term) -> case args of
+        -- A computed value is any value of the type it sets.
+        [a] | PatternExpr _ <- bare a -> foldMap anyOf (termRefs term)
         [a] -> goPattern at fill a
         []
           | fill == AnyValue -> foldMap anyOf (termRefs term)
@@ -1948,6 +2141,7 @@ checkGuards env transitions =
   concat
     [ concatMap (atom names from) (guardPatterns g)
         <> concatMap (checkPrimes Source) (guardPatterns g)
+        <> concatMap misplacedExprs (guardPatterns g)
         <> [ errorAt n $
                "a guard binds no value, so #"
                  <> nameText n
@@ -2237,7 +2431,9 @@ unknownType env n
 
 constantNotType :: Text -> Text
 constantNotType name =
-  name <> " is a constant, not a type; it can only be compared in a guard"
+  name
+    <> " is a constant, not a type; it can only be compared in a guard, "
+    <> "or be a value in a target"
 
 unknownName :: Name -> CheckError
 unknownName n =
@@ -2280,6 +2476,7 @@ patternHead = \case
   PatternNamed p _ -> patternHead p
   PatternName n -> n
   PatternBound n -> n
+  PatternExpr e -> Name (exprPos e) (renderArith e)
 
 -- | The type a pattern is headed by: its first name, or its list type.
 -- A prime or a naming doesn't change it: @A'@ and @A#x@ are headed by
@@ -2294,12 +2491,16 @@ patternKey = \case
   PatternNamed p _ -> patternKey p
   PatternName n -> nameText n
   PatternBound n -> nameText n
+  PatternExpr e -> renderArith e
 
--- | The factor an argument stands for: 'patternKey', or for a name the
--- type of the value it names ('Nothing' for an unknown name).
-argKey :: Names -> Pattern -> Maybe Text
-argKey names arg = case bare arg of
+-- | The factor an argument stands for: 'patternKey', for a name the type
+-- of the value it names, and for a lone constant its type ('Nothing' for
+-- an unknown name, and for a computed value, which is never a factor).
+argKey :: Env -> Names -> Pattern -> Maybe Text
+argKey env names arg = case bare arg of
   PatternName n -> Map.lookup (nameText n) names
+  PatternExpr (ExprConst c) -> nameText . constType <$> Map.lookup (nameText c) (envConsts env)
+  PatternExpr _ -> Nothing
   _ -> Just (patternKey arg)
 
 -- | A pattern without its primes and naming.
@@ -2313,6 +2514,7 @@ bare = \case
 describeArg :: Pattern -> Text -> Text
 describeArg arg key = case bare arg of
   PatternName n -> nameText n <> " (of type " <> key <> ")"
+  PatternExpr e -> renderArith e <> " (of type " <> key <> ")"
   _ -> key
 
 -- | Every element whose key was already seen, paired with the first

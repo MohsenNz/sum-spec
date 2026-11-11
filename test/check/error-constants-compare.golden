@@ -50,7 +50,7 @@ test/check/error-constants-compare.sumspec:24:25:
    |
 24 | lone :: App => Gps#g // Fix -> Gps'
    |                         ^
-Fix is a constant, not a type; it can only be compared in a guard
+Fix is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants-compare.sumspec:25:51:
    |

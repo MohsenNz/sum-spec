@@ -1,0 +1,66 @@
+test/check/error-arithmetic-names.sumspec:5:24:
+  |
+5 | __init :: App(Attempts(k + 1) * Link.Off)
+  |                        ^
+the initial state takes no input, so there's no value named k to use
+
+test/check/error-arithmetic-names.sumspec:11:40:
+   |
+11 | unknown :: App => Attempts -> Attempts(x + 1)
+   |                                        ^
+unknown name x; name a value with #x in the input or on the source side
+
+test/check/error-arithmetic-names.sumspec:12:45:
+   |
+12 | unknownconst :: App => Attempts -> Attempts(Nope + 1)
+   |                                             ^
+unknown constant Nope
+
+test/check/error-arithmetic-names.sumspec:13:42:
+   |
+13 | typeconst :: App => Attempts -> Attempts(Link + 1)
+   |                                          ^
+Link is a type, not a value; write a value of it
+
+test/check/error-arithmetic-names.sumspec:15:43:
+   |
+15 | literals :: App => Link.Off -> Link.On * (1 + 1)
+   |                                           ^
+the value 1 + 1 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of App
+
+test/check/error-arithmetic-names.sumspec:16:44:
+   |
+16 | product :: App(Link.Off) -> App(Link.On * (2 * 3))
+   |                                            ^
+the value 2 * 3 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of App
+
+test/check/error-arithmetic-names.sumspec:17:42:
+   |
+17 | bare :: App => Attempts#a * Link.Off -> (a - 1) * Link.On
+   |                                          ^
+the value a - 1 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of App
+
+test/check/error-arithmetic-names.sumspec:18:25:
+   |
+18 | whole :: Attempts#a -> (a + 1)
+   |                         ^
+the value a + 1 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a whole state
+
+test/check/error-arithmetic-names.sumspec:19:38:
+   |
+19 | zero :: App => Link.Off -> Link.On * 0
+   |                                      ^
+the value 0 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of App
+
+test/check/error-arithmetic-names.sumspec:21:9:
+   |
+21 | item :: Item(Attempts#a) -> Item(a * 2)
+   |         ^
+warning: item: this transition can never happen: no state holds a value of type Item
+
+test/check/error-arithmetic-names.sumspec:21:38:
+   |
+21 | item :: Item(Attempts#a) -> Item(a * 2)
+   |                                      ^
+the value 2 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of Item
+

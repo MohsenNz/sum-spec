@@ -1,0 +1,5 @@
+test/parse/error-arithmetic-pattern.sumspec:3:37:
+  |
+3 | inc :: Attempts(#n) -> Attempts(n + State.Off)
+  |                                     ^
+only a name, a literal, a constant or a value in parentheses goes in a computed value, not a type pattern, a naming or a prime

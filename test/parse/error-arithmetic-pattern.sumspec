@@ -1,0 +1,3 @@
+__atomics { Int = __int }
+__events { inc }
+inc :: Attempts(#n) -> Attempts(n + State.Off)

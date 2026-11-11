@@ -1,0 +1,6 @@
+test/parse/error-arithmetic-empty-parens.sumspec:3:34:
+  |
+3 | inc :: Attempts(#n) -> Attempts(())
+  |                                  ^
+unexpected ')'
+expecting a value, a literal, a constant or "("

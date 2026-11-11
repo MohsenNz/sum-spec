@@ -1,0 +1,21 @@
+-- Names in a computed value are bound by the transition; __init binds none.
+-- A computed value is the whole argument of the type it sets.
+__atomics { Int = __int  Meters = __float  Seconds = __float  Text = __text  Opaque }
+__events { unknown literals product unknownconst typeconst bare whole zero item }
+__init :: App(Attempts(k + 1) * Link.Off)
+App = Attempts * Link
+Attempts = Int
+Item = Attempts * Link
+Link = Off | On
+
+unknown :: App => Attempts -> Attempts(x + 1)
+unknownconst :: App => Attempts -> Attempts(Nope + 1)
+typeconst :: App => Attempts -> Attempts(Link + 1)
+-- Not inside the type it sets: a factor, or a whole state.
+literals :: App => Link.Off -> Link.On * (1 + 1)
+product :: App(Link.Off) -> App(Link.On * (2 * 3))
+bare :: App => Attempts#a * Link.Off -> (a - 1) * Link.On
+whole :: Attempts#a -> (a + 1)
+zero :: App => Link.Off -> Link.On * 0
+-- A product takes factors: "*" between values is not a multiplication.
+item :: Item(Attempts#a) -> Item(a * 2)

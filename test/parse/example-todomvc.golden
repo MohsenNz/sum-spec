@@ -38,8 +38,8 @@ ClearCompleted = Hidden | Shown
 Filter = All | Active | Completed
 startTyping Text#t :: NewTodo.Blank -> NewTodo.Typing(t)
 addTodo :: App
-        => Screen.NoTodos * NewTodo.Typing(#text) // text != "" -> Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank
-        => Screen.WithTodos * NewTodo.Typing(#text) // text != "" -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank
+        => Screen.NoTodos * NewTodo.Typing(#text) // text != "" -> Screen.WithTodos(ToggleAll.NotAllDone * Footer(ItemsLeft(1))) * NewTodo.Blank
+        => Screen.WithTodos(Footer(ItemsLeft(#n))) * NewTodo.Typing(#text) // text != "" -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft(n + 1))) * NewTodo.Blank
 toggleTodo TodoId#id :: Todos[id]
                      => Completion.Active -> Completion.Completed
                      => Completion.Completed -> Completion.Active

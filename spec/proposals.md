@@ -179,9 +179,14 @@ Syntax:
   (`"abc"`), as in "Comparing values" in `spec-v1.md`.
 - A payload pattern starts with an uppercase type name, and a literal
   with a digit, `-` or `"`, so the first token after `(` tells them apart.
-  `A(1)` is a syntax error today, so no spec changes meaning.
+  `A(1)` already parses (a value in a target, see "Computed values" in
+  `spec-v1.md`), and the checker rejects it in a source today, so no
+  spec changes meaning.
 - A literal is not the payload of a variant directly: write
-  `NewTodo.Typing(Text("hi"))`, not `NewTodo.Typing("hi")`.
+  `NewTodo.Typing(Text("hi"))`, not `NewTodo.Typing("hi")`. (Open: a
+  value in a target already takes the second form, since a variant
+  carrying one type is a head that holds one value; see "Computed
+  values" in `spec-v1.md`.)
 - No alternation (`Count(0 | 1)`), no range (`Count(0..9)`), and no
   binding (`Count(0)#c`): the value is known. Use two transitions or a
   guard, or write the literal where the value is needed.
@@ -204,15 +209,13 @@ the same.
 
 Where it may appear:
 
-- a source, a pattern in a guard, and an `__init` (`Count(0)`);
+- a source and a pattern in a guard (`Count(0)`);
 - an input head: `setSpeed Speed(0) :: Moving -> Stopped` applies only
   for that input;
 - an element key: `Slots[Slot(0)]` is the element with that key (only a
   key type with a base takes a literal);
-- a target, as a constant. It sets the value (`Footer(ItemsLeft(1))`)
-  and must fit the type. It only narrows "any value" to one value, as a
-  variant in a target does. A part left out of a new state stays
-  unspecified (see gap 7 in `efsm-gaps.md`).
+- a target and an `__init`, as a value: in v1 (see "Computed values" in
+  `spec-v1.md`).
 
 The checker orders patterns as it does variants. A literal behaves like
 a variant of an unbounded sum of its type:
@@ -228,7 +231,7 @@ A literal pattern and a guard `c == 0` say the same; both stay, with no
 lint. Reachability treats a literal as its bare type. Tracking values
 (per type, a finite set of literals or "any"; a warning only when a
 source literal is never given to the type) is a later step that needs
-the literals in targets and arithmetic in targets.
+the literals and arithmetic in targets (both in v1).
 
 The printer keeps the literal's spelling. A code generator tests exact
 equality for every type: integers, strings character by character with
@@ -241,97 +244,17 @@ takes no arguments, and it may appear where the literal pattern may. Today
 the checker rejects a constant in a pattern. This comes after literal
 patterns exist.
 
-Open:
-
-- Arithmetic in targets, `Count(c + 1)`: see "Arithmetic in targets".
-
-## Arithmetic in targets
+## Arithmetic, more
 
 Version impact: additive.
 
-A target may compute a value from the values the transition binds:
-`Attempts(n + 1)`. It replaces derived values (Part B in `efsm-gaps.md`,
-gap 3): the change is written in the transition where it happens, not
-in the type definition. Builds on named values (see "Named values" in
-`spec-v1.md`) and on "Literal patterns", whose literal in a target is
-the simplest case.
+Arithmetic in targets is in v1 (see "Computed values" in `spec-v1.md`).
+What is left:
 
-    __atomics { Int = __int }
-
-    Attempts = Int
-
-    retry   :: App => Link.Failed * Attempts(Int#n)
-                    -> Link.Connecting * Attempts(n + 1)
-
-    connect :: App => Link.Connecting
-                    -> Link.Up * Attempts(0)
-
-An expression is built from:
-
-- names the transition binds (`#n` in the input or the source);
-- literals, and named constants (`Count(c + Step)`);
-- `+`, `-`, `*`, and parentheses.
-
-No division (zero, integer or float?), no function calls, no text
-operations.
-
-Types:
-
-- Operands have the same type. A literal fits as in "Comparing values",
-  so `n + 1` is an `Int`, and `Meters + Seconds` is an error even though
-  both are `__float`. The result has the operands' type.
-- It applies to `__int` and `__float`, and to newtypes of them. Not to
-  text, to an enumeration, or to an atomic with no base.
-- Overflow and rounding are the target's own; the spec promises nothing.
-
-Where an expression goes. Two forms, because a name can be bound to the
-inner value or to the whole type:
-
-| Source | Type of the name | Target that uses it |
-|---|---|---|
-| `Attempts(Int#n)`, or `Attempts(#n)` | `Int`, the wrapped type | `Attempts(n + 1)` |
-| `Attempts#attm` | `Attempts`, the whole type | `(attm + 1)` |
-
-- `Head(expr)`: `expr` has the type `Head` wraps, the same rule as
-  `Title(e)` with `e : Text`. A name bound to the whole type does not fit
-  here (`Attempts(attm + 1)` is an error).
-- A parenthesized expression stands where its type is expected, as a
-  payload (`Link.Failed(attm + 1)`) or as a factor of a product
-  (`Link.Connecting * (attm + 1)`). The checker finds the place by the
-  type, and rejects it if two places in the state could take it.
-- An expression made only of literals has no type to find, so it needs a
-  head: `Attempts(1 + 1)`. A plain literal is a literal pattern
-  (`Attempts(0)`).
-
-Parsing:
-
-- After `(`, an uppercase name starts a pattern; a lowercase name, a
-  literal, `-` or `(` starts an expression.
-- `*` is a product in types and multiplication in expressions. A factor
-  that is an expression is parenthesized, and `*` means multiplication
-  only inside the parentheses: `Link.Up * (a * 2)` is a product of two
-  factors, the second `a * 2`. `Link.Up * a * 2` is an error.
-- A bare name as a whole payload (`Typing(t)`) is already a value.
-
-One expression language for targets and guards. Guards compare names
-today (`c <= 15`); with it a side may be an expression
-(`c + 1 <= max`). That is "Arithmetic in guards" in `TODO.md`.
-
-Gains: no derived-value syntax in type definitions; a counter and its
-reset read in two lines (`retry` and `connect` above); the transition
-says what changes.
-
-Cost: the checker cannot verify an invariant such as "ItemsLeft is the
-number of active todos"; it lives in the transitions, one delta in each.
-For reachability, an arithmetic expression makes the type's value "any"
-(see "Literal patterns").
-
-Open:
-
-- Division, and `min`/`max`, if a spec needs them.
-- Whether an expression is allowed in an `__init` (no names are bound
-  there, so only literals and constants, which "Literal patterns" already
-  covers).
+- Division, and `min`/`max`, if a spec needs them (zero, integer or
+  float division?).
+- Arithmetic in guards, with the same expressions: a side of a
+  comparison may be one (`c + 1 <= max`). See "Guard on data".
 
 ## Prelude
 
@@ -371,8 +294,9 @@ Guards on patterns and comparisons of values are in v1 (see "Guards" and
   key of a list given as an input (an element path reads the list in the state).
 - **Named constants**, such as `BatteryLowThreshold`: done, see "Named
   constants" in `spec-v1.md`.
-- **Arithmetic and calls**, such as `a + 1` (see "Arithmetic in
-  targets", which defines the expression language) or `further(p, b)`, and
+- **Arithmetic and calls**, such as `a + 1` (see "Computed values" in
+  `spec-v1.md`, which defines the expressions, and "Arithmetic, more")
+  or `further(p, b)`, and
   whether guards share the predicate language of the dependent type
   above.
 - Whether a failed guard also shows the control disabled. `@unless` stays

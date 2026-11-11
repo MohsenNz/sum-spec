@@ -86,67 +86,67 @@ test/check/error-constants.sumspec:34:9:
    |
 34 | Alias = Cycle
    |         ^
-Cycle is a constant, not a type; it can only be compared in a guard
+Cycle is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:37:11:
    |
 37 | Wrapped = Fine
    |           ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:38:20:
    |
 38 | Factor = Percent * Fine
    |                    ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:39:16:
    |
 39 | Payload = Wrap Fine | Other
    |                ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:40:19:
    |
 40 | Boxed = Percent * Cycle
    |                   ^
-Cycle is a constant, not a type; it can only be compared in a guard
+Cycle is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:42:7:
    |
 42 | go :: Fine -> Fine
    |       ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:42:15:
    |
 42 | go :: Fine -> Fine
    |               ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:45:11:
    |
 45 | Listed = [Fine]
    |           ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:46:19:
    |
 46 | Keyed = [Count by Fine]
    |                   ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:48:7:
    |
 48 | input Fine :: Count -> Count'
    |       ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:49:12:
    |
 49 | arg :: App(Fine) -> App(Count')
    |            ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 
 test/check/error-constants.sumspec:50:34:
    |

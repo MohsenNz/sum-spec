@@ -3,4 +3,4 @@ test/parse/error-empty-arguments.sumspec:3:8:
 3 | t :: Z() -> Z
   |        ^
 unexpected ')'
-expecting '#', '[', type or variant name, or value name
+expecting '#', '(', '[', literal, type or variant name, or value name

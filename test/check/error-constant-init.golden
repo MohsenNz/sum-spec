@@ -2,5 +2,5 @@ test/check/error-constant-init.sumspec:5:11:
   |
 5 | __init :: Fine
   |           ^
-Fine is a constant, not a type; it can only be compared in a guard
+Fine is a constant, not a type; it can only be compared in a guard, or be a value in a target
 

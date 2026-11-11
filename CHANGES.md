@@ -10,6 +10,21 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- Computed values in targets: a target may set a value computed from the
+  names the transition gives, literals and named constants, with `+`,
+  `-`, `*` and parentheses (`Attempts(n * 2 + 1)`). A computed value is
+  always the whole argument of a head that holds one value: a newtype
+  (`Attempts(n + 1)`), a variant carrying one type
+  (`Link.Failed(n + 1)`) or an element (`Scores[id](s * 2)`), never a
+  factor or a whole side. Such a head takes no factors, so `*` between
+  values under it is a multiplication. A plain literal or constant is a
+  value too (`Attempts(0)`, `Count(Start)`), also in `__init`, which
+  names no value; a lone constant may stand as a factor, as a name does.
+  Every name and constant has the type the head holds, every literal
+  fits it, and an operator needs an `__int` or a `__float` (or a newtype
+  of one). A computed value is an error in a source, an input or a
+  guard.
+  `example/todomvc.sumspec` counts the items left when a todo is added.
 - Guards: `// condition` after a transition's source and before `->`.
   The condition is built from patterns with `not`, `and`, `or` and
   parentheses (`not` binds tightest). A guard is read where the source
@@ -142,6 +157,9 @@ release" in `VERSIONING.md`).
 
 ### Tool
 
+- The parser, printer and checker read computed values in targets. The
+  canonical form writes only the parentheses the structure needs
+  (`Attempts(n * 2 + 1)`, `Attempts(a - (b + 1))`).
 - The example specs have the `.sumspec` extension
   (`example/drone.sumspec`, `example/todomvc.sumspec`,
   `example/git.sumspec`), like the test corpora, so editors can detect

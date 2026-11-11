@@ -85,8 +85,8 @@ To decide:
 ## 3. Updates say what changes, not how
 
 Status: Part A (named values) decided (see "Named values" in
-`spec-v1.md`); Part B replaced by arithmetic in targets (see gap 7);
-Part C open.
+`spec-v1.md`); Part B replaced by arithmetic in targets, now in v1 (see
+"Computed values" in `spec-v1.md`); Part C open.
 
 `Todos'` says the todos get a new value. It doesn't say a todo was added,
 removed or edited, or how `ItemsLeft'` relates to `Todos'`. An EFSM's
@@ -247,8 +247,9 @@ Still open:
 
 ## 7. Values inside a new state
 
-Status: decided in part (see `literal-patterns.md`, questions 5 and 13);
-not in v1 yet.
+Status: decided in part. Literals, constants and arithmetic in targets
+and `__init` are in v1 (see "Computed values" in `spec-v1.md`); the
+warning below is still open.
 
 Inside a new state, a part that's left out may have any value:
 

@@ -97,11 +97,13 @@ addTodo
   :: App
   => Screen.NoTodos * NewTodo.Typing(#text)
   // text != ""
-  -> Screen.WithTodos(ToggleAll.NotAllDone) * NewTodo.Blank
+  -> Screen.WithTodos(ToggleAll.NotAllDone * Footer(ItemsLeft(1))) * NewTodo.Blank
 
-  => Screen.WithTodos * NewTodo.Typing(#text)
+  -- One more active todo: the count of items left goes up by one.
+  => Screen.WithTodos(Footer(ItemsLeft(#n))) * NewTodo.Typing(#text)
   // text != ""
-  -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft')) * NewTodo.Blank
+  -> Screen.WithTodos(Todos' * ToggleAll.NotAllDone * Footer(ItemsLeft(n + 1)))
+   * NewTodo.Blank
 
 toggleTodo TodoId#id
   :: Todos[id]

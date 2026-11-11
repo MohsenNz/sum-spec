@@ -1,0 +1,27 @@
+-- Computed values: the whole argument of a head that holds one value.
+-- "*" binds tighter than "+" and "-"; without them, "*" joins arguments.
+__atomics { Int = __int  Meters = __float }
+__events { inc dec reset group mult grow prec kept neg variant factor init }
+
+__init :: App(Attempts(0) * Height(1.5) * Count(Step + 1))
+
+App = Attempts * Height * Count * Link
+Attempts = Int
+Height = Meters
+Count = Int
+Link = Off | Failed Int
+Item = Attempts * Count
+Step = Int(2)
+
+inc :: App => Attempts(#n) -> Attempts(n + 1)
+dec :: App => Attempts(#n) -> Attempts(n-1)
+reset :: App => Attempts -> Attempts(0)
+group :: App => Attempts(#a) * Count(#b) -> Attempts(a - (b + 1) - 2)
+mult :: App => Attempts(#n) -> Attempts(n * 2)
+grow :: App => Attempts(#n) -> Attempts(n * 2 + 1)
+prec :: App => Attempts(#n) -> Attempts(n + 1 * 2 - (2 * n - 1) * (n + 1))
+kept :: App => Attempts(#n) -> Attempts((n * 2))
+neg :: App => Attempts(#n) -> Attempts(n - -1)
+variant :: App => Link.Failed(#n) -> Link.Failed(n + Step)
+factor :: Item(Attempts#a * Count(#n)) -> Item(a * (n + 1))
+init :: App => Link.Off -> Link.Failed(1)

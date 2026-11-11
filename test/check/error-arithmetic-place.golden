@@ -1,0 +1,24 @@
+test/check/error-arithmetic-place.sumspec:9:27:
+  |
+9 | source :: App => Attempts(1 + 1) -> Attempts'
+  |                           ^
+a computed value (1 + 1) goes only on the target side; to test a value, name it (T#x) and compare it in a guard (// x == ...)
+
+test/check/error-arithmetic-place.sumspec:10:16:
+   |
+10 | input Attempts(n + 1) :: App => Link.Off -> Link.On
+   |                ^
+a computed value (n + 1) goes only on the target side; to test a value, name it (T#x) and compare it in a guard (// x == ...)
+
+test/check/error-arithmetic-place.sumspec:10:16:
+   |
+10 | input Attempts(n + 1) :: App => Link.Off -> Link.On
+   |                ^
+unknown name n; name a value with #n in the input or on the source side
+
+test/check/error-arithmetic-place.sumspec:11:42:
+   |
+11 | guard :: App => Attempts(#n) // Attempts(n + 1) -> Attempts(n + 1)
+   |                                          ^
+a computed value (n + 1) goes only on the target side; to test a value, name it (T#x) and compare it in a guard (// x == ...)
+

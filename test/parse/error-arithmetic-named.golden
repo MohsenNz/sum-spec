@@ -1,0 +1,5 @@
+test/parse/error-arithmetic-named.sumspec:3:33:
+  |
+3 | inc :: Attempts(#n) -> Attempts(n#m + 1)
+  |                                 ^
+only a name, a literal, a constant or a value in parentheses goes in a computed value, not a type pattern, a naming or a prime

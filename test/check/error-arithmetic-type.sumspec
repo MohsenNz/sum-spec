@@ -1,0 +1,27 @@
+-- Operands have the type that is expected where the value goes.
+__atomics { Int = __int  Meters = __float  Seconds = __float  Text = __text  Opaque }
+__events { whole mix wrongconst textual literal opaque list sum named textmul }
+__init :: App
+App = Attempts * Height * Delay * Name * Thing * Ids * Mode
+Attempts = Int
+Height = Meters
+Delay = Seconds
+Name = Text
+Thing = Opaque
+Ids = [Attempts]
+Mode = Slow | Fast
+Wait = Delay(2)
+
+-- Attempts holds an Int, but a is a whole Attempts.
+whole :: App => Attempts#a -> Attempts(a + 1)
+-- Meters and Seconds are both __float, but different types.
+mix :: App => Height(#h) * Delay(#d) -> Height(h + d)
+wrongconst :: App => Height(#h) -> Height(h + Wait)
+-- + needs a number.
+textual :: App => Name(#t) -> Name(t + "x")
+literal :: App => Attempts -> Attempts(1.5) * Name(3)
+opaque :: App => Thing(#o) -> Thing(o + o)
+list :: App => Ids#i -> Ids(1)
+sum :: App => Mode -> Mode(1)
+named :: App => Attempts(#n) -> Attempts(n + 1)#m
+textmul :: App => Name(#a) -> Name(a * a)

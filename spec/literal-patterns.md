@@ -6,8 +6,8 @@ constant is a name for one (see "Named constants" in `spec-v1.md`).
 
 Answer each question under its **Answer:** line. The result is written
 into `proposals.md` as "Literal patterns" (question
-13, arithmetic in targets, is the separate proposal "Arithmetic in
-targets"). This file is the record of the decisions. `Leaning` is only a
+13, arithmetic in targets, is in v1 as "Computed values" in
+`spec-v1.md`). This file is the record of the decisions. `Leaning` is only a
 starting point.
 
 ## 1. Syntax
@@ -219,8 +219,13 @@ change where it happens.
 
 Leaning: yes, kept small.
 
-**Answer:** Yes, small. The full proposal is "Arithmetic in targets" in
-`proposals.md`. In short:
+**Answer:** Yes, small. It is in v1 now, together with literals and
+constants as values in a target and `__init` (see "Computed values" in
+`spec-v1.md`). Unlike the first proposal below, a computed value is
+always the whole argument of a head that holds one value
+(`Attempts(n + 1)`, `Link.Failed(n + 1)`), never a bare factor such as
+`(attm + 1)`; under such a head `*` multiplies, since it takes no
+factors. As first proposed:
 - `Head(expr)` in a target, where `expr` has the type `Head` wraps
   (`Attempts(n + 1)` with `Attempts(Int#n)` in the source), or a
   parenthesized expression where its type is expected

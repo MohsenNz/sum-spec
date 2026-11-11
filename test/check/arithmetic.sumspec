@@ -1,0 +1,45 @@
+-- Computed values: the whole argument of a head that holds one value, a
+-- newtype, a variant carrying one type, or an element. Literals,
+-- constants and __init too.
+__atomics { Int = __int  Meters = __float  Text = __text  Id }
+__events { dial retry fail connect lift halve bump title reset score retries }
+
+__init :: App(Link.Off * Attempts(0) * Height(1.5) * Count(Start + 1) * Name("x"))
+
+App = Link * Attempts * Height * Count * Name * Scores * Tries
+Link = Off | Connecting | Up | Failed Attempts
+Attempts = Int
+Height = Meters
+Count = Int
+Name = Text
+Scores = [Int by Id]
+Tries = Off | Counting Int
+Start = Int(1)
+MaxTries = Attempts(5)
+
+dial :: App => Link.Off -> Link.Connecting
+
+-- A newtype.
+retry :: App => Link.Failed * Attempts(#n) -> Link.Connecting * Attempts(n + 1)
+
+-- A variant carrying a newtype: Failed(Attempts(...)) or Failed(a ...).
+fail :: App => Link.Connecting * Attempts(#a)
+             -> Link.Failed(Attempts(a + 1)) * Attempts(a - 1)
+retries :: App => Link.Failed(#a) -> Link.Failed(a * 2)
+
+-- A variant carrying a number directly.
+bump :: App => Tries.Counting(#n) * Count(#c) -> Tries.Counting(n + 1) * Count(c * c - Start)
+
+-- An element of a list of numbers.
+score Id#id :: Scores[id](#s) -> Scores[id](s * 2)
+
+-- A literal and a constant as the value, and a lone constant as a factor.
+connect :: App => Link.Connecting -> Link.Up * Attempts(0) * Count(Start)
+reset :: App => Link.Up -> Link.Off * MaxTries
+
+-- A decimal on a __float, and multiplication without parentheses.
+lift :: App => Height(#h) -> Height(h + 0.5)
+halve :: App => Height(#h) -> Height(h * 0.5)
+
+-- A string as the value of a __text.
+title :: App => Name -> Name("main")
