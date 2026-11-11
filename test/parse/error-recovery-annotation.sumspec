@@ -1,0 +1,10 @@
+-- Recovery after a broken annotation. The open bracket is reported where
+-- it is, the next definition parses, and the error after it is at its own
+-- line and column: the parser's position stays in step with the input.
+__atomics { }
+__events { }
+__annotations { @control }
+
+T = A | B @control (oops
+U = C | D
+V = | X

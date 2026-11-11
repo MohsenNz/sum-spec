@@ -113,7 +113,8 @@ fourmolu -i src app lsp test
   parser per rule in `spec/grammar.ebnf`.
 - `src/SumSpec/Pretty.hs`: prints an AST back as canonical source.
 - `src/SumSpec/Check.hs`: the type checker.
-- `lsp/SumSpec/Lsp.hs`: the language server, an internal library.
+- `lsp/SumSpec/Lsp.hs`: the language server, an internal library, with
+  `lsp/SumSpec/Lsp/` (positions, the index of names, semantic tokens).
 - `app/Main.hs`: the `sumspec` command-line tool.
 - `test/Main.hs`: the golden test runner.
 - `test/lsp/Main.hs`: the language server tests.

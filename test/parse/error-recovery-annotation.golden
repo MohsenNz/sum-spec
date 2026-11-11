@@ -1,0 +1,12 @@
+test/parse/error-recovery-annotation.sumspec:8:20:
+  |
+8 | T = A | B @control (oops
+  |                    ^
+unclosed ( in the arguments of @control
+
+test/parse/error-recovery-annotation.sumspec:10:5:
+   |
+10 | V = | X
+   |     ^
+unexpected '|'
+expecting '[' or type or variant name

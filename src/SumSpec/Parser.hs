@@ -124,9 +124,8 @@ versionHeader = do
   _ <- symbol "__version"
   offset <- getOffset
   version <- versionNumber
-  unless (isSupported version) $ do
-    setOffset offset
-    fail $
+  unless (isSupported version) $
+    failAt offset $
       "this spec is for SumSpec "
         <> renderVersion version
         <> ", but this sumspec supports "
@@ -161,13 +160,12 @@ headers = go Nothing Nothing Nothing
           (Just a, Just e) -> pure (a, e, annotations)
           _ -> do
             let missing = [b | (b, False) <- [("__atomics", isJust atomics), ("__events", isJust events)]]
-            setOffset offset
-            fail ("missing " <> intercalate " and " missing <> ": the header blocks come first")
+            failAt
+              offset
+              ("missing " <> intercalate " and " missing <> ": the header blocks come first")
     once offset block seen = case seen of
       Nothing -> pure ()
-      Just _ -> do
-        setOffset offset
-        fail (block <> " is written twice")
+      Just _ -> failAt offset (block <> " is written twice")
 
 -- atomics_block = "__atomics" , "{" , { atomic } , "}" ;
 atomicsBlock :: Parser [Atomic]
@@ -457,9 +455,8 @@ arguments = do
       PatternName n -> pure (ExprName n)
       PatternPath (c :| []) [] -> pure (ExprConst c)
       PatternExpr e -> pure e
-      _ -> do
-        setOffset o
-        fail $
+      _ ->
+        failAt o $
           "only a name, a literal, a constant or a value in parentheses goes in a "
             <> "computed value, not a type pattern, a naming or a prime"
 

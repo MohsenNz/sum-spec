@@ -57,13 +57,21 @@ examples, the golden tests and `CHANGES.md` together.
 The plan is in `docs/lsp.md`. In order:
 - [x] `sumspec lsp` with diagnostics (the `lsp` package). A range is the
       token at the error's position for now.
-- [ ] Ranges on errors and tokens (start and end).
+- [ ] Ranges on errors (start and end). Names have them in the
+      language server (a name's end follows from its text), which
+      covers navigation and semantic tokens; errors still use the token
+      at their position.
 - [x] Parse recovery per definition: every parse error
       (`parseSpecPartial` also gives the partial AST).
 - [ ] Check a partial AST in the language server, without spurious
       errors about names whose definitions didn't parse.
-- [ ] Document symbols, go-to-definition, references.
-- [ ] Semantic tokens; fallback grammars for Neovim and VS Code.
+- [x] Document symbols, go-to-definition, references.
+- [x] Semantic tokens.
+- [x] Neovim: the plugin `sumspec.nvim` (a repository of its own), with
+      the filetype, the server's configuration and a fallback syntax
+      file.
+- [ ] VS Code: an extension with a TextMate grammar (also for Shiki,
+      Sublime and GitHub) and `vscode-languageclient`.
 - [ ] A resolved model (`SumSpec.Model`), then hover and completion.
 - [ ] Formatting, once the AST keeps comments.
 - [ ] {Optional, later} A tree-sitter grammar.

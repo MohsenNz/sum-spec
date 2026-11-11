@@ -88,8 +88,13 @@ the executable (`app/`) and two test suites:
   prints nothing for a valid spec, or every error (exit code 1) and
   warning (exit code 0 if there are only warnings). `sumspec lsp` runs
   the language server.
-- `lsp/SumSpec/Lsp.hs`: the language server (the `lsp` package). Keep
-  `lsp` and its dependencies out of the core library.
+- `lsp/SumSpec/Lsp.hs`: the language server (the `lsp` package): its
+  handlers. Keep `lsp` and its dependencies out of the core library.
+  - `lsp/SumSpec/Lsp/Position.hs`: source positions to LSP positions
+    and ranges (UTF-16, tabs).
+  - `lsp/SumSpec/Lsp/Index.hs`: every name in a spec, what it names and
+    where that's defined; the outline.
+  - `lsp/SumSpec/Lsp/Tokens.hs`: semantic tokens.
 - `test/Main.hs`: the golden test runner; `test/parse/` and
   `test/check/`: the corpora.
 - `test/lsp/Main.hs`: the language server tests (`lsp-test`).

@@ -6,6 +6,7 @@
 -- so the parser only has to skip what comes before the first token.
 module SumSpec.Lexer
   ( Parser
+  , failAt
   , spaceConsumer
   , symbol
   , keyword
@@ -29,6 +30,7 @@ module SumSpec.Lexer
   ) where
 
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit, isSpace)
+import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
@@ -45,6 +47,13 @@ import Text.Megaparsec.Char (char, digitChar, space1)
 import Text.Megaparsec.Char.Lexer qualified as L
 
 type Parser = Parsec Void Text
+
+-- | Fails with this message at another offset, earlier or later, without
+-- moving there. Moving (with 'setOffset') would put the offset out of
+-- step with the input, which shifts every position the parser reads
+-- after recovering from the error.
+failAt :: Int -> String -> Parser a
+failAt offset message = parseError (FancyError offset (Set.singleton (ErrorFail message)))
 
 -- | Skips whitespace and line comments.
 spaceConsumer :: Parser ()
@@ -110,9 +119,8 @@ annotation = do
   start <- getOffset
   rest <- getInput
   case scanArguments (T.unpack rest) of
-    Left (at, message) -> do
-      setOffset (start + at)
-      fail (message <> " in the arguments of @" <> T.unpack (nameText name))
+    Left (at, message) ->
+      failAt (start + at) (message <> " in the arguments of @" <> T.unpack (nameText name))
     Right (used, args) -> do
       _ <- takeP Nothing used
       spaceConsumer
@@ -123,7 +131,8 @@ annotation = do
 -- outside brackets. Brackets nest and may span lines, and a string is one
 -- unit. Gives how many characters it read and the arguments, with comments
 -- dropped and each run of whitespace made one space; or the offset and
--- message of an error.
+-- message of an error. A bracket left open is reported at the outermost
+-- one, where the arguments began to run on.
 scanArguments :: String -> Either (Int, String) (Int, String)
 scanArguments = go 0 [] [] False
   where
@@ -139,7 +148,7 @@ scanArguments = go 0 [] [] False
       -> Either (Int, String) (Int, String)
     go n stack out space input = case input of
       []
-        | (_, opener, at) : _ <- stack -> Left (at, "unclosed " <> [opener])
+        | (_, opener, at) : _ <- reverse stack -> Left (at, "unclosed " <> [opener])
         | otherwise -> done
       '-' : '-' : rest
         | null stack -> done

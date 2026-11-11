@@ -159,14 +159,24 @@ release" in `VERSIONING.md`).
 
 - The flake builds `sumspec` (`nix profile install .`, `nix run . --
   check FILE`), with its dependencies from the Nix binary cache.
-- `sumspec lsp`: a language server over stdio. It publishes the parse
-  error, or every error and warning of the checker, as a document is
-  opened, edited and saved. Neovim setup in `editors/nvim/README.md`.
+- `sumspec lsp`: a language server over stdio. It publishes every parse
+  error, or else every error and warning of the checker, as a document
+  is opened, edited and saved. It gives the outline (types with their
+  variants, atomics, constants, events, `__init`), go to definition and
+  references for types, variants, events, annotations, constants and
+  values (`x` to its `#x`), and semantic highlighting that tells a type
+  from a variant in a path. These work on the definitions that parse
+  while others don't. Neovim support is a plugin of its own,
+  [sumspec.nvim](https://github.com/MohsenNz/sumspec.nvim): the
+  filetype, the server's configuration, a fallback syntax file and
+  spell checking in comments only.
 - The parser goes on after a definition that doesn't parse: it skips to
   the next line that starts in the first column and reads on, so
   `sumspec parse`, `sumspec check` and the language server report every
   broken definition at once, not only the first. An error in the
-  version header or the header blocks still stops the parse.
+  version header or the header blocks still stops the parse. An
+  annotation with a bracket left open is reported at that bracket, the
+  outermost one, and the definitions after it keep their positions.
 - Checker messages give generic examples (`T(n + 1)`, `L = [T]`,
   `L = [T by K]`, `__init :: T`) instead of names from one particular
   spec (`Attempts`, `Points`, `Todos`).
