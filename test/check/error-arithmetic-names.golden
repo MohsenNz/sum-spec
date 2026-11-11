@@ -26,31 +26,31 @@ test/check/error-arithmetic-names.sumspec:15:43:
    |
 15 | literals :: App => Link.Off -> Link.On * (1 + 1)
    |                                           ^
-the value 1 + 1 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of App
+the value 1 + 1 goes inside the type it sets, as its whole argument (such as T(n + 1)), not as a factor of App
 
 test/check/error-arithmetic-names.sumspec:16:44:
    |
 16 | product :: App(Link.Off) -> App(Link.On * (2 * 3))
    |                                            ^
-the value 2 * 3 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of App
+the value 2 * 3 goes inside the type it sets, as its whole argument (such as T(n + 1)), not as a factor of App
 
 test/check/error-arithmetic-names.sumspec:17:42:
    |
 17 | bare :: App => Attempts#a * Link.Off -> (a - 1) * Link.On
    |                                          ^
-the value a - 1 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of App
+the value a - 1 goes inside the type it sets, as its whole argument (such as T(n + 1)), not as a factor of App
 
 test/check/error-arithmetic-names.sumspec:18:25:
    |
 18 | whole :: Attempts#a -> (a + 1)
    |                         ^
-the value a + 1 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a whole state
+the value a + 1 goes inside the type it sets, as its whole argument (such as T(n + 1)), not as a whole state
 
 test/check/error-arithmetic-names.sumspec:19:38:
    |
 19 | zero :: App => Link.Off -> Link.On * 0
    |                                      ^
-the value 0 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of App
+the value 0 goes inside the type it sets, as its whole argument (such as T(n + 1)), not as a factor of App
 
 test/check/error-arithmetic-names.sumspec:21:9:
    |
@@ -62,5 +62,5 @@ test/check/error-arithmetic-names.sumspec:21:38:
    |
 21 | item :: Item(Attempts#a) -> Item(a * 2)
    |                                      ^
-the value 2 goes inside the type it sets, as its whole argument (such as Attempts(n + 1)), not as a factor of Item
+the value 2 goes inside the type it sets, as its whole argument (such as T(n + 1)), not as a factor of Item
 

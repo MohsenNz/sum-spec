@@ -2,13 +2,13 @@ test/check/error-element-paths.sumspec:19:17:
    |
 19 | notList Id#i :: Item[i](State.Off) -> Item[i](State.On)
    |                 ^
-Item is not a list type; [i] picks an element of a keyed list type, such as Todos = [Todo by TodoId]
+Item is not a list type; [i] picks an element of a keyed list type, such as L = [T by K]
 
 test/check/error-element-paths.sumspec:19:39:
    |
 19 | notList Id#i :: Item[i](State.Off) -> Item[i](State.On)
    |                                       ^
-Item is not a list type; [i] picks an element of a keyed list type, such as Todos = [Todo by TodoId]
+Item is not a list type; [i] picks an element of a keyed list type, such as L = [T by K]
 
 test/check/error-element-paths.sumspec:21:22:
    |

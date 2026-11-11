@@ -206,7 +206,7 @@ checkInit file env inits = case inits of
   [] ->
     [ errorAtPos
         (initialPos file)
-        "no __init; every spec needs an initial state, such as __init :: App"
+        "no __init; every spec needs an initial state, such as __init :: T"
     ]
   _ ->
     [ errorAt k ("__init is written twice (first on line " <> lineOf first <> ")")
@@ -784,21 +784,21 @@ checkListPlaces defs inits transitions =
       term ->
         [ report term $
             "a list goes only as a whole type definition; give it a type name, "
-              <> "such as Points = [Point], and write the name here"
+              <> "such as L = [T], and write the name here"
         ]
     elementLists = \case
       TermName _ -> []
       term ->
         [ report term $
             "the element of a list is a type name; give the inner list a type name, "
-              <> "such as Row = [Cell]"
+              <> "such as L = [T]"
         ]
     patternLists = \case
       PatternAlts _ alts -> concatMap patternLists alts
       PatternList t key ->
         [ report (TermList t key) $
             "a list isn't written in a pattern; give it a type name, such as "
-              <> "Ids = [Id], and write the name (Ids, or Ids#ids to name it)"
+              <> "L = [T], and write the name (L, or L#l to name it)"
         ]
       PatternPath _ args -> concatMap patternLists args
       PatternElement _ _ args -> concatMap patternLists args
@@ -1237,7 +1237,7 @@ checkElement env names node h path key args = case resolve env node h path of
             nodeLabel list
               <> " is not a list type; ["
               <> nameText key
-              <> "] picks an element of a keyed list type, such as Todos = [Todo by TodoId]"
+              <> "] picks an element of a keyed list type, such as L = [T by K]"
         ]
   where
     checkKey label keyType = case Map.lookup (nameText key) names of

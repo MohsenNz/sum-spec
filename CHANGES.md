@@ -160,6 +160,9 @@ release" in `VERSIONING.md`).
 - `sumspec lsp`: a language server over stdio. It publishes the parse
   error, or every error and warning of the checker, as a document is
   opened, edited and saved. Neovim setup in `editors/nvim/README.md`.
+- Checker messages give generic examples (`T(n + 1)`, `L = [T]`,
+  `L = [T by K]`, `__init :: T`) instead of names from one particular
+  spec (`Attempts`, `Points`, `Todos`).
 - The parser, printer and checker read computed values in targets. The
   canonical form writes only the parentheses the structure needs
   (`Attempts(n * 2 + 1)`, `Attempts(a - (b + 1))`).

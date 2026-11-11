@@ -2,19 +2,19 @@ test/check/error-list-places.sumspec:17:9:
    |
 17 | Pair = [Id] * Cell
    |         ^
-a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here
+a list goes only as a whole type definition; give it a type name, such as L = [T], and write the name here
 
 test/check/error-list-places.sumspec:18:23:
    |
 18 | Choice = None | Some [Id]
    |                       ^
-a list goes only as a whole type definition; give it a type name, such as Points = [Point], and write the name here
+a list goes only as a whole type definition; give it a type name, such as L = [T], and write the name here
 
 test/check/error-list-places.sumspec:19:12:
    |
 19 | Nested = [[Cell]]
    |            ^
-the element of a list is a type name; give the inner list a type name, such as Row = [Cell]
+the element of a list is a type name; give the inner list a type name, such as L = [T]
 
 test/check/error-list-places.sumspec:22:24:
    |
@@ -26,7 +26,7 @@ test/check/error-list-places.sumspec:22:24:
    |
 22 | source :: Holder.Full([Id]) -> Holder.Empty
    |                        ^
-a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it)
+a list isn't written in a pattern; give it a type name, such as L = [T], and write the name (L, or L#l to name it)
 
 test/check/error-list-places.sumspec:23:40:
    |
@@ -38,11 +38,11 @@ test/check/error-list-places.sumspec:23:40:
    |
 23 | target :: Holder.Empty -> Holder.Full([Id])
    |                                        ^
-a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it)
+a list isn't written in a pattern; give it a type name, such as L = [T], and write the name (L, or L#l to name it)
 
 test/check/error-list-places.sumspec:24:8:
    |
 24 | input [Id] :: Holder.Empty -> Holder.Empty
    |        ^
-a list isn't written in a pattern; give it a type name, such as Ids = [Id], and write the name (Ids, or Ids#ids to name it)
+a list isn't written in a pattern; give it a type name, such as L = [T], and write the name (L, or L#l to name it)
 
