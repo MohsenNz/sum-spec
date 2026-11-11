@@ -2,9 +2,11 @@
 
 -- | The SumSpec language server, run as @sumspec lsp@ over stdio.
 --
--- For now it publishes diagnostics only: the parse error, or the errors
--- and warnings of the checker, each time a document is opened, changed or
--- saved. See docs/lsp.md for the plan.
+-- It publishes diagnostics each time a document is opened, changed or
+-- saved, and answers the outline, go to definition, references and
+-- semantic highlighting. Each request parses the document as it is in
+-- the editor; a document with parse errors still gives the definitions
+-- that parsed. See docs/lsp.md.
 module SumSpec.Lsp
   ( runLanguageServer
   , serverDefinition
@@ -12,6 +14,7 @@ module SumSpec.Lsp
   ) where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.Functor ((<&>))
 import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -20,8 +23,17 @@ import Language.LSP.Protocol.Message
 import Language.LSP.Protocol.Types
 import Language.LSP.Server
 import Language.LSP.VFS (virtualFileText, virtualFileVersion)
-import SumSpec (CheckError (..), Severity (..), checkSpec, parseSpec)
-import SumSpec.Lsp.Position (tokenRange)
+import SumSpec
+  ( CheckError (..)
+  , Severity (..)
+  , Spec
+  , checkSpec
+  , parseSpec
+  , parseSpecPartial
+  )
+import SumSpec.Lsp.Index (Occurrence (..), occurrenceAt, occurrences, symbols)
+import SumSpec.Lsp.Position (nameRange, tokenRange)
+import SumSpec.Lsp.Tokens (encodeSemanticTokens, semanticTokens)
 import Text.Megaparsec
   ( ParseErrorBundle (..)
   , attachSourcePos
@@ -56,7 +68,7 @@ serverDefinition =
         }
 
 -- | The library keeps every open document in its virtual file system; the
--- handlers only say when to diagnose it again.
+-- notification handlers only say when to diagnose it again.
 handlers :: Handlers (LspM ())
 handlers =
   mconcat
@@ -87,7 +99,63 @@ handlers =
           publishDiagnostics maxDiagnostics (toNormalizedUri uri) Nothing mempty
     , notificationHandler SMethod_WorkspaceDidChangeConfiguration $ \_ -> pure ()
     , notificationHandler SMethod_SetTrace $ \_ -> pure ()
+    , requestHandler SMethod_TextDocumentDocumentSymbol $ \req respond -> do
+        let TRequestMessage _ _ _ (DocumentSymbolParams _ _ (TextDocumentIdentifier uri)) = req
+        result <- document uri
+        respond . Right $ case result of
+          Just (source, spec) -> InR (InL (symbols source spec))
+          Nothing -> InR (InR Null)
+    , requestHandler SMethod_TextDocumentDefinition $ \req respond -> do
+        let TRequestMessage _ _ _ (DefinitionParams (TextDocumentIdentifier uri) pos _ _) = req
+        result <- document uri
+        respond . Right $ case result of
+          Just (source, spec)
+            | Just occ <- occurrenceAt source pos (occurrences spec)
+            , Just target <- occTarget occ ->
+                InL (Definition (InL (Location uri (nameRange source target))))
+          _ -> InR (InR Null)
+    , requestHandler SMethod_TextDocumentReferences $ \req respond -> do
+        let
+          TRequestMessage _ _ _ (ReferenceParams (TextDocumentIdentifier uri) pos _ _ context) = req
+          ReferenceContext includeDeclaration = context
+        result <- document uri
+        respond . Right $ case result of
+          Just (source, spec)
+            | occs <- occurrences spec
+            , Just occ <- occurrenceAt source pos occs
+            , Just target <- occTarget occ ->
+                InL
+                  [ Location uri (nameRange source (occName o))
+                  | o <- occs
+                  , occTarget o == Just target
+                  , includeDeclaration || not (occDefinition o)
+                  ]
+          _ -> InR Null
+    , requestHandler SMethod_TextDocumentSemanticTokensFull $ \req respond -> do
+        let TRequestMessage _ _ _ (SemanticTokensParams _ _ (TextDocumentIdentifier uri)) = req
+        result <- document uri
+        respond . Right $ case result of
+          Just (source, spec)
+            | Right tokens <- encodeSemanticTokens (semanticTokens source (occurrences spec)) ->
+                InL tokens
+          _ -> InR Null
     ]
+
+-- | The document at this URI, as it is in the editor now, with the spec
+-- parsed from it: only the definitions that parse, when some don't.
+-- 'Nothing' when the document isn't open or its header doesn't parse.
+document :: Uri -> LspM () (Maybe (Text, Spec))
+document uri =
+  getVirtualFile (toNormalizedUri uri) <&> \file -> do
+    source <- virtualFileText <$> file
+    case parseSpecPartial (uriPath uri) source of
+      Left _ -> Nothing
+      Right (spec, _) -> Just (source, spec)
+
+-- | The file path of a URI, for error messages; the URI itself when it
+-- isn't a file.
+uriPath :: Uri -> FilePath
+uriPath uri = maybe (T.unpack (getUri uri)) id (uriToFilePath uri)
 
 -- | Diagnoses the document at this URI, as it is in the editor now.
 publish :: Uri -> LspM () ()
@@ -100,15 +168,14 @@ publish uri = do
         maxDiagnostics
         nuri
         (Just (virtualFileVersion file))
-        (partitionBySource (diagnose path (virtualFileText file)))
-  where
-    path = maybe (T.unpack (getUri uri)) id (uriToFilePath uri)
+        (partitionBySource (diagnose (uriPath uri) (virtualFileText file)))
 
 maxDiagnostics :: Int
 maxDiagnostics = 100
 
--- | The diagnostics of a document: its parse error, or else every error
--- and warning of the checker.
+-- | The diagnostics of a document: every parse error, or else every error
+-- and warning of the checker. While the document has parse errors, the
+-- checker isn't run: its errors would be about the definitions missing.
 diagnose :: FilePath -> Text -> [Diagnostic]
 diagnose path source = case parseSpec path source of
   Left bundle ->
