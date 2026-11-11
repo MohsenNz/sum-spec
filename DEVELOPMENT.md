@@ -25,7 +25,8 @@ cabal run sumspec -- check example/drone.sumspec
 To install `sumspec` on your `PATH`, use the flake's package:
 
 ```
-nix profile install .       # install; `nix profile upgrade sumspec` after changes
+nix profile add .           # install
+nix profile upgrade sum-spec  # update after changes (see `nix profile list` for the name)
 nix run . -- check FILE     # or run it without installing
 ```
 

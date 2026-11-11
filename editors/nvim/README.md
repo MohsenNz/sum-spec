@@ -7,8 +7,10 @@ the parse error, or every error and warning of the checker, as you edit.
    the repository root:
 
    ```
-   nix profile install .
+   nix profile add .
    ```
+
+   To update it later: `nix profile upgrade sum-spec`.
 
 2. Add this to your config (`init.lua`):
 
