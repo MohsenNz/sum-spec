@@ -1,0 +1,16 @@
+-- Recovery: a definition that doesn't parse gives its error, and the
+-- parser goes on at the next line that starts in column 1. Three broken
+-- definitions give three errors; the last definition is broken too, so
+-- the skip runs to the end of the input and must stop there.
+__atomics { }
+__events { lose land }
+
+App = Page * Link
+Page = Home | | Logs
+Link = On | Off
+Flight = Arming
+  | Failed *
+Spot = Here
+
+lose :: App => Link.On -> Link.Off
+land :: Flight.Arming ->

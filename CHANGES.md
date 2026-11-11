@@ -162,6 +162,11 @@ release" in `VERSIONING.md`).
 - `sumspec lsp`: a language server over stdio. It publishes the parse
   error, or every error and warning of the checker, as a document is
   opened, edited and saved. Neovim setup in `editors/nvim/README.md`.
+- The parser goes on after a definition that doesn't parse: it skips to
+  the next line that starts in the first column and reads on, so
+  `sumspec parse`, `sumspec check` and the language server report every
+  broken definition at once, not only the first. An error in the
+  version header or the header blocks still stops the parse.
 - Checker messages give generic examples (`T(n + 1)`, `L = [T]`,
   `L = [T by K]`, `__init :: T`) instead of names from one particular
   spec (`Attempts`, `Points`, `Todos`).

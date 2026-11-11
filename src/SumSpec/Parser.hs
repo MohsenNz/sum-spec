@@ -5,11 +5,13 @@
 -- in spec/grammar.ebnf.
 module SumSpec.Parser
   ( parseSpec
+  , parseSpecPartial
   , ParseError
   , renderParseError
   ) where
 
-import Control.Monad (unless, void)
+import Control.Monad (unless, void, when)
+import Data.Bifunctor qualified as B
 import Data.List (intercalate)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
@@ -20,23 +22,98 @@ import SumSpec.Lexer
 import SumSpec.Syntax
 import SumSpec.Version
 import Text.Megaparsec hiding (ParseError)
+import Text.Megaparsec qualified as M
+import Text.Megaparsec.Char (char)
 
 type ParseError = ParseErrorBundle Text Void
 
 -- | Parses a whole spec. The file path is used only in error messages.
+-- The error holds every parse error found (see 'parseSpecPartial').
 parseSpec :: FilePath -> Text -> Either ParseError Spec
-parseSpec = parse (spaceConsumer *> spec <* eof)
+parseSpec file source = do
+  (parsed, errors) <- parseSpecPartial file source
+  maybe (Right parsed) Left errors
+
+-- | Parses a spec and goes on after an error in a definition: it skips to
+-- the next line that starts a definition (see 'skipDefinition') and reads
+-- on. Gives the definitions that parsed and every error, or only the
+-- error when the version header or the header blocks don't parse.
+parseSpecPartial :: FilePath -> Text -> Either ParseError (Spec, Maybe ParseError)
+parseSpecPartial file source =
+  case parse (spaceConsumer *> spec) file source of
+    Left err -> Left err
+    Right (parsed, []) -> Right (parsed, Nothing)
+    Right (parsed, e : es) -> Right (parsed, Just (ParseErrorBundle (e :| es) posState))
+  where
+    posState =
+      PosState
+        { pstateInput = source
+        , pstateOffset = 0
+        , pstateSourcePos = initialPos file
+        , pstateTabWidth = defaultTabWidth
+        , pstateLinePrefix = ""
+        }
 
 -- | Renders an error with its line, column and the offending source line.
 renderParseError :: ParseError -> String
 renderParseError = errorBundlePretty
 
 -- spec = [ version_header ] , headers , { definition } ;
-spec :: Parser Spec
+--
+-- The definitions are read up to the end of the input, with the errors of
+-- those that don't parse.
+spec :: Parser (Spec, [M.ParseError Text Void])
 spec = do
   version <- optional versionHeader
   (atomics, events, annotations) <- headers
-  Spec version atomics events annotations <$> many definition
+  B.first (Spec version atomics events annotations) <$> definitions
+
+-- | Every definition up to the end of the input. A definition that doesn't
+-- parse gives its error, and the parser goes on at the next one.
+definitions :: Parser ([Definition], [M.ParseError Text Void])
+definitions = go Nothing
+  where
+    go previous = do
+      saved <- getParserState
+      next <-
+        withRecovery
+          (\err -> Left <$> recover previous (stateOffset saved) err)
+          (Right <$> ((Nothing <$ eof) <|> (Just <$> definition)))
+      case next of
+        Right Nothing -> pure ([], [])
+        Right (Just d) -> B.first (d :) <$> go (Just saved)
+        Left err -> B.second (err :) <$> go Nothing
+    -- An error at the very start of a definition has lost the hints of
+    -- the one before it ('withRecovery' catches it before they are
+    -- added), so it would not say what could have continued that
+    -- definition. Parse the previous definition again, followed by this
+    -- one, to get the error with them.
+    recover previous start err = do
+      here <- getParserState
+      full <- case previous of
+        Just state | errorOffset err == start -> do
+          setParserState state
+          result <- observing (definition *> optional definition *> eof)
+          setParserState here
+          pure (either id (const err) result)
+        _ -> pure err
+      full <$ skipDefinition start
+
+-- | Skips to the next line that starts a definition: one whose first
+-- character is not a space and doesn't start a comment. Every example
+-- starts its definitions in the first column and indents the lines that
+-- continue them. Moves on by a line at least, unless the error is at the
+-- start of a line past the definition's start, which may be the next
+-- definition.
+skipDefinition :: Int -> Parser ()
+skipDefinition start = do
+  offset <- getOffset
+  column <- unPos . sourceColumn <$> getSourcePos
+  when (offset == start || column /= 1) skipLine
+  skipMany (notFollowedBy (boundary <|> eof) *> skipLine)
+  where
+    skipLine = takeWhileP Nothing (/= '\n') *> void (optional (char '\n'))
+    boundary = void (satisfy (\c -> c /= ' ' && c /= '\t' && c /= '\n' && c /= '\r' && c /= '-'))
 
 -- version_header = "__version" , VERSION ;
 --

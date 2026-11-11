@@ -1,0 +1,20 @@
+test/parse/error-recovery.sumspec:9:15:
+  |
+9 | Page = Home | | Logs
+  |               ^
+unexpected '|'
+expecting type or variant name
+
+test/parse/error-recovery.sumspec:12:12:
+   |
+12 |   | Failed *
+   |            ^
+unexpected '*'
+expecting "__init", '(', '@', '[', '|', end of input, event name, or type or variant name
+
+test/parse/error-recovery.sumspec:17:1:
+   |
+17 | <empty line>
+   | ^
+unexpected end of input
+expecting '(', '[', literal, type or variant name, or value name
