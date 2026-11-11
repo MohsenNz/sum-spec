@@ -54,6 +54,7 @@ library sumspec-lsp
   other-modules:
     SumSpec.Lsp.Index
     SumSpec.Lsp.Position
+    SumSpec.Lsp.Tokens
 
   build-depends:
     , containers    >=0.7  && <0.9
