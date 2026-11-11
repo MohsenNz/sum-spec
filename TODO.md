@@ -55,9 +55,10 @@ examples, the golden tests and `CHANGES.md` together.
 
 ### Editor support
 The plan is in `docs/lsp.md`. In order:
+- [x] `sumspec lsp` with diagnostics (the `lsp` package). A range is the
+      token at the error's position for now.
 - [ ] Ranges on errors and tokens (start and end).
 - [ ] Parse recovery per definition (every parse error, partial AST).
-- [ ] `sumspec lsp` with diagnostics (the `lsp` package).
 - [ ] Document symbols, go-to-definition, references.
 - [ ] Semantic tokens; fallback grammars for Neovim and VS Code.
 - [ ] A resolved model (`SumSpec.Model`), then hover and completion.

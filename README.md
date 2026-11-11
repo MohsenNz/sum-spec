@@ -218,6 +218,8 @@ Check out `./spec/spec-v1.md`.
 `sumspec check FILE` parses and type-checks a spec. It prints nothing
 for a valid spec, or every error and warning with its position.
 `sumspec parse FILE` prints a spec back in canonical form.
+`sumspec lsp` is a language server that shows the same errors and
+warnings in your editor as you type (Neovim: `editors/nvim/README.md`).
 
 To build it, run the tests, or contribute, see
 [DEVELOPMENT.md](DEVELOPMENT.md).

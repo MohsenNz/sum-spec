@@ -10,8 +10,9 @@ import SumSpec
   , renderParseError
   , renderSpec
   )
+import SumSpec.Lsp (runLanguageServer)
 import System.Environment (getArgs)
-import System.Exit (exitFailure)
+import System.Exit (ExitCode (..), exitFailure, exitWith)
 import System.IO (hPutStr, hPutStrLn, stderr)
 
 main :: IO ()
@@ -30,6 +31,9 @@ main =
           let problems = checkSpec file source spec
           hPutStr stderr (renderCheckErrors source problems)
           when (hasErrors problems) exitFailure
+    ["lsp"] -> do
+      code <- runLanguageServer
+      exitWith (if code == 0 then ExitSuccess else ExitFailure code)
     _ -> do
-      hPutStrLn stderr "usage: sumspec (parse | check) FILE"
+      hPutStrLn stderr "usage: sumspec (parse | check) FILE\n       sumspec lsp"
       exitFailure

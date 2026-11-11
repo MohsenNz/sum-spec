@@ -66,6 +66,12 @@ trans1 :: Y.V1 -> Y.V3(A)
 trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
 ```
 
+### `sumspec lsp`
+
+Runs the language server on stdin and stdout, for an editor to start. It
+shows the parse error, or every error and warning of the checker, as you
+edit. See `editors/nvim/README.md` for Neovim.
+
 ## Running the tests
 
 ```
@@ -78,10 +84,13 @@ The tests are golden tests over two corpora of small specs:
 or update cases, run `cabal test --test-options=--accept`, then read
 every new or changed golden file before keeping it.
 
+The language server has its own suite, `cabal test sumspec-lsp-test`,
+which drives the server with `lsp-test`.
+
 Format the code with fourmolu before committing:
 
 ```
-fourmolu -i src app test
+fourmolu -i src app lsp test
 ```
 
 ## Project layout
@@ -91,8 +100,11 @@ fourmolu -i src app test
   parser per rule in `spec/grammar.ebnf`.
 - `src/SumSpec/Pretty.hs`: prints an AST back as canonical source.
 - `src/SumSpec/Check.hs`: the type checker.
+- `lsp/SumSpec/Lsp.hs`: the language server, an internal library.
 - `app/Main.hs`: the `sumspec` command-line tool.
 - `test/Main.hs`: the golden test runner.
+- `test/lsp/Main.hs`: the language server tests.
+- `editors/`: editor setup.
 
 ## More
 

@@ -55,7 +55,7 @@ nix develop -c cabal build all
 nix develop -c cabal test
 nix develop -c cabal run sumspec -- parse <file>
 nix develop -c cabal run sumspec -- check <file>
-nix develop -c fourmolu -i src app test
+nix develop -c fourmolu -i src app lsp test
 ```
 
 The shellHook sources `.env`, which holds local proxy settings. It's
@@ -66,7 +66,9 @@ they need system libraries.
 
 ## Project layout
 
-One cabal package, `sumspec` (`sumspec.cabal`, `cabal.project`):
+One cabal package, `sumspec` (`sumspec.cabal`, `cabal.project`), with
+the core library (`src/`), an internal library `sumspec-lsp` (`lsp/`),
+the executable (`app/`) and two test suites:
 
 - `src/SumSpec/Syntax.hs`: the AST. Every `Name` carries its source
   position.
@@ -82,9 +84,14 @@ One cabal package, `sumspec` (`sumspec.cabal`, `cabal.project`):
 - `app/Main.hs`: the `sumspec` command-line tool. `sumspec parse FILE`
   prints the canonical form or the parse error; `sumspec check FILE`
   prints nothing for a valid spec, or every error (exit code 1) and
-  warning (exit code 0 if there are only warnings).
+  warning (exit code 0 if there are only warnings). `sumspec lsp` runs
+  the language server.
+- `lsp/SumSpec/Lsp.hs`: the language server (the `lsp` package). Keep
+  `lsp` and its dependencies out of the core library.
 - `test/Main.hs`: the golden test runner; `test/parse/` and
   `test/check/`: the corpora.
+- `test/lsp/Main.hs`: the language server tests (`lsp-test`).
+- `editors/`: editor setup (`editors/nvim/`).
 
 Libraries: megaparsec for parsing, text for source text, containers for
 maps and sets.

@@ -45,13 +45,27 @@ library
     , megaparsec  >=9.7  && <10
     , text        >=2.1  && <2.2
 
+-- The language server. A library of its own, so the core library above
+-- keeps its few dependencies.
+library sumspec-lsp
+  import:          common
+  hs-source-dirs:  lsp
+  exposed-modules: SumSpec.Lsp
+  build-depends:
+    , lsp           >=2.7  && <2.9
+    , lsp-types     >=2.3  && <2.5
+    , megaparsec    >=9.7  && <10
+    , sumspec
+    , text          >=2.1  && <2.2
+
 executable sumspec
   import:         common
   hs-source-dirs: app
   main-is:        Main.hs
   build-depends:
     , sumspec
-    , text     >=2.1 && <2.2
+    , sumspec-lsp
+    , text         >=2.1 && <2.2
 
   ghc-options:    -threaded -rtsopts
 
@@ -67,3 +81,21 @@ test-suite sumspec-test
     , tasty         >=1.5  && <1.6
     , tasty-golden  >=2.3  && <2.4
     , text          >=2.1  && <2.2
+
+-- The language server, run in-process and driven by lsp-test.
+test-suite sumspec-lsp-test
+  import:         common
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/lsp
+  main-is:        Main.hs
+  build-depends:
+    , lsp          >=2.7  && <2.9
+    , lsp-test     >=0.17 && <0.18
+    , lsp-types    >=2.3  && <2.5
+    , process      >=1.6  && <1.7
+    , sumspec-lsp
+    , tasty        >=1.5  && <1.6
+    , tasty-hunit  >=0.10 && <0.11
+    , text         >=2.1  && <2.2
+
+  ghc-options:    -threaded

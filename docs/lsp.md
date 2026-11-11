@@ -1,7 +1,11 @@
 # SumSpec language server: plan
 
-Notes for starting LSP development. Nothing here is built yet; the steps
-are tracked in `TODO.md` under "Editor support".
+Notes for LSP development; the steps are tracked in `TODO.md` under
+"Editor support". Built so far: `sumspec lsp` with diagnostics (feature
+1), before the groundwork, so the server could be tried in an editor
+early. Until errors carry ranges, a diagnostic's range is the token at
+its position (`tokenRange` in `lsp/SumSpec/Lsp.hs`), and a file with a
+parse error shows only that error.
 
 ## Goal
 
@@ -16,9 +20,11 @@ server comes before any other editor tooling.
 - **LSP first.** Highlighting comes from the server (semantic tokens),
   so it uses the real parser. A tree-sitter grammar is optional and
   comes later (see "Highlighting").
-- **In this repository.** The server reuses `SumSpec.Parser` and
-  `SumSpec.Check`, so it lives with them: a new module
-  `src/SumSpec/Lsp.hs`, run as a subcommand of the existing executable,
+- **In this repository, outside the core library.** The server reuses
+  `SumSpec.Parser` and `SumSpec.Check`, so it lives with them, in the
+  same cabal package: an internal library `sumspec-lsp`
+  (`lsp/SumSpec/Lsp.hs`), so the core library keeps its few
+  dependencies. It runs as a subcommand of the existing executable,
   `sumspec lsp` (stdio). Editor setup files go in `editors/`.
 - **The `lsp` package** (haskell/lsp, the library HLS is built on).
   Add it in `sumspec.cabal`, not in `flake.nix`. `lsp-test` for tests.
@@ -107,7 +113,7 @@ are created.
 
 ## Editor setup (sketch)
 
-Neovim (0.11+):
+Neovim (0.11+), also in `editors/nvim/README.md`:
 
 ```lua
 vim.filetype.add({ extension = { sumspec = "sumspec" } })
@@ -129,15 +135,15 @@ release are its own, not `sumspec.cabal`'s.
 
 - Golden tests for recovery (a file with several broken definitions
   gives every parse error and checks the rest) and for ranges.
-- `lsp-test` for the server: open a document, expect diagnostics; ask
-  for a definition, symbols, semantic tokens.
+- `lsp-test` for the server (`test/lsp/Main.hs`, the test suite
+  `sumspec-lsp-test`, which runs the server inside the test process, over
+  pipes): open a document, expect diagnostics; ask for a definition,
+  symbols, semantic tokens.
 - The example specs as smoke tests: no diagnostics but the expected
   warnings.
 
 ## Open
 
-- The file extension: `.sumspec` (the test corpora use it; the example
-  specs have none and need one for filetype detection).
 - How annotation arguments up to the end of the line interact with
   recovery (a broken annotation should not swallow the next definition).
 - Whether diagnostics run on every change or after a short delay, for
