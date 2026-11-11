@@ -228,7 +228,7 @@ nix profile add .
 ```
 
 To update an installed copy after pulling changes, run
-`nix profile upgrade sum-spec` (the entry name is in `nix profile list`);
+`nix profile upgrade sumspec` (the entry name is in `nix profile list`);
 installing again fails with "already added".
 
 Or run it without installing: `nix run . -- check FILE`. To build it with
