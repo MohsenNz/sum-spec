@@ -80,8 +80,10 @@ trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
 ### `sumspec lsp`
 
 Runs the language server on stdin and stdout, for an editor to start. It
-shows the parse error, or every error and warning of the checker, as you
-edit. See `editors/nvim/README.md` for Neovim.
+shows every parse error, or else every error and warning of the checker,
+as you edit, and gives the outline, go to definition, references and
+semantic highlighting. For Neovim, see the
+[sumspec.nvim](https://github.com/MohsenNz/sumspec.nvim) plugin.
 
 ## Running the tests
 
@@ -115,7 +117,8 @@ fourmolu -i src app lsp test
 - `app/Main.hs`: the `sumspec` command-line tool.
 - `test/Main.hs`: the golden test runner.
 - `test/lsp/Main.hs`: the language server tests.
-- `editors/`: editor setup.
+- `editors/`: editor setup; the Neovim plugin is its own repository,
+  `sumspec.nvim`.
 
 ## More
 

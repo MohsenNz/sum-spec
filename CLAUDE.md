@@ -23,7 +23,9 @@ ones as the work changes.
   breaking.
 
 A language change touches `spec-v1.md`, `grammar.ebnf` and the example
-specs together; keep them in sync. The type checker's rules are listed in
+specs together; keep them in sync. A change to the language's words or
+operators also touches `syntax/sumspec.vim` in the `sumspec.nvim`
+repository. The type checker's rules are listed in
 the notes at the end of `grammar.ebnf`; the pattern rules are in
 `spec-v1.md` ("Arguments in state patterns").
 
@@ -91,7 +93,8 @@ the executable (`app/`) and two test suites:
 - `test/Main.hs`: the golden test runner; `test/parse/` and
   `test/check/`: the corpora.
 - `test/lsp/Main.hs`: the language server tests (`lsp-test`).
-- `editors/`: editor setup (`editors/nvim/`).
+- `editors/`: editor setup. The Neovim plugin, with the Vim syntax file,
+  is a separate repository, `sumspec.nvim` (locally `../sumspec.nvim`).
 
 Libraries: megaparsec for parsing, text for source text, containers for
 maps and sets.
