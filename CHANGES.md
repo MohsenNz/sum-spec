@@ -157,6 +157,8 @@ release" in `VERSIONING.md`).
 
 ### Tool
 
+- The flake builds `sumspec` (`nix profile install .`, `nix run . --
+  check FILE`), with its dependencies from the Nix binary cache.
 - `sumspec lsp`: a language server over stdio. It publishes the parse
   error, or every error and warning of the checker, as a document is
   opened, edited and saved. Neovim setup in `editors/nvim/README.md`.

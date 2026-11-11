@@ -7,8 +7,17 @@
   outputs = { self, nixpkgs, flake-utils, ... }: flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
+      # The sumspec tool, with its dependencies from nixpkgs (prebuilt in
+      # the binary cache). The tests run with cabal, not here.
+      sumspec = pkgs.haskell.lib.justStaticExecutables
+        (pkgs.haskell.lib.dontCheck
+          (pkgs.haskellPackages.callCabal2nix "sumspec" ./. { }));
     in
     {
+      packages.default = sumspec;
+
+      apps.default = flake-utils.lib.mkApp { drv = sumspec; };
+
       devShells = {
         default = pkgs.mkShell {
           name = "SumSpec";

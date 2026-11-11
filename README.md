@@ -221,8 +221,14 @@ for a valid spec, or every error and warning with its position.
 `sumspec lsp` is a language server that shows the same errors and
 warnings in your editor as you type (Neovim: `editors/nvim/README.md`).
 
-To build it, run the tests, or contribute, see
-[DEVELOPMENT.md](DEVELOPMENT.md).
+Install it with Nix (flakes enabled), from a clone of this repository:
+
+```
+nix profile install .
+```
+
+Or run it without installing: `nix run . -- check FILE`. To build it with
+cabal, run the tests, or contribute, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Vibe Coded vs Human Revised
 

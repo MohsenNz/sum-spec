@@ -22,12 +22,22 @@ Inside `nix develop`, build and run the CLI with cabal:
 cabal run sumspec -- check example/drone.sumspec
 ```
 
-To install `sumspec` instead, into cabal's `installdir` (`~/.local/bin` by
-default; make sure it's on your `PATH`):
+To install `sumspec` on your `PATH`, use the flake's package:
 
 ```
-cabal install exe:sumspec
+nix profile install .       # install; `nix profile upgrade sumspec` after changes
+nix run . -- check FILE     # or run it without installing
 ```
+
+Nix takes the dependencies prebuilt from the binary cache and compiles
+only `sumspec`, without running the tests. It builds the files git
+tracks, so `git add` new files first.
+
+`cabal install exe:sumspec` works too, but run it inside `nix develop`.
+Cabal keeps one package store per GHC build, and the flake's GHC is the
+one that already has the dependencies built; with another GHC (one from
+`~/.nix-profile`, say), cabal compiles every dependency, `lsp` and
+`lens` among them, from scratch.
 
 ### `sumspec check FILE`
 

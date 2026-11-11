@@ -3,10 +3,11 @@
 Neovim (0.11+) runs `sumspec lsp` for files ending in `.sumspec`. It shows
 the parse error, or every error and warning of the checker, as you edit.
 
-1. Install `sumspec` so it's on your `PATH` (see `DEVELOPMENT.md`):
+1. Install `sumspec` so it's on your `PATH` (see `DEVELOPMENT.md`). From
+   the repository root:
 
    ```
-   cabal install exe:sumspec
+   nix profile install .
    ```
 
 2. Add this to your config (`init.lua`):
