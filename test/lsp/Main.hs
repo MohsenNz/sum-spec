@@ -10,8 +10,9 @@ import Control.Concurrent (forkIO, killThread)
 import Control.Exception (bracket, handle)
 import Control.Monad (void)
 import Data.Bits (testBit)
-import Data.List (mapAccumL)
+import Data.List (mapAccumL, sort)
 import Data.Text (Text)
+import Data.Text qualified as T
 import Language.LSP.Protocol.Types
 import Language.LSP.Server (runServerWithHandles)
 import Language.LSP.Test
@@ -67,6 +68,8 @@ main =
             @?= [range 4 13 16, range 6 0 3, range 8 25 28, range 10 20 23, range 10 32 35]
           map (._range) withoutDecl
             @?= [range 4 13 16, range 8 25 28, range 10 20 23, range 10 32 35]
+      , testGroup "hover" hoverTests
+      , testGroup "completion" completionTests
       , testCase "semantic tokens" $ do
           tokens <- withNav getSemanticTokens
           case tokens of
@@ -168,6 +171,100 @@ definitionTests =
       pure $ case result of
         InL (Definition (InL location)) -> Just location._range
         _ -> Nothing
+
+-- | Hover in 'described': each text must be in what it shows.
+hoverTests :: [TestTree]
+hoverTests =
+  [ testCase "a type, with the comment above it" $
+      hoverAt (Position 9 0) ["App = Mode * Sel", "The whole state."]
+  , testCase "a variant in a path" $
+      hoverAt (Position 15 19) ["Mode.Off", "Variant of `Mode`"]
+  , testCase "a variant in an inline payload" $
+      hoverAt (Position 10 23) ["Mode.Lit.Dim", "Variant of `Mode.Lit`"]
+  , testCase "a constant" $ hoverAt (Position 13 0) ["Max = Id(3)"]
+  , testCase "an annotation, with its comment" $
+      hoverAt (Position 11 23) ["@control", "the widget that edits a value"]
+  , testCase "an event, with its comment in __events" $
+      hoverAt (Position 17 0) ["pick Id#i", "1 transition", "Picks an element."]
+  , testCase "a value, with its type" $ hoverAt (Position 17 40) ["i : Id"]
+  , testCase "nothing at an operator" $ do
+      result <- withDescribed (`getHover` Position 17 10)
+      result @?= Nothing
+  ]
+  where
+    hoverAt pos expected = do
+      result <- withDescribed (`getHover` pos)
+      case result of
+        Just (Hover (InL (MarkupContent _ text)) _) ->
+          mapM_
+            (\e -> assertBool (T.unpack (e <> " in: " <> text)) (e `T.isInfixOf` text))
+            expected
+        _ -> assertBool "a hover" False
+    withDescribed session = withServer $ do
+      doc <- createDoc "described.sumspec" "sumspec" described
+      _ <- waitForDiagnostics
+      session doc
+
+-- | Completion, mostly on a line being typed after 'described', which
+-- doesn't parse.
+completionTests :: [TestTree]
+completionTests =
+  [ testCase "after @, the declared annotations" $
+      typing "Extra = A | B @" ==> ["@control"]
+  , testCase "after a sum and a dot, its variants" $
+      typing "go :: App(Mode." ==> ["Lit", "Off", "On"]
+  , testCase "through a newtype" $ typing "go :: Alias." ==> ["Lit", "Off", "On"]
+  , testCase "in an inline payload" $ typing "go :: Mode.Lit." ==> ["Bright", "Dim"]
+  , testCase "after a product and a dot, its factors" $
+      typing "go :: App." ==> ["Mode", "Sel"]
+  , testCase "after ::, the types and constants" $
+      typing "go :: " ==> ["Alias", "App", "Id", "Max", "Mode", "Sel"]
+  , testCase "in a transition, its values too" $
+      completeAt (described <> "  :: Sel.One(") (Position 18 14)
+        ==> ["Alias", "App", "Id", "Max", "Mode", "Sel", "i"]
+  , testCase "in __events, the events not listed" $
+      completeAt
+        "__atomics { }\n__events {\n  \n}\nApp = A | B\n__init :: App.A\ngo :: App.A -> App.B\n"
+        (Position 2 2)
+        ==> ["go"]
+  , testCase "at the start of a line, keywords and events not yet defined" $
+      completeAt "__atomics { }\n__events { go }\nApp = A | B\ng" (Position 3 1)
+        ==> ["__annotations", "__init", "go"]
+  , testCase "nothing in a comment" $ typing "-- App." ==> []
+  ]
+  where
+    action ==> expected = action >>= (@?= expected)
+    typing line = completeAt (described <> line) (Position 18 (fromIntegral (T.length line)))
+    completeAt text pos = withServer $ do
+      doc <- createDoc "typing.sumspec" "sumspec" text
+      _ <- waitForDiagnostics
+      items <- getCompletions doc pos
+      pure (sort [i._label | i <- items])
+
+-- | A spec with comments, for hover and completion. Positions are
+-- zero-based:
+--
+-- > 0  __atomics { Id }
+-- > 1  __events {
+-- > 2    pick  -- Picks an element.
+-- > 4  __annotations {
+-- > 5    @control  -- the widget that edits a value
+-- > 8  -- The whole state.
+-- > 9  App = Mode * Sel
+-- > 10 Mode = On | Off | Lit (Dim | Bright)
+-- > 11 Sel = None | One(Id) @control
+-- > 12 Alias = Mode
+-- > 13 Max = Id(3)
+-- > 15 __init :: App(Mode.Off * Sel.None)
+-- > 17 pick Id#i :: App => Sel.None -> Sel.One(i)
+described :: Text
+described =
+  "__atomics { Id }\n__events {\n  pick  -- Picks an element.\n}\n\
+  \__annotations {\n  @control  -- the widget that edits a value\n}\n\n\
+  \-- The whole state.\nApp = Mode * Sel\nMode = On | Off | Lit (Dim | Bright)\n\
+  \Sel = None | One(Id) @control\nAlias = Mode\nMax = Id(3)\n\n\
+  \__init :: App(Mode.Off * Sel.None)\n\n\
+  \pick Id#i :: App => Sel.None -> Sel.One(i)\n"
 
 -- | A small spec for the navigation tests. Positions are zero-based:
 --

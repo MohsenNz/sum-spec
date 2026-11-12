@@ -155,7 +155,8 @@ mergeAbort
 
   -- Every conflicted file goes back to unmodified; the checker warns, as
   -- for commit.
-  :: FileState.Conflicted -> FileState.Unmodified
+  :: FileState.Conflicted
+  -> FileState.Unmodified
 
 rebase
   :: Repository.Initialized

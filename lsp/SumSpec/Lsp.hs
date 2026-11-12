@@ -3,8 +3,8 @@
 -- | The SumSpec language server, run as @sumspec lsp@ over stdio.
 --
 -- It publishes diagnostics each time a document is opened, changed or
--- saved, and answers the outline, go to definition, references and
--- semantic highlighting. Each request parses the document as it is in
+-- saved, and answers the outline, go to definition, references, hover,
+-- completion and semantic highlighting. Each request parses the document as it is in
 -- the editor; a document with parse errors still gives the definitions
 -- that parsed. See docs/lsp.md.
 module SumSpec.Lsp
@@ -28,10 +28,13 @@ import SumSpec
   , Severity (..)
   , Spec
   , checkSpec
+  , model
   , parseSpec
   , parseSpecPartial
   )
-import SumSpec.Lsp.Index (Occurrence (..), occurrenceAt, occurrences, symbols)
+import SumSpec.Lsp.Completion (completions)
+import SumSpec.Lsp.Hover (hover)
+import SumSpec.Lsp.Index (Occurrence (..), occurrenceAt, occurrencesWith, symbols)
 import SumSpec.Lsp.Position (nameRange, tokenRange)
 import SumSpec.Lsp.Tokens (encodeSemanticTokens, semanticTokens)
 import Text.Megaparsec
@@ -55,7 +58,11 @@ serverDefinition =
     , doInitialize = \env _ -> pure (Right env)
     , staticHandlers = const handlers
     , interpretHandler = \env -> Iso (runLspT env) liftIO
-    , options = defaultOptions {optTextDocumentSync = Just sync}
+    , options =
+        defaultOptions
+          { optTextDocumentSync = Just sync
+          , optCompletionTriggerCharacters = Just ".@"
+          }
     }
   where
     sync =
@@ -110,7 +117,7 @@ handlers =
         result <- document uri
         respond . Right $ case result of
           Just (source, spec)
-            | Just occ <- occurrenceAt source pos (occurrences spec)
+            | Just occ <- occurrenceAt source pos (occurrencesWith (model spec) spec)
             , Just target <- occTarget occ ->
                 InL (Definition (InL (Location uri (nameRange source target))))
           _ -> InR (InR Null)
@@ -121,7 +128,7 @@ handlers =
         result <- document uri
         respond . Right $ case result of
           Just (source, spec)
-            | occs <- occurrences spec
+            | occs <- occurrencesWith (model spec) spec
             , Just occ <- occurrenceAt source pos occs
             , Just target <- occTarget occ ->
                 InL
@@ -136,9 +143,26 @@ handlers =
         result <- document uri
         respond . Right $ case result of
           Just (source, spec)
-            | Right tokens <- encodeSemanticTokens (semanticTokens source (occurrences spec)) ->
+            | occs <- occurrencesWith (model spec) spec
+            , Right tokens <- encodeSemanticTokens (semanticTokens source occs) ->
                 InL tokens
           _ -> InR Null
+    , requestHandler SMethod_TextDocumentHover $ \req respond -> do
+        let TRequestMessage _ _ _ (HoverParams (TextDocumentIdentifier uri) pos _) = req
+        result <- document uri
+        respond . Right $ case result of
+          Just (source, spec)
+            | m <- model spec
+            , Just occ <- occurrenceAt source pos (occurrencesWith m spec)
+            , Just h <- hover source spec m occ ->
+                InL h
+          _ -> InR Null
+    , requestHandler SMethod_TextDocumentCompletion $ \req respond -> do
+        let TRequestMessage _ _ _ (CompletionParams (TextDocumentIdentifier uri) pos _ _ _) = req
+        result <- document uri
+        respond . Right $ case result of
+          Just (source, spec) -> InL (completions source spec (model spec) pos)
+          Nothing -> InR (InR Null)
     ]
 
 -- | The document at this URI, as it is in the editor now, with the spec

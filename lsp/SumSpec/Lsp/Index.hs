@@ -11,6 +11,7 @@ module SumSpec.Lsp.Index
   ( Kind (..)
   , Occurrence (..)
   , occurrences
+  , occurrencesWith
   , occurrenceAt
   , symbols
   ) where
@@ -18,9 +19,8 @@ module SumSpec.Lsp.Index
 import Data.Foldable (toList)
 import Data.List (find, sortOn)
 import Data.List.NonEmpty (NonEmpty (..))
-import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as M
-import Data.Maybe (fromMaybe, listToMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Language.LSP.Protocol.Types
@@ -30,6 +30,7 @@ import Language.LSP.Protocol.Types
   , SymbolKind (..)
   )
 import SumSpec.Lsp.Position (inRange, nameRange, sourcePosition, utf16)
+import SumSpec.Model
 import SumSpec.Syntax
 import Text.Megaparsec (SourcePos (..), unPos)
 
@@ -57,53 +58,21 @@ data Occurrence = Occurrence
   }
   deriving stock (Eq, Show)
 
--- | The names a spec defines, by text. When a name is defined twice (an
--- error the checker reports), the first one wins.
-data Env = Env
-  { envTypes :: Map Text (Name, Maybe TypeExpr)
-  -- ^ Every type, with its body; an atomic has none.
-  , envConsts :: Map Text Name
-  , envVariants :: Map Text [(Name, Maybe TypeExpr)]
-  -- ^ Every variant, inline payloads included, with its payload.
-  , envEvents :: Map Text Name
-  , envAnnotations :: Map Text Name
-  }
-
-environment :: Spec -> Env
-environment spec =
-  Env
-    { envTypes =
-        firsts $
-          [(atomicName a, (atomicName a, Nothing)) | a <- specAtomics spec]
-            <> [(typeDefName t, (typeDefName t, Just (typeDefBody t))) | DefType t <- defs]
-    , envConsts = firsts [(constName c, constName c) | DefConst c <- defs]
-    , envVariants =
-        M.fromListWith
-          (flip (<>))
-          [ (nameText (variantName v), [(variantName v, variantPayload v)])
-          | DefType t <- defs
-          , v <- variants (typeDefBody t)
-          ]
-    , envEvents = firsts [(eventName e, eventName e) | DefEvent e <- defs]
-    , envAnnotations = firsts [(n, n) | n <- fromMaybe [] (specAnnotations spec)]
-    }
-  where
-    defs = specDefinitions spec
-    firsts entries = M.fromListWith (\_ old -> old) [(nameText n, x) | (n, x) <- entries]
-    variants = \case
-      TypeSum vs -> concatMap (\v -> v : maybe [] variants (variantPayload v)) vs
-      _ -> []
-
 -- | Every name in the spec, in source order.
 occurrences :: Spec -> [Occurrence]
-occurrences spec =
+occurrences spec = occurrencesWith (model spec) spec
+
+-- | 'occurrences', with the spec's model already built.
+occurrencesWith :: Model -> Spec -> [Occurrence]
+occurrencesWith env spec =
   sortOn (position . occName) $
     [define KType (atomicName a) | a <- specAtomics spec]
-      <> [use KEvent n (M.lookup (nameText n) (envEvents env)) | n <- specEvents spec]
+      <> [ use KEvent n (eventName . eventInfo <$> M.lookup (nameText n) (modelEvents env))
+         | n <- specEvents spec
+         ]
       <> [define KAnnotation n | n <- fromMaybe [] (specAnnotations spec)]
       <> concatMap (definition env) (specDefinitions spec)
   where
-    env = environment spec
     position p = (sourceLine (namePos p), sourceColumn (namePos p))
 
 -- | The occurrence under the cursor, if any.
@@ -117,7 +86,7 @@ define kind n = Occurrence n kind True (Just n)
 use :: Kind -> Name -> Maybe Name -> Occurrence
 use kind n = Occurrence n kind False
 
-definition :: Env -> Definition -> [Occurrence]
+definition :: Model -> Definition -> [Occurrence]
 definition env = \case
   DefType (TypeDef n annotations body) ->
     define KType n : map (annotation env) annotations <> typeExpr env body
@@ -126,7 +95,7 @@ definition env = \case
       : typeUse env t
       : case constant of
         ConstLiteral _ _ -> []
-        ConstVariant v -> [fst (segment env (typeBody env t) v)]
+        ConstVariant v -> fst (segments env (typeBodyOf env t) [v])
   DefInit _ p -> pattern env [] p
   DefEvent (Event n input transitions) ->
     define KEvent n
@@ -135,7 +104,7 @@ definition env = \case
     where
       inputs = maybe [] (bindings env) input
 
-typeExpr :: Env -> TypeExpr -> [Occurrence]
+typeExpr :: Model -> TypeExpr -> [Occurrence]
 typeExpr env = \case
   TypeSum vs ->
     concat
@@ -151,17 +120,17 @@ typeExpr env = \case
       ]
   TypeTerm t -> term env t
 
-term :: Env -> TypeTerm -> [Occurrence]
+term :: Model -> TypeTerm -> [Occurrence]
 term env = \case
   TermName n -> [typeUse env n]
   TermList t key -> term env t <> map (typeUse env) (toList key)
 
-typeUse :: Env -> Name -> Occurrence
-typeUse env n = use KType n (fst <$> M.lookup (nameText n) (envTypes env))
+typeUse :: Model -> Name -> Occurrence
+typeUse env n = use KType n (typeInfoName <$> M.lookup (nameText n) (modelTypes env))
 
-annotation :: Env -> Annotation -> Occurrence
+annotation :: Model -> Annotation -> Occurrence
 annotation env (Annotation n _) =
-  use KAnnotation n (M.lookup (nameText n) (envAnnotations env))
+  use KAnnotation n (M.lookup (nameText n) (modelAnnotations env))
 
 -- | The names a transition can use: the input's, then each source's.
 type Scope = [Name]
@@ -170,10 +139,10 @@ value :: Scope -> Name -> Occurrence
 value scope n = use KValue n (find ((== nameText n) . nameText) scope)
 
 -- | The values a pattern names, in order.
-bindings :: Env -> Pattern -> [Name]
+bindings :: Model -> Pattern -> [Name]
 bindings env p = [occName o | o <- pattern env [] p, occKind o == KValue, occDefinition o]
 
-transition :: Env -> Scope -> Transition -> [Occurrence]
+transition :: Model -> Scope -> Transition -> [Occurrence]
 transition env inputs (Transition shared branches) =
   concat [fst (path env p) <> map (value outer) (toList key) | Shared p key <- shared]
     <> concatMap branch branches
@@ -187,7 +156,7 @@ transition env inputs (Transition shared branches) =
       where
         scope = inputs <> concatMap (bindings env) from
 
-guardOcc :: Env -> Scope -> Guard -> [Occurrence]
+guardOcc :: Model -> Scope -> Guard -> [Occurrence]
 guardOcc env scope = \case
   GuardPattern p -> pattern env scope p
   GuardCompare _ a b -> operand a <> operand b
@@ -201,14 +170,14 @@ guardOcc env scope = \case
       OperandLiteral _ _ -> []
       OperandVariant p -> fst (path env p)
 
-expr :: Env -> Scope -> Expr -> [Occurrence]
+expr :: Model -> Scope -> Expr -> [Occurrence]
 expr env scope = \case
   ExprName n -> [value scope n]
   ExprLit _ _ -> []
-  ExprConst n -> [use KConst n (M.lookup (nameText n) (envConsts env))]
+  ExprConst n -> [use KConst n (constName <$> M.lookup (nameText n) (modelConsts env))]
   ExprBin _ _ a b -> expr env scope a <> expr env scope b
 
-pattern :: Env -> Scope -> Pattern -> [Occurrence]
+pattern :: Model -> Scope -> Pattern -> [Occurrence]
 pattern env scope = \case
   PatternPath p args -> fst (path env p) <> concatMap self args
   PatternElement p key args ->
@@ -226,7 +195,7 @@ pattern env scope = \case
 
 -- | An alternative of @S.{...}@, written from @S@: its path starts at the
 -- type @S@ is at. Its arguments are patterns of their own.
-alternative :: Env -> Scope -> Here -> Pattern -> [Occurrence]
+alternative :: Model -> Scope -> Here -> Pattern -> [Occurrence]
 alternative env scope here = \case
   PatternPath p args -> fst (segments env here (toList p)) <> concatMap (pattern env scope) args
   PatternAlts p alts ->
@@ -236,62 +205,24 @@ alternative env scope here = \case
   PatternPrimed _ p -> alternative env scope here p
   p -> pattern env scope p
 
--- | The type a path is at: the body of a named type, or an inline payload.
--- 'Nothing' when it isn't known.
-type Here = Maybe TypeExpr
+-- | The occurrences of a path, and the type it is at (see 'resolvePath').
+-- A head that doesn't resolve is taken for a type; a later name, for a
+-- variant.
+path :: Model -> NonEmpty Name -> ([Occurrence], Here)
+path env p = case resolvePath env p of
+  (h : rest, here) -> (refOcc KType h : map (refOcc KVariant) rest, here)
+  ([], here) -> ([], here)
 
-typeBody :: Env -> Name -> Here
-typeBody env n = M.lookup (nameText n) (envTypes env) >>= snd
+segments :: Model -> Here -> [Name] -> ([Occurrence], Here)
+segments env here ns =
+  let (refs, here') = resolveFrom env here ns in (map (refOcc KVariant) refs, here')
 
--- | Resolves a path from left to right. The head is a type, or a constant
--- when it names one; each later name is resolved by 'segment'.
-path :: Env -> NonEmpty Name -> ([Occurrence], Here)
-path env (h :| rest) = (o : os, here')
-  where
-    (o, here) = case M.lookup (nameText h) (envTypes env) of
-      Just (d, body) -> (use KType h (Just d), body)
-      Nothing -> case M.lookup (nameText h) (envConsts env) of
-        Just d -> (use KConst h (Just d), Nothing)
-        Nothing -> case uniqueVariant env h of
-          Just (d, payload) -> (use KVariant h (Just d), payload)
-          Nothing -> (use KType h Nothing, Nothing)
-    (os, here') = segments env here rest
-
-segments :: Env -> Here -> [Name] -> ([Occurrence], Here)
-segments _ here [] = ([], here)
-segments env here (n : ns) = (o : os, here'')
-  where
-    (o, here') = segment env here n
-    (os, here'') = segments env here' ns
-
--- | A name after a dot: a variant of the sum the path is at; else a type
--- of that name; else the one variant with that name in the spec.
-segment :: Env -> Here -> Name -> (Occurrence, Here)
-segment env here n =
-  case variantOf (10 :: Int) here of
-    Just (d, payload) -> (use KVariant n (Just d), payload)
-    Nothing -> case M.lookup (nameText n) (envTypes env) of
-      Just (d, body) -> (use KType n (Just d), body)
-      Nothing -> case uniqueVariant env n of
-        Just (d, payload) -> (use KVariant n (Just d), payload)
-        Nothing -> (use KVariant n Nothing, Nothing)
-  where
-    -- Follows newtypes (T = A) to the sum, a few at most, as they may
-    -- form a cycle.
-    variantOf depth = \case
-      Just (TypeSum vs) ->
-        listToMaybe
-          [ (variantName v, variantPayload v)
-          | v <- vs
-          , nameText (variantName v) == nameText n
-          ]
-      Just (TypeTerm (TermName t)) | depth > 0 -> variantOf (depth - 1) (typeBody env t)
-      _ -> Nothing
-
-uniqueVariant :: Env -> Name -> Maybe (Name, Maybe TypeExpr)
-uniqueVariant env n = case M.lookup (nameText n) (envVariants env) of
-  Just [v] -> Just v
-  _ -> Nothing
+refOcc :: Kind -> (Name, Ref) -> Occurrence
+refOcc unknown (n, ref) = case ref of
+  RefType d -> use KType n (Just d)
+  RefVariant v -> use KVariant n (Just (variantName (variantInfo v)))
+  RefConst c -> use KConst n (Just (constName c))
+  RefUnknown -> use unknown n Nothing
 
 -- | The outline: every atomic and definition, in source order. A sum
 -- lists its variants. A definition's range runs from its name to its

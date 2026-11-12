@@ -2,12 +2,14 @@
 module SumSpec
   ( module SumSpec.Syntax
   , module SumSpec.Check
+  , module SumSpec.Model
   , module SumSpec.Parser
   , module SumSpec.Pretty
   , module SumSpec.Version
   ) where
 
 import SumSpec.Check
+import SumSpec.Model
 import SumSpec.Parser
 import SumSpec.Pretty
 import SumSpec.Syntax

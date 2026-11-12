@@ -1,0 +1,91 @@
+types
+  App : product of Page, Settings, BatteryCharge
+  Area : newtype of Hectares
+  At : newtype of Timestamp
+  BatteryCharge : atomic __float
+  Boundary : newtype of Ring
+  BreakPoint : newtype of Point
+  Distance : newtype of Meters
+  FailureReason : atomic
+  Flight : sum of Arming, Flying, Failed
+  Hectares : atomic
+  Marking : sum of Obstacle, RoundObstacle, PowerLine, NonSprayArea, MarkPoint
+  Markings : list of Marking
+  Meters : atomic
+  Mission : product of MissionName, At, Area, Distance, MissionState, Plot
+  MissionName : newtype of Text
+  MissionState : sum of NotStarted, Completed, Stopped
+  MissionSummaries : list of MissionSummary
+  MissionSummary : product of MissionName, At, Area, Distance, MissionState
+  Missions : list of Mission
+  PMode : sum of JustMap, Plot, Flight, ShowMission
+  Page : sum of Home, Plan, Devices
+  Path : sum of Partial, Total
+  Plot : sum of Empty, Drawn
+  PlotOrigin : sum of Draft, Editing
+  Point : atomic
+  Points : list of Point
+  Ring : sum of Partial, Closeable, Enclosed
+  Settings : atomic
+  Spot : newtype of Point
+  StopReason : sum of Commanded, BatteryLow, LinkLost
+  Text : atomic
+  Timestamp : atomic
+variants
+  Arming : Flight
+  BatteryLow : StopReason
+  Closeable : Ring
+  Commanded : StopReason
+  Completed : MissionState
+  Devices : Page
+  Draft : PlotOrigin
+  Drawn : Plot
+  Editing : PlotOrigin
+  Empty : PMode.ShowMission.List
+  Empty : Plot
+  Enclosed : Ring
+  Failed : Flight
+  Flight : PMode
+  Flying : Flight
+  Home : Page
+  JustMap : PMode
+  LinkLost : StopReason
+  List : PMode.ShowMission
+  MarkPoint : Marking
+  NonEmpty : PMode.ShowMission.List
+  NonSprayArea : Marking
+  NotStarted : MissionState
+  Obstacle : Marking
+  Partial : Ring
+  Partial : Path
+  Plan : Page
+  Plot : PMode
+  PowerLine : Marking
+  RoundObstacle : Marking
+  Selected : PMode.ShowMission
+  ShowMission : PMode
+  Stopped : MissionState
+  Total : Path
+constants
+  MinTakeoffCharge : BatteryCharge
+events
+  batteryChanged : 1 transition
+  devicesBackToHome : 1 transition
+  dismissFailure : 1 transition
+  editMission : 1 transition
+  flightFailed : 1 transition
+  goToDevices : 1 transition
+  goToPlan : 1 transition
+  landed : 1 transition
+  newPlot : 2 transitions
+  planBackToHome : 1 transition
+  selectMission : 1 transition
+  showMission : 1 transition
+  startFlight : 1 transition
+  takeOff : 1 transition
+annotations
+  @control
+  @default
+  @effect
+  @status
+root App

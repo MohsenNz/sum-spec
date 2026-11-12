@@ -81,8 +81,8 @@ trans2 :: Z(Y.V1 * C) -> Z(Y.V2 * C)
 
 Runs the language server on stdin and stdout, for an editor to start. It
 shows every parse error, or else every error and warning of the checker,
-as you edit, and gives the outline, go to definition, references and
-semantic highlighting. For Neovim, see the
+as you edit, and gives the outline, go to definition, references, hover,
+completion and semantic highlighting. For Neovim, see the
 [sumspec.nvim](https://github.com/MohsenNz/sumspec.nvim) plugin.
 
 ## Running the tests
@@ -91,9 +91,10 @@ semantic highlighting. For Neovim, see the
 cabal test
 ```
 
-The tests are golden tests over two corpora of small specs:
-`test/parse/` (the canonical form or the parse error) and `test/check/`
-(`OK` or the type errors). The example specs are cases in both. To add
+The tests are golden tests over three corpora of small specs:
+`test/parse/` (the canonical form or the parse error), `test/check/`
+(`OK` or the type errors) and `test/model/` (the resolved model). The
+example specs are cases in each. To add
 or update cases, run `cabal test --test-options=--accept`, then read
 every new or changed golden file before keeping it.
 
@@ -112,9 +113,11 @@ fourmolu -i src app lsp test
 - `src/SumSpec/Lexer.hs`, `src/SumSpec/Parser.hs`: tokens, and one
   parser per rule in `spec/grammar.ebnf`.
 - `src/SumSpec/Pretty.hs`: prints an AST back as canonical source.
+- `src/SumSpec/Model.hs`: the resolved model of a spec.
 - `src/SumSpec/Check.hs`: the type checker.
 - `lsp/SumSpec/Lsp.hs`: the language server, an internal library, with
-  `lsp/SumSpec/Lsp/` (positions, the index of names, semantic tokens).
+  `lsp/SumSpec/Lsp/` (positions, the index of names, semantic tokens,
+  hover, completion).
 - `app/Main.hs`: the `sumspec` command-line tool.
 - `test/Main.hs`: the golden test runner.
 - `test/lsp/Main.hs`: the language server tests.

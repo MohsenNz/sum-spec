@@ -7,6 +7,9 @@
 -- Parsing the output gives the same AST again, apart from positions.
 module SumSpec.Pretty
   ( renderSpec
+  , renderDefinition
+  , renderAtomic
+  , renderPattern
   , renderLiteral
   , renderArith
   , renderValue

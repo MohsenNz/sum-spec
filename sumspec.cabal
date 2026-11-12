@@ -34,6 +34,7 @@ library
   exposed-modules:
     SumSpec
     SumSpec.Check
+    SumSpec.Model
     SumSpec.Parser
     SumSpec.Pretty
     SumSpec.Syntax
@@ -52,6 +53,8 @@ library sumspec-lsp
   hs-source-dirs:  lsp
   exposed-modules: SumSpec.Lsp
   other-modules:
+    SumSpec.Lsp.Completion
+    SumSpec.Lsp.Hover
     SumSpec.Lsp.Index
     SumSpec.Lsp.Position
     SumSpec.Lsp.Tokens

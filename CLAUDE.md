@@ -80,6 +80,10 @@ the executable (`app/`) and two test suites:
 - `src/SumSpec/Pretty.hs`: prints an AST back as canonical SumSpec source.
 - `src/SumSpec/Version.hs`: language versions and the newest one this
   sumspec implements (`latestVersion`).
+- `src/SumSpec/Model.hs`: the resolved model of a spec (types, variants
+  and their sums, constants, events, annotations) and path resolution.
+  Lenient: it works on partial specs. The language server reads specs
+  through it; the checker builds its environment from it.
 - `src/SumSpec/Check.hs`: the type checker. It validates the AST and
   returns every error, sorted by position.
 - `src/SumSpec.hs`: re-exports the public modules.
@@ -95,8 +99,12 @@ the executable (`app/`) and two test suites:
   - `lsp/SumSpec/Lsp/Index.hs`: every name in a spec, what it names and
     where that's defined; the outline.
   - `lsp/SumSpec/Lsp/Tokens.hs`: semantic tokens.
-- `test/Main.hs`: the golden test runner; `test/parse/` and
-  `test/check/`: the corpora.
+  - `lsp/SumSpec/Lsp/Hover.hs`: hover, and the comments beside a
+    definition.
+  - `lsp/SumSpec/Lsp/Completion.hs`: completion, from the text before
+    the cursor.
+- `test/Main.hs`: the golden test runner; `test/parse/`, `test/check/`
+  and `test/model/`: the corpora.
 - `test/lsp/Main.hs`: the language server tests (`lsp-test`).
 - `editors/`: editor setup. The Neovim plugin, with the Vim syntax file,
   is a separate repository, `sumspec.nvim` (locally `../sumspec.nvim`).
@@ -116,9 +124,9 @@ maps and sets.
 
 ## Testing
 
-Tests run against two corpora of small spec files. Each `foo.sumspec`
+Tests run against three corpora of small spec files. Each `foo.sumspec`
 has a `foo.golden` next to it holding the expected output. Invalid files
-are named `error-*.sumspec`. The example specs are cases in both, listed
+are named `error-*.sumspec`. The example specs are cases in each, listed
 in `examples` in `test/Main.hs`, with golden files named
 `example-<name>.golden` in each directory.
 
@@ -126,6 +134,8 @@ in `examples` in `test/Main.hs`, with golden files named
   error. Each file is checked twice: once as parsed, and once after
   printing and parsing again (round trip), against the same golden file.
 - `test/check/`: the golden file is `OK`, or the type errors.
+- `test/model/`: the golden file is the resolved model (`renderModel`)
+  of the definitions that parse.
 
 To add or update cases, run `nix develop -c cabal test
 --test-options=--accept`, then read every new or changed golden file

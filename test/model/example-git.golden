@@ -1,0 +1,48 @@
+types
+  BranchName : atomic
+  Branches : list of Tip by BranchName
+  FileState : sum of Untracked, Unmodified, Modified, Staged, StagedAndModified, Conflicted
+  Files : list of FileState by Path
+  Hash : atomic
+  Head : sum of Unborn, OnBranch, Detached
+  MergeHead : newtype of Hash
+  Onto : newtype of Hash
+  Operation : sum of Idle, Merging, Rebasing
+  Path : atomic
+  Remaining : list of Hash
+  Repository : sum of Uninitialized, Initialized
+  Tip : newtype of Hash
+variants
+  Conflicted : FileState
+  Detached : Head
+  Idle : Operation
+  Initialized : Repository
+  Merging : Operation
+  Modified : FileState
+  OnBranch : Head
+  Rebasing : Operation
+  Staged : FileState
+  StagedAndModified : FileState
+  Unborn : Head
+  Uninitialized : Repository
+  Unmodified : FileState
+  Untracked : FileState
+constants
+events
+  add : 3 transitions
+  checkoutCommit : 1 transition
+  commit : 3 transitions
+  edit : 2 transitions
+  init : 1 transition
+  merge : 3 transitions
+  mergeAbort : 2 transitions
+  mergeContinue : 1 transition
+  rebase : 1 transition
+  rebaseAbort : 1 transition
+  rebaseContinue : 2 transitions
+  resolve : 1 transition
+  restore : 2 transitions
+  switch : 1 transition
+  unstage : 2 transitions
+annotations
+root Repository

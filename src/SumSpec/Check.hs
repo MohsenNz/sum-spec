@@ -24,6 +24,7 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
+import SumSpec.Model (Model (..), model)
 import SumSpec.Pretty (renderArith, renderLiteral, renderValue)
 import SumSpec.Syntax
 import Text.Megaparsec (SourcePos (..), initialPos, mkPos, sourcePosPretty, unPos)
@@ -93,7 +94,7 @@ checkSpec file source spec =
     root = case inits of
       (_, p) : _ | isKnownType env (patternKey p) -> Just (patternKey p)
       _ -> Nothing
-    env = mkEnv spec typeDefs consts
+    env = mkEnv (model spec)
 
 -- | Renders errors like parse errors: position, source line, caret and
 -- message, with a blank line between errors.
@@ -121,9 +122,9 @@ renderCheckErrors source = unlines . map render
 
 -- ---------- Environment ----------
 
--- | The declared atomics, the defined types and the named constants. A type
--- or a constant defined twice keeps its first definition; the second is
--- reported as an error.
+-- | The declared atomics, the defined types and the named constants, from
+-- the 'Model'. A name defined twice keeps its first definition; the second
+-- is reported as an error.
 data Env = Env
   { envAtomics :: Map Text (Maybe Primitive)
   -- ^ The atomics, with the base of each.
@@ -133,19 +134,12 @@ data Env = Env
   -- not types: 'isKnownType' does not see them.
   }
 
-mkEnv :: Spec -> [TypeDef] -> [ConstDef] -> Env
-mkEnv spec defs consts =
+mkEnv :: Model -> Env
+mkEnv m =
   Env
-    { envAtomics =
-        Map.fromList [(nameText (atomicName a), atomicBase a) | a <- specAtomics spec]
-    , envTypes =
-        Map.fromListWith
-          (\_ first -> first)
-          [(nameText (typeDefName d), typeDefBody d) | d <- defs]
-    , envConsts =
-        Map.fromListWith
-          (\_ first -> first)
-          [(nameText (constName c), c) | c <- consts]
+    { envAtomics = Map.map atomicBase (modelAtomics m)
+    , envTypes = Map.map typeDefBody (modelTypeDefs m)
+    , envConsts = modelConsts m
     }
 
 isKnownType :: Env -> Text -> Bool

@@ -1,0 +1,50 @@
+types
+  App : product of Screen, NewTodo, Filter
+  ClearCompleted : sum of Hidden, Shown
+  Completion : sum of Active, Completed
+  Count : atomic __int
+  EditText : newtype of Text
+  Filter : sum of All, Active, Completed
+  Footer : product of ItemsLeft, ClearCompleted
+  ItemsLeft : newtype of Count
+  NewTodo : sum of Blank, Typing
+  RowMode : sum of Viewing, Editing
+  Screen : sum of NoTodos, WithTodos
+  Text : atomic __text
+  Title : newtype of Text
+  Todo : product of Title, Completion, RowMode
+  TodoId : atomic
+  Todos : list of Todo by TodoId
+  ToggleAll : sum of NotAllDone, AllDone
+variants
+  Active : Completion
+  Active : Filter
+  All : Filter
+  AllDone : ToggleAll
+  Blank : NewTodo
+  Completed : Completion
+  Completed : Filter
+  Editing : RowMode
+  Hidden : ClearCompleted
+  NoTodos : Screen
+  NotAllDone : ToggleAll
+  Shown : ClearCompleted
+  Typing : NewTodo
+  Viewing : RowMode
+  WithTodos : Screen
+constants
+events
+  addTodo : 2 transitions
+  cancelEditing : 1 transition
+  clearCompleted : 2 transitions
+  deleteTodo : 2 transitions
+  finishEditing : 1 transition
+  showActive : 1 transition
+  showAll : 1 transition
+  showCompleted : 1 transition
+  startEditing : 1 transition
+  startTyping : 1 transition
+  toggleAll : 2 transitions
+  toggleTodo : 2 transitions
+annotations
+root App

@@ -1,0 +1,28 @@
+types
+  Alias : newtype of Inner
+  App : product of Mode, Charge
+  Charge : atomic __int
+  Inner : newtype of Mode
+  Light : sum of On, Off
+  Mode : sum of Idle, Flying
+  Point : atomic
+  Switch : sum of On, Off
+variants
+  Airborne : Mode.Flying
+  Field : Mode.Flying.Landed
+  Flying : Mode
+  Idle : Mode
+  Landed : Mode.Flying
+  Off : Light
+  Off : Switch
+  On : Light
+  On : Switch
+  Spot : Mode.Flying.Landed
+constants
+  Low : Charge
+events
+  go : 2 transitions
+  stop : 1 transition, not listed
+annotations
+  @control
+root App

@@ -7,8 +7,12 @@
       and transitions of one event, on one type, whose sources overlap.
 - [x] A warning for transitions that can never happen (their source is
       never reached)? `reachable` in `Check.hs` already knows them.
-- [ ] Should the checker build a resolved model of the spec (e.g.
-      `SumSpec.Model`) for code generators to consume?
+- [x] Should the checker build a resolved model of the spec (e.g.
+      `SumSpec.Model`) for code generators to consume? Yes:
+      `SumSpec.Model`, lenient; the checker builds its environment from it.
+- [ ] Should the checker resolve paths through `SumSpec.Model` too
+      (`typeNode`, `resolve`, `pathBound` in `Check.hs`), so there is one
+      resolver?
 
 ### Closer to an EFSM (`spec/efsm-gaps.md`)
 Decide on each gap, one at a time, then move it to `proposals.md`:
@@ -72,7 +76,7 @@ The plan is in `docs/lsp.md`. In order:
       file.
 - [ ] VS Code: an extension with a TextMate grammar (also for Shiki,
       Sublime and GitHub) and `vscode-languageclient`.
-- [ ] A resolved model (`SumSpec.Model`), then hover and completion.
+- [x] A resolved model (`SumSpec.Model`), then hover and completion.
 - [ ] Formatting, once the AST keeps comments.
 - [ ] {Optional, later} A tree-sitter grammar.
 

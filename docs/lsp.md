@@ -2,8 +2,8 @@
 
 Notes for LSP development; the steps are tracked in `TODO.md` under
 "Editor support". Built so far: parse recovery, diagnostics, the
-outline, go to definition, references and semantic tokens (features 1
-to 3), and the Neovim plugin. See "What's built" below. Until errors
+outline, go to definition, references, semantic tokens, hover and
+completion (features 1 to 4), the resolved model, and the Neovim plugin. See "What's built" below. Until errors
 carry ranges, a diagnostic's range is the token at its position
 (`tokenRange` in `lsp/SumSpec/Lsp/Position.hs`).
 
@@ -103,6 +103,50 @@ bind it; a use (in the source, the guard, the target, an element key
 `L[x]` or a shared path's key) points at the first binding with the
 same text.
 
+### The model (`src/SumSpec/Model.hs`)
+
+`model :: Spec -> Model`, in the core library: every type with its
+shape (atomic, sum, product, newtype, list), every variant with the sum
+it belongs to (`Mode.Flying.Landed` for one in an inline payload), the
+constants, the events (and whether `__events` lists them), the declared
+annotations and the root type. A name defined twice keeps its first
+definition. `resolvePath` and `resolveFrom` resolve paths by the rule
+under "The index" below; `variantsAt` gives the variants of the sum a
+path is at, through newtypes. The index, hover and completion read the
+spec through it, and the checker builds its `Env` from it (its own path
+resolution, with its errors, is separate). `renderModel` prints it for
+the golden corpus `test/model/`.
+
+### Hover (`lsp/SumSpec/Lsp/Hover.hs`)
+
+Markdown with a `sumspec` code block: a type's definition (printed by
+`Pretty`), a variant's path and the sum it belongs to, a constant's
+definition, an event's input and its number of transitions (and whether
+`__events` lists it), an annotation, a value's type (`T` of `T#x`).
+Then the comments about the definition, read from the source since the
+AST has none: the comment lines just above it at its indentation, and
+the comment after it on its line with the comment lines under that one
+at the same column. An event also gets the comment beside its
+`__events` entry.
+
+### Completion (`lsp/SumSpec/Lsp/Completion.hs`)
+
+The line being typed seldom parses, so the context is the text before
+the cursor, and the names come from the model of what parses:
+
+- in a comment or a string: nothing;
+- inside `__events { }`: the events defined but not listed; inside the
+  other header blocks, nothing;
+- after `@`: the declared annotations, with their comments;
+- after `Path.`: the variants of the sum the path is at (through
+  newtypes), or the factors of a product;
+- at the start of a line: `__init`, `__annotations`, and the events
+  listed but not yet defined;
+- elsewhere: every type and constant, and the `#x` names written so far
+  in the definition being typed (read from its text).
+
+Trigger characters are `.` and `@`; the editor filters by the prefix.
+
 ### Semantic tokens (`lsp/SumSpec/Lsp/Tokens.hs`)
 
 A lexical scan finds comments, strings, numbers, `__` words, operators,
@@ -128,11 +172,8 @@ tests.
 2. **Parse recovery.** Done; see "Recovery" above. Still open: the
    checker should accept the partial AST, checking only the definitions
    that parsed without errors about the names they define.
-3. **A resolved model, `SumSpec.Model`.** Hover, go-to-definition on a
-   path (`PMode.ShowMission.List`) and completion all need "what does
-   this name refer to". The checker computes this internally today;
-   exposing it also answers the open question in `TODO.md` ("Should the
-   checker build a resolved model for code generators to consume?").
+3. **A resolved model, `SumSpec.Model`.** Done; see "The model" above.
+   Still open: the checker's own path resolution could move onto it.
 4. **Comments in the AST** (only for formatting, step 5 below).
    `Pretty` drops comments, so it can't reformat a real file yet.
 

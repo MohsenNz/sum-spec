@@ -170,6 +170,21 @@ release" in `VERSIONING.md`).
   [sumspec.nvim](https://github.com/MohsenNz/sumspec.nvim): the
   filetype, the server's configuration, a fallback syntax file and
   spell checking in comments only.
+- The language server shows a hover for each name: a type's definition,
+  the sum a variant belongs to, a constant's value, an event's input and
+  number of transitions, a value's type, with the comments written above
+  or beside the definition (an annotation's comment in `__annotations`,
+  an event's in `__events`). It completes annotations after `@`, the
+  variants of a sum (or the factors of a product) after `Path.`, the
+  events not yet listed inside `__events`, and otherwise types,
+  constants and the values the transition names, also on a line that
+  doesn't parse yet.
+- The library has a resolved model of a spec, `SumSpec.Model`: every
+  type with its shape, each variant with the sum it belongs to,
+  constants, events, annotations and the root type, and how a path
+  resolves. It's lenient, so it works on a spec that doesn't type-check
+  or holds only the definitions that parse; code generators can read a
+  spec through it.
 - The parser goes on after a definition that doesn't parse: it skips to
   the next line that starts in the first column and reads on, so
   `sumspec parse`, `sumspec check` and the language server report every

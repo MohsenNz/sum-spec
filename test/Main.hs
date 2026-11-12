@@ -3,6 +3,8 @@
 -- test/parse/: the golden file next to each case holds the spec printed
 -- back in canonical form, or the parse error.
 -- test/check/: the golden file holds "OK", or the type errors.
+-- test/model/: the golden file holds the model of the spec (see
+-- 'renderModel'), built from the definitions that parse.
 -- The example specs in example/ are cases in both, with their golden
 -- files in those directories.
 --
@@ -17,8 +19,11 @@ import Data.Text.Encoding qualified as T
 import Data.Text.IO qualified as T
 import SumSpec
   ( checkSpec
+  , model
   , parseSpec
+  , parseSpecPartial
   , renderCheckErrors
+  , renderModel
   , renderParseError
   , renderSpec
   )
@@ -30,12 +35,14 @@ main :: IO ()
 main = do
   parseCases <- corpus "test/parse"
   checkCases <- corpus "test/check"
+  modelCases <- corpus "test/model"
   defaultMain $
     testGroup
       "sumspec"
       [ testGroup "parse" [golden parseOnce c | c <- parseCases]
       , testGroup "round trip" [golden parseTwice c | c <- parseCases]
       , testGroup "check" [golden check c | c <- checkCases]
+      , testGroup "model" [golden modelOf c | c <- modelCases]
       ]
 
 -- | Each case is a spec file and its golden file. The example specs are
@@ -74,3 +81,10 @@ check file source = case parseSpec file source of
   Right spec -> case checkSpec file source spec of
     [] -> T.pack "OK\n"
     errors -> T.pack (renderCheckErrors source errors)
+
+-- | The model of the definitions that parse, or the parse error of the
+-- header.
+modelOf :: FilePath -> Text -> Text
+modelOf file source = case parseSpecPartial file source of
+  Left err -> T.pack (renderParseError err)
+  Right (spec, _) -> renderModel (model spec)

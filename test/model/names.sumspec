@@ -1,0 +1,36 @@
+-- The model of a small spec: inline payloads, a newtype chain, a
+-- constant, a name defined twice, a variant name in two sums, and an
+-- event missing from __events.
+__atomics {
+  Charge = __int
+  Point
+}
+
+__events { go }
+
+__annotations {
+  @control
+}
+
+App = Mode * Charge
+
+Mode
+  = Idle
+  | Flying (Landed (Spot | Field) | Airborne)
+
+Alias = Inner
+Inner = Mode
+
+Light = On | Off
+Switch = On | Off
+
+Mode = Duplicate
+
+Low = Charge(15)
+
+__init :: App(Mode.Idle * Charge(100))
+
+go :: App(Mode.Idle) -> App(Mode.Flying.Airborne)
+   :: App(Mode.Flying.Airborne) -> App(Mode.Idle)
+
+stop :: App(Mode.Flying) -> App(Mode.Idle)
