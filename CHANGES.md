@@ -175,7 +175,7 @@ release" in `VERSIONING.md`).
   number of transitions, a value's type, with the comments written above
   or beside the definition (an annotation's comment in `__annotations`,
   an event's in `__events`). It completes annotations after `@`, the
-  variants of a sum (or the factors of a product) after `Path.`, the
+  variants of a sum after `Path.` (only paths the checker accepts), the
   events not yet listed inside `__events`, and otherwise types,
   constants and the values the transition names, also on a line that
   doesn't parse yet.

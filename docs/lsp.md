@@ -110,11 +110,20 @@ shape (atomic, sum, product, newtype, list), every variant with the sum
 it belongs to (`Mode.Flying.Landed` for one in an inline payload), the
 constants, the events (and whether `__events` lists them), the declared
 annotations and the root type. A name defined twice keeps its first
-definition. `resolvePath` and `resolveFrom` resolve paths by the rule
-under "The index" below; `variantsAt` gives the variants of the sum a
-path is at, through newtypes. The index, hover and completion read the
-spec through it, and the checker builds its `Env` from it (its own path
-resolution, with its errors, is separate). `renderModel` prints it for
+definition.
+
+`step` is the language's rule for a name after a dot: a variant of the
+sum the path is at, or a `StepError` (not a variant of it, a newtype of
+a sum, no variants). It's written only there: the checker's `resolve`,
+constant and guard variants and reachability call it and word the
+errors, and completion offers only what it accepts (`variantsAt`).
+`resolvePath` and `resolveFrom` are lenient, for navigation on code that
+doesn't check: on a `StepError` they try the sum behind newtypes, then a
+type of that name, then the one variant with that name (see "The index"
+below). The test group "model agrees with the checker" checks that, on
+every spec the checker accepts, every path resolves and the lenient
+reading equals `step`'s. The index, hover and completion read the spec
+through the model, and the checker builds its `Env` from it. `renderModel` prints it for
 the golden corpus `test/model/`.
 
 ### Hover (`lsp/SumSpec/Lsp/Hover.hs`)
@@ -138,8 +147,9 @@ the cursor, and the names come from the model of what parses:
 - inside `__events { }`: the events defined but not listed; inside the
   other header blocks, nothing;
 - after `@`: the declared annotations, with their comments;
-- after `Path.`: the variants of the sum the path is at (through
-  newtypes), or the factors of a product;
+- after `Path.`: the variants of the sum the path is at, by `step`: only
+  what the checker accepts, so nothing after a newtype of a sum or a
+  product;
 - at the start of a line: `__init`, `__annotations`, and the events
   listed but not yet defined;
 - elsewhere: every type and constant, and the `#x` names written so far
@@ -173,7 +183,7 @@ tests.
    checker should accept the partial AST, checking only the definitions
    that parsed without errors about the names they define.
 3. **A resolved model, `SumSpec.Model`.** Done; see "The model" above.
-   Still open: the checker's own path resolution could move onto it.
+   The checker's rule for a path step is `step` in it.
 4. **Comments in the AST** (only for formatting, step 5 below).
    `Pretty` drops comments, so it can't reformat a real file yet.
 

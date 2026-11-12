@@ -10,7 +10,6 @@ module SumSpec.Lsp.Completion
 
 import Data.Char (isAlphaNum)
 import Data.List (nub)
-import Data.List.NonEmpty (nonEmpty)
 import Data.Map.Strict qualified as M
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
@@ -52,10 +51,13 @@ completions source spec m (Position line character) =
       [ item CompletionItemKind_Property ("@" <> name) name Nothing (doc n)
       | (name, n) <- M.toList (modelAnnotations m)
       ]
+    -- Only what the checker accepts: the head is a type, each name after
+    -- it a variant ('step'), and what follows a variant of the sum there.
     AfterDot p -> fromMaybe [] $ do
-      names <- nonEmpty [Name (initialPos "") t | t <- p]
-      let (refs, here) = resolvePath m names
-      if any (isUnknown . snd) refs then Nothing else Just (members here)
+      h : rest <- Just [Name (initialPos "") t | t <- p]
+      start <- M.lookup (nameText h) (modelTypes m)
+      here <- either (const Nothing) Just (steps m (typeInfoBody start) rest)
+      Just (members here)
     InBlock "__events" ->
       [ item CompletionItemKind_Event name name Nothing (doc (eventName (eventInfo e)))
       | (name, e) <- M.toList (modelEvents m)
@@ -79,24 +81,15 @@ completions source spec m (Position line character) =
     before = takeUtf16 (fromIntegral character) current
     blocks = reverse (take lineNo sourceLines)
     doc n = docComment source (namePos n)
-    isUnknown = \case
-      RefUnknown -> True
-      _ -> False
-    members here = case here of
-      Just (TypeProduct fs) ->
-        [ typeItem t
-        | TermName n <- map factorTerm fs
-        , Just t <- [M.lookup (nameText n) (modelTypes m)]
-        ]
-      _ ->
-        [ item
-            CompletionItemKind_EnumMember
-            (nameText (variantName (variantInfo v)))
-            (nameText (variantName (variantInfo v)))
-            (Just ("variant of " <> variantOwnerPath v))
-            (doc (variantName (variantInfo v)))
-        | v <- variantsAt m here
-        ]
+    members here =
+      [ item
+          CompletionItemKind_EnumMember
+          (nameText (variantName (variantInfo v)))
+          (nameText (variantName (variantInfo v)))
+          (Just ("variant of " <> variantOwnerPath v))
+          (doc (variantName (variantInfo v)))
+      | v <- variantsAt m here
+      ]
     types = map typeItem (M.elems (modelTypes m))
     typeItem t =
       item

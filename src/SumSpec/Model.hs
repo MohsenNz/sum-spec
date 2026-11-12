@@ -4,9 +4,12 @@
 -- | A resolved model of a spec: every name it defines, what each one is,
 -- and how a path such as @Page.Plan.Draft@ resolves.
 --
--- The model is lenient. It is built from any spec, one that doesn't
--- type-check or that holds only the definitions that parsed, and a name
--- that doesn't resolve is kept as 'RefUnknown'. When a name is defined
+-- The rule for a name after a dot is 'step', the one place it is
+-- written: the checker follows it, reporting a 'StepError' in its own
+-- words. The rest of the model is lenient. It is built from any spec,
+-- one that doesn't type-check or that holds only the definitions that
+-- parsed; 'resolvePath' tries more when 'step' finds nothing, and keeps a
+-- name that doesn't resolve as 'RefUnknown'. When a name is defined
 -- twice (an error the checker reports), the first definition wins. The
 -- language server and code generators read the spec through it.
 module SumSpec.Model
@@ -16,13 +19,17 @@ module SumSpec.Model
   , VariantInfo (..)
   , EventInfo (..)
   , Ref (..)
+  , StepError (..)
   , Here
   , model
   , typeShape
   , typeBodyOf
+  , step
+  , steps
+  , variantsAt
+  , variantEntry
   , resolvePath
   , resolveFrom
-  , variantsAt
   , variantOwnerPath
   , renderModel
   ) where
@@ -181,10 +188,60 @@ typeShape = \case
 typeBodyOf :: Model -> Name -> Here
 typeBodyOf m n = M.lookup (nameText n) (modelTypes m) >>= typeInfoBody
 
--- | Resolves a path from left to right. The head is a type, else a
--- constant, else the one variant with that name in the spec; each later
--- name is resolved as in 'resolveFrom'. Gives what each name refers to,
--- and the type the whole path is at.
+-- | Why a name after a dot is not a variant where the path is.
+data StepError
+  = -- | The path is at a sum with no variant of that name.
+    NotAVariant
+  | -- | The path is at a newtype of this sum (@T = S@). It carries the
+    -- sum's variants but has none of its own: they're written @T(S.V)@.
+    NewtypeOfSum Name
+  | -- | The path is at a type without variants: a product, a list, an
+    -- atomic, a newtype of one of those, or a variant without a payload.
+    NoVariants
+
+-- | The language's rule for a name after a dot: a variant of the sum the
+-- path is at, and nothing else. After it, the path is at the variant's
+-- payload. The checker reports a 'StepError' in its own words; the
+-- lenient 'resolveFrom' tries more on one.
+step :: Model -> Here -> Name -> Either StepError (VariantInfo, Here)
+step m here n = case here of
+  Just (TypeSum vs) -> case find ((== nameText n) . nameText . variantName) vs of
+    Just v -> Right (variantEntry m v, variantPayload v)
+    Nothing -> Left NotAVariant
+  Just (TypeTerm (TermName base))
+    | Just (TypeSum _) <- typeDefBody <$> M.lookup (nameText base) (modelTypeDefs m) ->
+        Left (NewtypeOfSum base)
+  _ -> Left NoVariants
+
+-- | 'step' along the names after a dot, from where the path is; the first
+-- that is not a variant there stops it.
+steps :: Model -> Here -> [Name] -> Either (Name, StepError) Here
+steps _ here [] = Right here
+steps m here (n : ns) = case step m here n of
+  Right (_, here') -> steps m here' ns
+  Left err -> Left (n, err)
+
+-- | The variants a name after a dot may be, by 'step': those of the sum
+-- the path is at. Empty when it isn't at a sum.
+variantsAt :: Model -> Here -> [VariantInfo]
+variantsAt m = \case
+  Just (TypeSum vs) -> map (variantEntry m) vs
+  _ -> []
+
+-- | The model's entry for a variant of the spec: the same name at the
+-- same place.
+variantEntry :: Model -> Variant -> VariantInfo
+variantEntry m v =
+  fromMaybe (VariantInfo v (variantName v) []) $
+    find
+      ((== variantName v) . variantName . variantInfo)
+      (M.findWithDefault [] (nameText (variantName v)) (modelVariants m))
+
+-- | Resolves a path from left to right, leniently, so that a path the
+-- checker rejects still finds what it most likely means. The head is a
+-- type, else a constant, else the one variant with that name in the
+-- spec; each later name is resolved by 'resolveFrom'. Gives what each
+-- name refers to, and the type the whole path is at.
 resolvePath :: Model -> NonEmpty Name -> ([(Name, Ref)], Here)
 resolvePath m (h :| rest) = ((h, ref) : refs, here')
   where
@@ -197,40 +254,30 @@ resolvePath m (h :| rest) = ((h, ref) : refs, here')
           Nothing -> (RefUnknown, Nothing)
     (refs, here') = resolveFrom m here rest
 
--- | Resolves the names after a dot, from the type the path is at. Each
--- one is a variant of the sum the path is at; else a type of that name;
--- else the one variant with that name in the spec. After a variant, the
--- path is at its payload.
+-- | Resolves the names after a dot, leniently. Each one is what 'step'
+-- finds; when that is nothing, a variant of the sum behind newtypes
+-- (@T = S@, a few at most, as they may form a cycle); else a type of that
+-- name; else the one variant with that name in the spec. After a
+-- variant, the path is at its payload.
 resolveFrom :: Model -> Here -> [Name] -> ([(Name, Ref)], Here)
 resolveFrom _ here [] = ([], here)
 resolveFrom m here (n : ns) = ((n, ref) : refs, here'')
   where
-    (ref, here') = case find ((== nameText n) . variantText) (variantsAt m here) of
-      Just v -> (RefVariant v, variantPayload (variantInfo v))
-      Nothing -> case M.lookup (nameText n) (modelTypes m) of
-        Just t -> (RefType (typeInfoName t), typeInfoBody t)
-        Nothing -> case uniqueVariant m n of
-          Just v -> (RefVariant v, variantPayload (variantInfo v))
-          Nothing -> (RefUnknown, Nothing)
+    (ref, here') = case step m here n of
+      Right (v, payload) -> (RefVariant v, payload)
+      Left _ -> case find ((== nameText n) . variantText) (behindNewtypes (10 :: Int) here) of
+        Just v -> (RefVariant v, variantPayload (variantInfo v))
+        Nothing -> case M.lookup (nameText n) (modelTypes m) of
+          Just t -> (RefType (typeInfoName t), typeInfoBody t)
+          Nothing -> case uniqueVariant m n of
+            Just v -> (RefVariant v, variantPayload (variantInfo v))
+            Nothing -> (RefUnknown, Nothing)
     (refs, here'') = resolveFrom m here' ns
-
--- | The variants of the sum a path is at, following newtypes (@T = A@) a
--- few steps at most, as they may form a cycle. Empty when it isn't at a
--- sum.
-variantsAt :: Model -> Here -> [VariantInfo]
-variantsAt m = go (10 :: Int)
-  where
-    go depth = \case
-      Just (TypeSum vs) -> map info vs
-      Just (TypeTerm (TermName t)) | depth > 0 -> go (depth - 1) (typeBodyOf m t)
+    behindNewtypes depth = \case
+      Just (TypeTerm (TermName t)) | depth > 0 -> case typeBodyOf m t of
+        b@(Just (TypeSum _)) -> variantsAt m b
+        b -> behindNewtypes (depth - 1) b
       _ -> []
-    -- The model's entry for this variant: the same name at the same
-    -- place.
-    info v =
-      fromMaybe (VariantInfo v (variantName v) []) $
-        find
-          ((== variantName v) . variantName . variantInfo)
-          (M.findWithDefault [] (nameText (variantName v)) (modelVariants m))
 
 variantText :: VariantInfo -> Text
 variantText = nameText . variantName . variantInfo

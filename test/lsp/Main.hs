@@ -213,10 +213,11 @@ completionTests =
       typing "Extra = A | B @" ==> ["@control"]
   , testCase "after a sum and a dot, its variants" $
       typing "go :: App(Mode." ==> ["Lit", "Off", "On"]
-  , testCase "through a newtype" $ typing "go :: Alias." ==> ["Lit", "Off", "On"]
+  , testCase "nothing after a newtype of a sum, which the checker rejects" $
+      typing "go :: Alias." ==> []
   , testCase "in an inline payload" $ typing "go :: Mode.Lit." ==> ["Bright", "Dim"]
-  , testCase "after a product and a dot, its factors" $
-      typing "go :: App." ==> ["Mode", "Sel"]
+  , testCase "nothing after a product, which has no variants" $
+      typing "go :: App." ==> []
   , testCase "after ::, the types and constants" $
       typing "go :: " ==> ["Alias", "App", "Id", "Max", "Mode", "Sel"]
   , testCase "in a transition, its values too" $

@@ -10,9 +10,12 @@
 - [x] Should the checker build a resolved model of the spec (e.g.
       `SumSpec.Model`) for code generators to consume? Yes:
       `SumSpec.Model`, lenient; the checker builds its environment from it.
-- [ ] Should the checker resolve paths through `SumSpec.Model` too
-      (`typeNode`, `resolve`, `pathBound` in `Check.hs`), so there is one
-      resolver?
+- [x] Should the checker resolve paths through `SumSpec.Model` too, so
+      there is one resolver? Yes, for the rule: `step` in
+      `SumSpec.Model` says what a name after a dot is. The checker's
+      `resolve`, constant and guard variants and reachability use it,
+      with their own messages; the lenient resolver adds its fallbacks on
+      top. A test checks they agree on every spec the checker accepts.
 
 ### Closer to an EFSM (`spec/efsm-gaps.md`)
 Decide on each gap, one at a time, then move it to `proposals.md`:

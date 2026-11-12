@@ -24,7 +24,7 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
-import SumSpec.Model (Model (..), model)
+import SumSpec.Model (Model (..), StepError (..), model, step)
 import SumSpec.Pretty (renderArith, renderLiteral, renderValue)
 import SumSpec.Syntax
 import Text.Megaparsec (SourcePos (..), initialPos, mkPos, sourcePosPretty, unPos)
@@ -132,6 +132,8 @@ data Env = Env
   , envConsts :: Map Text ConstDef
   -- ^ The named constants. They share their names with the types but are
   -- not types: 'isKnownType' does not see them.
+  , envModel :: Model
+  -- ^ For 'step', the rule for a name after a dot.
   }
 
 mkEnv :: Model -> Env
@@ -140,6 +142,7 @@ mkEnv m =
     { envAtomics = Map.map atomicBase (modelAtomics m)
     , envTypes = Map.map typeDefBody (modelTypeDefs m)
     , envConsts = modelConsts m
+    , envModel = m
     }
 
 isKnownType :: Env -> Text -> Bool
@@ -315,9 +318,7 @@ constValueErrors env (ConstDef _ ty value)
                   <> renderLiteral lit
                   <> " doesn't fit it"
             ]
-      ConstVariant v -> case Map.lookup (nameText ty) (envTypes env) of
-        Just (TypeSum variants) -> variantRefErrors variants ty v
-        _ -> [notASum "a constant variant" ty]
+      ConstVariant v -> variantRefErrors env "a constant variant" ty v
 
 -- | Whether a literal fits a value of this kind: an integer an @__int@ or a
 -- @__float@, a decimal only a @__float@, a string only a @__text@.
@@ -1159,28 +1160,25 @@ walk env names node at path args = case resolve env node at path of
 resolve :: Env -> Node -> Name -> [Name] -> Either [CheckError] (Node, Name)
 resolve env node at path = case path of
   [] -> Right (node, at)
-  v : rest -> case nodeBody node of
-    Just (TypeSum variants) ->
-      case find ((== nameText v) . nameText . variantName) variants of
-        Just (Variant _ payload _) ->
-          resolve env (Node (nodeLabel node <> "." <> nameText v) payload) v rest
-        Nothing -> Left [errorAt v (nameText v <> " is not a variant of " <> nodeLabel node)]
-    Just (TypeTerm (TermName base))
-      | Just (TypeSum _) <- Map.lookup (nameText base) (envTypes env) ->
-          Left
-            [ errorAt v $
-                nodeLabel node
-                  <> " carries "
-                  <> nameText base
-                  <> " and has no variants of its own; write "
-                  <> nodeLabel node
-                  <> "("
-                  <> nameText base
-                  <> "."
-                  <> nameText v
-                  <> ")"
-            ]
-    _ ->
+  v : rest -> case step (envModel env) (nodeBody node) v of
+    Right (_, payload) ->
+      resolve env (Node (nodeLabel node <> "." <> nameText v) payload) v rest
+    Left NotAVariant -> Left [errorAt v (nameText v <> " is not a variant of " <> nodeLabel node)]
+    Left (NewtypeOfSum base) ->
+      Left
+        [ errorAt v $
+            nodeLabel node
+              <> " carries "
+              <> nameText base
+              <> " and has no variants of its own; write "
+              <> nodeLabel node
+              <> "("
+              <> nameText base
+              <> "."
+              <> nameText v
+              <> ")"
+        ]
+    Left NoVariants ->
       Left
         [ errorAt v (nodeLabel node <> " has no variants, so ." <> nameText v <> " is invalid")
         ]
@@ -1698,21 +1696,19 @@ reach env names fixed = goPattern []
       where
         go f l b seen = \case
           [] -> goNode (at <> map nameText seen) f l b args
-          v : more -> case b of
-            Just (TypeSum variants)
-              | Just (Variant _ payload _) <-
-                  find ((== nameText v) . nameText . variantName) variants ->
-                  let
-                    l' = l <> "." <> nameText v
-                    seen' = seen <> [v]
-                    f' = case fixed of
-                      Just positions
-                        | f == Keeps
-                        , (at <> map nameText seen') `Set.notMember` positions ->
-                            AnyValue
-                      _ -> f
-                  in
-                    (Set.singleton l', mempty) <> go f' l' payload seen' more
+          v : more -> case step (envModel env) b v of
+            Right (_, payload) ->
+              let
+                l' = l <> "." <> nameText v
+                seen' = seen <> [v]
+                f' = case fixed of
+                  Just positions
+                    | f == Keeps
+                    , (at <> map nameText seen') `Set.notMember` positions ->
+                        AnyValue
+                  _ -> f
+              in
+                (Set.singleton l', mempty) <> go f' l' payload seen' more
             _ -> mempty
     -- The arguments at the end of a path, and what the left-out parts are.
     goNode at fill label body args = case body of
@@ -2086,10 +2082,10 @@ consistent cs = all holds (Map.elems grouped)
           $ bs
     -- A strict bound on a discrete value is the next value, non-strict.
     tighten discrete op v
-      | discrete, OpGt <- op = (OpGe, step 1 v)
-      | discrete, OpLt <- op = (OpLe, step (-1) v)
+      | discrete, OpGt <- op = (OpGe, shift 1 v)
+      | discrete, OpLt <- op = (OpLe, shift (-1) v)
       | otherwise = (op, v)
-    step n = \case
+    shift n = \case
       VNum r -> VNum (r + n)
       VIdx i -> VIdx (i + round n)
       v -> v
@@ -2254,7 +2250,7 @@ resolveSide env names = \case
               -- The constant's own definition reports the problem.
               _ -> Left []
   OperandVariant (h :| rest) -> case (Map.lookup (nameText h) (envTypes env), rest) of
-    (Just (TypeSum variants), [v]) -> case variantRefErrors variants h v of
+    (Just (TypeSum _), [v]) -> case variantRefErrors env "a variant to compare" h v of
       [] ->
         Right
           ( CmpSide
@@ -2270,20 +2266,21 @@ resolveSide env names = \case
           Left [errorAt h (nameText h <> " is a constant, so it has no variants")]
       | otherwise -> Left [unknownType env h]
 
--- | The problems with @Type.Variant@ used as a value, where @Type@ is a sum:
--- the variant must be one of its, and have no payload, which has no form as
--- a value.
-variantRefErrors :: [Variant] -> Name -> Name -> [CheckError]
-variantRefErrors variants h v = case find ((== nameText v) . nameText . variantName) variants of
-  Nothing -> [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
-  Just (Variant _ (Just _) _) ->
+-- | The problems with @Type.Variant@ used as a value (@what@, for the
+-- message): @Type@ is a sum, the variant is one of its, and it has no
+-- payload, which has no form as a value.
+variantRefErrors :: Env -> Text -> Name -> Name -> [CheckError]
+variantRefErrors env what h v = case step (envModel env) (Map.lookup (nameText h) (envTypes env)) v of
+  Left NotAVariant -> [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
+  Left _ -> [notASum what h]
+  Right (_, Just _) ->
     [ errorAt v $
         nameText h
           <> "."
           <> nameText v
           <> " has a payload, so it can't be written as a value; test it with a pattern"
     ]
-  Just (Variant _ Nothing _) -> []
+  Right (_, Nothing) -> []
 
 notASum :: Text -> Name -> CheckError
 notASum what h =
