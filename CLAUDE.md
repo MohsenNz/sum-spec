@@ -83,9 +83,11 @@ the executable (`app/`) and two test suites:
 - `src/SumSpec/Model.hs`: the resolved model of a spec (types, variants
   and their sums, constants, events, annotations) and path resolution.
   Lenient: it works on partial specs. The language server reads specs
-  through it; the checker builds its environment from it. `step` is the
-  one place the rule for a name after a dot (`Page.Plan`) is written;
-  the checker uses it, so a change to that rule goes there.
+  through it, and so does the checker: facts about the spec (what a name
+  is, a type's body, its variants, newtypes followed by `underlying`)
+  live here; judgements and their messages live in `Check.hs`. `step`
+  is the one place the rule for a name after a dot (`Page.Plan`) is
+  written; the checker uses it, so a change to that rule goes there.
 - `src/SumSpec/Check.hs`: the type checker. It validates the AST and
   returns every error, sorted by position.
 - `src/SumSpec.hs`: re-exports the public modules.

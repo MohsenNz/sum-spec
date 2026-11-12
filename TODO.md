@@ -16,6 +16,11 @@
       `resolve`, constant and guard variants and reachability use it,
       with their own messages; the lenient resolver adds its fallbacks on
       top. A test checks they agree on every spec the checker accepts.
+- [x] Should the checker keep its own copy of the spec's facts (`Env`)?
+      No: it reads `Model` directly (types, variants, constants,
+      `underlying` for newtypes). Facts live in `Model`, judgements and
+      messages in `Check`. A name both atomic and defined is the atomic
+      in both.
 
 ### Closer to an EFSM (`spec/efsm-gaps.md`)
 Decide on each gap, one at a time, then move it to `proposals.md`:

@@ -24,7 +24,19 @@ import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
-import SumSpec.Model (Model (..), StepError (..), model, step)
+import SumSpec.Model
+  ( Model (..)
+  , StepError (..)
+  , TypeInfo (..)
+  , TypeShape (..)
+  , VariantInfo (..)
+  , isType
+  , model
+  , step
+  , underlying
+  , variantOwnerPath
+  , variantPath
+  )
 import SumSpec.Pretty (renderArith, renderLiteral, renderValue)
 import SumSpec.Syntax
 import Text.Megaparsec (SourcePos (..), initialPos, mkPos, sourcePosPretty, unPos)
@@ -69,7 +81,7 @@ checkSpec file source spec =
       , checkGuards env transitions
       , checkListPlaces typeDefs (map snd inits) transitions
       , warnListElements env root transitions
-      , warnReachability env typeDefs (map snd (take 1 inits)) transitions
+      , warnReachability env (map snd (take 1 inits)) transitions
       , warnOverlaps env transitions
       , warnSuffixSpaces
           source
@@ -92,9 +104,9 @@ checkSpec file source spec =
     inits = [(k, collapseAlts (elaborateValues env (elaborate env p))) | (k, p) <- rawInits]
     -- The type of every state: the head type of the initial state.
     root = case inits of
-      (_, p) : _ | isKnownType env (patternKey p) -> Just (patternKey p)
+      (_, p) : _ | isType env (patternKey p) -> Just (patternKey p)
       _ -> Nothing
-    env = mkEnv (model spec)
+    env = model spec
 
 -- | Renders errors like parse errors: position, source line, caret and
 -- message, with a blank line between errors.
@@ -122,32 +134,11 @@ renderCheckErrors source = unlines . map render
 
 -- ---------- Environment ----------
 
--- | The declared atomics, the defined types and the named constants, from
--- the 'Model'. A name defined twice keeps its first definition; the second
--- is reported as an error.
-data Env = Env
-  { envAtomics :: Map Text (Maybe Primitive)
-  -- ^ The atomics, with the base of each.
-  , envTypes :: Map Text TypeExpr
-  , envConsts :: Map Text ConstDef
-  -- ^ The named constants. They share their names with the types but are
-  -- not types: 'isKnownType' does not see them.
-  , envModel :: Model
-  -- ^ For 'step', the rule for a name after a dot.
-  }
-
-mkEnv :: Model -> Env
-mkEnv m =
-  Env
-    { envAtomics = Map.map atomicBase (modelAtomics m)
-    , envTypes = Map.map typeDefBody (modelTypeDefs m)
-    , envConsts = modelConsts m
-    , envModel = m
-    }
-
-isKnownType :: Env -> Text -> Bool
-isKnownType env name =
-  Map.member name (envAtomics env) || Map.member name (envTypes env)
+-- | The body of the type with this name: 'Nothing' for an atomic (which
+-- wins over a definition of the same name, an error reported in
+-- 'checkTypeDefs') and for an unknown name.
+typeBody :: Model -> Text -> Maybe TypeExpr
+typeBody env name = Map.lookup name (modelTypes env) >>= typeInfoBody
 
 -- ---------- Headers and the initial state ----------
 
@@ -198,7 +189,7 @@ annotationUses spec = concatMap fromDefinition (specDefinitions spec)
 -- no old value and no input, so nothing in it takes a prime, a naming, a
 -- name or an element path. Apart from those it's checked like a target.
 -- See "Initial state" in spec-v1.md.
-checkInit :: FilePath -> Env -> [(Name, Pattern)] -> [CheckError]
+checkInit :: FilePath -> Model -> [(Name, Pattern)] -> [CheckError]
 checkInit file env inits = case inits of
   [] ->
     [ errorAtPos
@@ -269,21 +260,21 @@ checkInit file env inits = case inits of
 
 -- ---------- Type definitions ----------
 
-checkTypeDefs :: Env -> [TypeDef] -> [CheckError]
+checkTypeDefs :: Model -> [TypeDef] -> [CheckError]
 checkTypeDefs env defs =
   [ errorAt n (nameText n <> " is defined twice (first on line " <> lineOf first <> ")")
   | (TypeDef n _ _, TypeDef first _ _) <- repeats (nameText . typeDefName) defs
   ]
     <> [ errorAt n (nameText n <> " is declared in __atomics and also defined")
        | TypeDef n _ _ <- defs
-       , Map.member (nameText n) (envAtomics env)
+       , Map.member (nameText n) (modelAtomics env)
        ]
     <> concatMap (checkTypeExpr env . typeDefBody) defs
     <> mapMaybe (newtypeCycle env) (firsts (nameText . typeDefName) defs)
 
 -- | Named constants: each name is new, its type is known, and its value
 -- fits that type.
-checkConsts :: Env -> [ConstDef] -> [CheckError]
+checkConsts :: Model -> [ConstDef] -> [CheckError]
 checkConsts env consts =
   [ errorAt n (nameText n <> " is defined twice (first on line " <> lineOf first <> ")")
   | (ConstDef n _ _, ConstDef first _ _) <- repeats (nameText . constName) consts
@@ -292,9 +283,9 @@ checkConsts env consts =
     <> concatMap (constValueErrors env) consts
   where
     clash c
-      | Map.member (nameText n) (envTypes env) =
+      | Map.member (nameText n) (modelTypeDefs env) =
           [errorAt n (nameText n <> " is defined as a type and as a constant")]
-      | Map.member (nameText n) (envAtomics env) =
+      | Map.member (nameText n) (modelAtomics env) =
           [ errorAt n (nameText n <> " is declared in __atomics and also defined as a constant")
           ]
       | otherwise = []
@@ -303,9 +294,9 @@ checkConsts env consts =
 
 -- | The problems with a constant's value: its type is known, and its
 -- literal or variant fits that type.
-constValueErrors :: Env -> ConstDef -> [CheckError]
+constValueErrors :: Model -> ConstDef -> [CheckError]
 constValueErrors env (ConstDef _ ty value)
-  | not (isKnownType env (nameText ty)) = [unknownType env ty]
+  | not (isType env (nameText ty)) = [unknownType env ty]
   | otherwise = case value of
       ConstLiteral pos lit
         | literalFits (kindOf env (nameText ty)) lit -> []
@@ -328,7 +319,7 @@ literalFits kind = \case
   LitDecimal _ -> kind == KFloat
   LitText _ -> kind == KText
 
-checkTypeExpr :: Env -> TypeExpr -> [CheckError]
+checkTypeExpr :: Model -> TypeExpr -> [CheckError]
 checkTypeExpr env = \case
   TypeSum variants ->
     [ errorAt n ("variant " <> nameText n <> " appears twice in this sum")
@@ -342,19 +333,19 @@ checkTypeExpr env = \case
       <> concatMap (checkTerm env) terms
   TypeTerm term -> checkTerm env term
 
-checkTerm :: Env -> TypeTerm -> [CheckError]
+checkTerm :: Model -> TypeTerm -> [CheckError]
 checkTerm env term =
   [ unknownType env n
   | n <- termName term : termKeys term
-  , not (isKnownType env (nameText n))
+  , not (isType env (nameText n))
   ]
 
 -- | A newtype that leads back to itself (@A = B@, @B = A@) has no
 -- structure at all. Reported at the definition, with the chain.
-newtypeCycle :: Env -> TypeDef -> Maybe CheckError
+newtypeCycle :: Model -> TypeDef -> Maybe CheckError
 newtypeCycle env (TypeDef start _ _) = go [nameText start] (nameText start)
   where
-    go seen current = case Map.lookup current (envTypes env) of
+    go seen current = case typeBody env current of
       Just (TypeTerm (TermName next))
         | nameText next == nameText start ->
             Just
@@ -537,7 +528,7 @@ expand paths side = case reverse paths of
 -- transitions; every listed event is defined. The input is checked once
 -- per event, like a source: it's what the event brings, so it can name
 -- values but not give new ones.
-checkEvents :: Env -> Spec -> [Event] -> [CheckError]
+checkEvents :: Model -> Spec -> [Event] -> [CheckError]
 checkEvents env spec events =
   [ errorAt n ("event " <> nameText n <> " is not listed in __events")
   | Event n _ _ <- firsts (nameText . eventName) events
@@ -573,7 +564,7 @@ checkEvents env spec events =
                checkPattern env (Map.fromList [(nameText n, k) | (n, k) <- namings input]) input
            ]
 
-checkTransitions :: Env -> [Flat] -> [CheckError]
+checkTransitions :: Model -> [Flat] -> [CheckError]
 checkTransitions env = concatMap checkTransition
   where
     checkTransition (Flat _ input from to _ _) =
@@ -592,7 +583,7 @@ checkTransitions env = concatMap checkTransition
 -- headed by the same type name (an element path by its list type). An
 -- unknown type or name is reported elsewhere, so it isn't compared. See
 -- "Arguments in state patterns" in spec-v1.md.
-checkSides :: Env -> Names -> Pattern -> Pattern -> [CheckError]
+checkSides :: Model -> Names -> Pattern -> Pattern -> [CheckError]
 checkSides env names from to =
   [ errorAt (patternHead to) $
       "the target is a state of "
@@ -604,8 +595,8 @@ checkSides env names from to =
         <> "; both sides of a transition are states of the same type"
   | Just fromKey <- [argKey env names from]
   , Just toKey <- [argKey env names to]
-  , isKnownType env fromKey
-  , isKnownType env toKey
+  , isType env fromKey
+  , isType env toKey
   , fromKey /= toKey
   ]
 
@@ -935,12 +926,10 @@ data Node = Node
   , nodeBody :: Maybe TypeExpr
   }
 
-typeNode :: Env -> Text -> Maybe Node
-typeNode env name = case Map.lookup name (envTypes env) of
-  Just body -> Just (Node name (Just body))
-  Nothing
-    | Map.member name (envAtomics env) -> Just (Node name Nothing)
-    | otherwise -> Nothing
+typeNode :: Model -> Text -> Maybe Node
+typeNode env name
+  | isType env name = Just (Node name (typeBody env name))
+  | otherwise = Nothing
 
 -- ---------- Bare bindings ----------
 
@@ -987,7 +976,7 @@ nodeBound node = case nodeBody node of
     label = nodeLabel node
 
 -- | What @#n@ finds after a path.
-pathBound :: Env -> NonEmpty Name -> Bound
+pathBound :: Model -> NonEmpty Name -> Bound
 pathBound env (h :| path) = case typeNode env (nameText h) of
   Just node | Right (end, _) <- resolve env node h path -> nodeBound end
   _ -> BoundUnresolved
@@ -995,12 +984,12 @@ pathBound env (h :| path) = case typeNode env (nameText h) of
 -- | What @#n@ finds after an element path. Like the arguments of an
 -- element (see 'checkElement'), it is a product's factors, or else one
 -- value of the element type.
-elementBound :: Env -> NonEmpty Name -> Name -> Bound
+elementBound :: Model -> NonEmpty Name -> Name -> Bound
 elementBound env (h :| path) key = case nodeBody <$> typeNode env (nameText h) of
   Just (Just (TypeTerm (TermList element (Just _))))
     | null path -> case element of
         TermName e
-          | Just body@(TypeProduct _) <- Map.lookup (nameText e) (envTypes env) ->
+          | Just body@(TypeProduct _) <- typeBody env (nameText e) ->
               nodeBound (Node label (Just body))
           | otherwise -> BoundValue e
         TermList _ _ -> nodeBound (Node label (Just (TypeTerm element)))
@@ -1012,7 +1001,7 @@ elementBound env (h :| path) key = case nodeBody <$> typeNode env (nameText h) o
 -- other check needs to know the short form. A head that holds no single
 -- value is reported by 'checkBoundHeads'; it becomes @Head#n@, so that @n@
 -- is still a name and its uses aren't reported too.
-elaborate :: Env -> Pattern -> Pattern
+elaborate :: Model -> Pattern -> Pattern
 elaborate env = \case
   PatternPath names [PatternBound n] -> case pathBound env names of
     BoundValue base -> PatternPath names [explicit base n]
@@ -1054,7 +1043,7 @@ elaborate env = \case
 
 -- | Reads a constant as an argument of a target or @__init@ as the value it
 -- names (@Attempts(MaxTries)@): the parser can't tell it from a type.
-elaborateValues :: Env -> Pattern -> Pattern
+elaborateValues :: Model -> Pattern -> Pattern
 elaborateValues env = \case
   PatternPath names args -> PatternPath names (map (valueArg env) args)
   PatternElement names key args -> PatternElement names key (map (valueArg env) args)
@@ -1063,15 +1052,15 @@ elaborateValues env = \case
   p -> p
 
 -- | One argument of a target, read by 'elaborateValues'.
-valueArg :: Env -> Pattern -> Pattern
+valueArg :: Model -> Pattern -> Pattern
 valueArg env = \case
   PatternPath (c :| []) []
-    | Map.member (nameText c) (envConsts env)
-    , not (isKnownType env (nameText c)) ->
+    | Map.member (nameText c) (modelConsts env)
+    , not (isType env (nameText c)) ->
         PatternExpr (ExprConst c)
   p -> elaborateValues env p
 
-elaborateEvent :: Env -> Event -> Event
+elaborateEvent :: Model -> Event -> Event
 elaborateEvent env event =
   event
     { eventInput = collapseAlts . elaborate env <$> eventInput event
@@ -1108,7 +1097,7 @@ eventPatterns (Event _ input transitions) =
       ]
 
 -- | @Head(#n)@ needs a head that holds one value.
-checkBoundHeads :: Env -> Pattern -> [CheckError]
+checkBoundHeads :: Model -> Pattern -> [CheckError]
 checkBoundHeads env = \case
   PatternPath names [PatternBound n] -> report n (pathBound env names)
   PatternElement names key [PatternBound n] -> report n (elementBound env names key)
@@ -1129,7 +1118,7 @@ type Names = Map Text Text
 -- type, or it's a name. Primes are checked by 'checkPrimes' and the
 -- places of names by 'checkNamings'; here a primed or named pattern is
 -- checked like the pattern inside.
-checkPattern :: Env -> Names -> Pattern -> [CheckError]
+checkPattern :: Model -> Names -> Pattern -> [CheckError]
 checkPattern env names = \case
   PatternAlts {} -> [] -- expanded before this check (see 'expandAlts')
   PatternPrimed _ inner -> checkPattern env names inner
@@ -1149,7 +1138,7 @@ checkPattern env names = \case
 
 -- | Follows the rest of a path from a node, then checks the arguments at
 -- its end.
-walk :: Env -> Names -> Node -> Name -> [Name] -> [Pattern] -> [CheckError]
+walk :: Model -> Names -> Node -> Name -> [Name] -> [Pattern] -> [CheckError]
 walk env names node at path args = case resolve env node at path of
   Left errors -> errors
   Right (end, endAt) -> checkArgs env names end endAt args
@@ -1157,10 +1146,10 @@ walk env names node at path args = case resolve env node at path of
 -- | Follows the rest of a path from a node, to the node at its end and
 -- the last name read. @at@ is the last name read so far, where errors
 -- about the node go.
-resolve :: Env -> Node -> Name -> [Name] -> Either [CheckError] (Node, Name)
+resolve :: Model -> Node -> Name -> [Name] -> Either [CheckError] (Node, Name)
 resolve env node at path = case path of
   [] -> Right (node, at)
-  v : rest -> case step (envModel env) (nodeBody node) v of
+  v : rest -> case step env (nodeBody node) v of
     Right (_, payload) ->
       resolve env (Node (nodeLabel node <> "." <> nameText v) payload) v rest
     Left NotAVariant -> Left [errorAt v (nameText v <> " is not a variant of " <> nodeLabel node)]
@@ -1191,7 +1180,7 @@ resolve env node at path = case path of
 -- name: from a variant, the list type is its argument
 -- (@Ring.Points(Points[x])@).
 checkElement
-  :: Env -> Names -> Node -> Name -> [Name] -> Name -> [Pattern] -> [CheckError]
+  :: Model -> Names -> Node -> Name -> [Name] -> Name -> [Pattern] -> [CheckError]
 checkElement env names node h path key args = case resolve env node h path of
   Left errors -> errors
   Right (list, at)
@@ -1248,7 +1237,7 @@ checkElement env names node h path key args = case resolve env node h path of
             ]
     checkElementArgs label element at = case element of
       TermName e
-        | Just (TypeProduct _) <- Map.lookup (nameText e) (envTypes env)
+        | Just (TypeProduct _) <- typeBody env (nameText e)
         , Just n <- typeNode env (nameText e) ->
             checkArgs env names n at args
       _ ->
@@ -1264,7 +1253,7 @@ checkElement env names node h path key args = case resolve env node h path of
 -- sum (pick a variant with "." instead). What left-out parts mean depends
 -- on the side (see "Source and target" in spec-v1.md); either way they
 -- are valid.
-checkArgs :: Env -> Names -> Node -> Name -> [Pattern] -> [CheckError]
+checkArgs :: Model -> Names -> Node -> Name -> [Pattern] -> [CheckError]
 checkArgs _ _ _ _ [] = []
 checkArgs env names node at args = case nodeBody node of
   Nothing -> [errorAt at (nodeLabel node <> " takes no arguments")]
@@ -1304,7 +1293,7 @@ checkArgs env names node at args = case nodeBody node of
 -- | Arguments of a product: each one is a factor, matched by type name in
 -- any order, and written at most once (@A * A'@ writes @A@ twice). Factors
 -- may be left out. A name stands for the factor of its type.
-checkFactors :: Env -> Names -> Node -> [TypeTerm] -> [Pattern] -> [CheckError]
+checkFactors :: Model -> Names -> Node -> [TypeTerm] -> [Pattern] -> [CheckError]
 checkFactors env names node factors args =
   [unknownName n | (a, Nothing) <- keyed, PatternName n <- [bare a]]
     <> [ notInHead e ("a factor of " <> nodeLabel node)
@@ -1312,7 +1301,7 @@ checkFactors env names node factors args =
        , PatternExpr e <- [bare a]
        ]
     <> [ errorAt (patternHead a) $
-           if Map.member key (envConsts env)
+           if Map.member key (modelConsts env)
              then constantNotType key
              else
                describeArg a key
@@ -1339,7 +1328,7 @@ checkFactors env names node factors args =
 
 -- | An argument where the type @term@ is expected: a pattern headed by
 -- that type, the same list type, or a name of that type.
-checkArg :: Env -> Names -> TypeTerm -> Pattern -> [CheckError]
+checkArg :: Model -> Names -> TypeTerm -> Pattern -> [CheckError]
 checkArg env names term arg = case (term, arg) of
   (_, PatternPrimed _ inner) -> checkArg env names term inner
   (_, PatternNamed inner _) -> checkArg env names term inner
@@ -1401,7 +1390,7 @@ patternExprs = \case
 -- | An expression where a value of type @key@ is expected: every name and
 -- constant in it has that type, every literal fits it, and an operator
 -- needs a number (an @__int@ or a @__float@, or a newtype of one).
-checkExpr :: Env -> Names -> Text -> Expr -> [CheckError]
+checkExpr :: Model -> Names -> Text -> Expr -> [CheckError]
 checkExpr env names key e =
   concatMap leaf (exprLeaves e)
     <> [ errorAtPos pos $
@@ -1422,9 +1411,9 @@ checkExpr env names key e =
         Just k
           | k == key -> []
           | otherwise -> [errorAt n (nameText n <> " has type " <> k <> expected)]
-      ExprConst c -> case Map.lookup (nameText c) (envConsts env) of
+      ExprConst c -> case Map.lookup (nameText c) (modelConsts env) of
         Nothing
-          | isKnownType env (nameText c) ->
+          | isType env (nameText c) ->
               [errorAt c (nameText c <> " is a type, not a value; write a value of it")]
           | otherwise -> [errorAt c ("unknown constant " <> nameText c)]
         Just def
@@ -1499,7 +1488,7 @@ data Crossed = Crossed Text (Maybe Text) (Maybe Text)
 -- @__init@. A recursive type is followed again on a path only when it is
 -- inside another list, so a tree's nodes are found both at the root and
 -- inside @[Tree]@.
-listPlaces :: Env -> Text -> Map Text [Place]
+listPlaces :: Model -> Text -> Map Text [Place]
 listPlaces env root =
   Map.fromListWith (flip (<>)) [(t, [p]) | (t, p) <- goType Set.empty [] False root]
   where
@@ -1507,7 +1496,7 @@ listPlaces env root =
       | Set.member visit seen = []
       | otherwise =
           (name, Place lists direct)
-            : maybe [] (goBody (Set.insert visit seen) lists name) (Map.lookup name (envTypes env))
+            : maybe [] (goBody (Set.insert visit seen) lists name) (typeBody env name)
       where
         visit = (name, take 1 lists)
     -- A type defined as a list (@Todos = [Todo]@) names that list.
@@ -1532,7 +1521,7 @@ listPlaces env root =
 -- written from the element, comparing a key with a named value
 -- (@Todo(id * ...)@). Warns about the others, once per transition. Without
 -- a root (no @__init@), there are no places to warn about.
-warnListElements :: Env -> Maybe Text -> [Flat] -> [CheckError]
+warnListElements :: Model -> Maybe Text -> [Flat] -> [CheckError]
 warnListElements env root transitions =
   [ warningAt h (nameText n <> " " <> message)
   | Flat n _ from _ _ _ <- transitions
@@ -1622,7 +1611,7 @@ data Fill = Keeps | AnyValue
 
 -- | The variants and types of a value that may have any value: every
 -- variant of the type, and of every type inside it.
-anyType :: Env -> Text -> (Set Label, Set Text)
+anyType :: Model -> Text -> (Set Label, Set Text)
 anyType env start = (foldMap labelsOf types, types)
   where
     types = close Set.empty [start]
@@ -1632,7 +1621,7 @@ anyType env start = (foldMap labelsOf types, types)
         | Set.member t seen -> close seen rest
         | otherwise -> close (Set.insert t seen) (snd (contentsOf t) <> rest)
     labelsOf = Set.fromList . fst . contentsOf
-    contentsOf t = maybe ([], []) (exprContents t) (Map.lookup t (envTypes env))
+    contentsOf t = maybe ([], []) (exprContents t) (typeBody env t)
 
 -- | The variants a type expression defines, under the label @prefix@, and
 -- the types it names directly.
@@ -1660,7 +1649,7 @@ termRefs = \case
 -- already there) may have any value. Errors are reported elsewhere, so a
 -- pattern that doesn't fit its type adds nothing.
 reach
-  :: Env -> Names -> Maybe (Set Position) -> Fill -> Pattern -> (Set Label, Set Text)
+  :: Model -> Names -> Maybe (Set Position) -> Fill -> Pattern -> (Set Label, Set Text)
 reach env names fixed = goPattern []
   where
     goPattern at fill = \case
@@ -1678,14 +1667,14 @@ reach env names fixed = goPattern []
             at
             fill
             (nameText h)
-            (Map.lookup (nameText h) (envTypes env))
+            (typeBody env (nameText h))
             h
             path
             args
       PatternElement (h :| _) key args ->
-        typeOnly (nameText h) <> case Map.lookup (nameText h) (envTypes env) of
+        typeOnly (nameText h) <> case typeBody env (nameText h) of
           Just (TypeTerm (TermList (TermName e) _)) ->
-            let body = case Map.lookup (nameText e) (envTypes env) of
+            let body = case typeBody env (nameText e) of
                   Just elementBody@(TypeProduct _) -> Just elementBody
                   _ -> Just (TypeTerm (TermName e))
             in  goNode (at <> [elementSegment h key]) fill (nameText e) body args
@@ -1696,7 +1685,7 @@ reach env names fixed = goPattern []
       where
         go f l b seen = \case
           [] -> goNode (at <> map nameText seen) f l b args
-          v : more -> case step (envModel env) b v of
+          v : more -> case step env b v of
             Right (_, payload) ->
               let
                 l' = l <> "." <> nameText v
@@ -1745,7 +1734,7 @@ reach env names fixed = goPattern []
 -- may put the app in, until nothing more is added. Parts of a source are
 -- tested one by one, and names are ignored, so this may find more than
 -- the app can really reach, never less.
-reachable :: Env -> Pattern -> [Flat] -> (Set Label, Set Text)
+reachable :: Model -> Pattern -> [Flat] -> (Set Label, Set Text)
 reachable env initial transitions = go (reach env Map.empty Nothing AnyValue initial)
   where
     go found =
@@ -1764,7 +1753,7 @@ reachable env initial transitions = go (reach env Map.empty Nothing AnyValue ini
 
 -- | The variants a source writes: a transition can happen only once all
 -- of them have been reached.
-sourceVariants :: Env -> Pattern -> Set Label
+sourceVariants :: Model -> Pattern -> Set Label
 sourceVariants env = fst . reach env Map.empty Nothing Keeps
 
 -- | The warnings found from what the app can reach (see 'reachable'):
@@ -1777,10 +1766,10 @@ sourceVariants env = fst . reach env Map.empty Nothing Keeps
 -- * a transition that can never happen: its source writes a variant that
 --   is never reached (the outermost one is named), or its type never
 --   holds a value.
-warnReachability :: Env -> [TypeDef] -> [Pattern] -> [Flat] -> [CheckError]
-warnReachability env defs inits transitions = case inits of
+warnReachability :: Model -> [Pattern] -> [Flat] -> [CheckError]
+warnReachability env inits transitions = case inits of
   [initial]
-    | isKnownType env (patternKey initial) ->
+    | isType env (patternKey initial) ->
         let
           (found, live) = reachable env initial transitions
           (inRoot, _) = anyType env (patternKey initial)
@@ -1789,7 +1778,7 @@ warnReachability env defs inits transitions = case inits of
                 label
                   <> " is never reached: neither __init nor any transition that can happen "
                   <> "puts the app there"
-            | (label, n, parent) <- variantNames defs
+            | (label, n, parent) <- variantNames env
             , label `Set.member` inRoot
             , label `Set.notMember` found
             , maybe (Set.member (T.takeWhile (/= '.') label) live) (`Set.member` found) parent
@@ -1808,28 +1797,24 @@ warnReachability env defs inits transitions = case inits of
       case sortOn (\l -> (T.count "." l, l)) (Set.toList missing) of
         label : _ -> Just ("its source needs " <> label <> ", which is never reached")
         []
-          | isKnownType env (patternKey from)
+          | isType env (patternKey from)
           , patternKey from `Set.notMember` live ->
               Just ("no state holds a value of type " <> patternKey from)
           | otherwise -> Nothing
 
 -- | Every variant defined, with its name and the variant it is inside
--- ('Nothing' for a variant of the type itself).
-variantNames :: [TypeDef] -> [(Label, Name, Maybe Label)]
-variantNames defs =
-  concat
-    [ go (nameText n) Nothing body
-    | TypeDef n _ body <- firsts (nameText . typeDefName) defs
-    ]
-  where
-    go prefix parent = \case
-      TypeSum variants ->
-        concat
-          [ (label, n, parent) : maybe [] (go label (Just label)) payload
-          | Variant n payload _ <- variants
-          , let label = prefix <> "." <> nameText n
-          ]
-      _ -> []
+-- ('Nothing' for a variant of the type itself). A type defined twice
+-- keeps the variants of its first definition.
+variantNames :: Model -> [(Label, Name, Maybe Label)]
+variantNames env =
+  [ (variantPath v, variantName (variantInfo v), parent)
+  | v <- concat (Map.elems (modelVariants env))
+  , let owner = variantOwner v
+  , (typeDefName <$> Map.lookup (nameText owner) (modelTypeDefs env)) == Just owner
+  , let parent
+          | null (variantParents v) = Nothing
+          | otherwise = Just (variantOwnerPath v)
+  ]
 
 -- | Two transitions of one event on the same type overlap when a state
 -- can match both sources: no part of the sources picks different
@@ -1839,7 +1824,7 @@ variantNames defs =
 -- same element when their keys have the same name; with different names
 -- they may pick different elements, so they exclude nothing. Warns once per
 -- transition, naming the first one it overlaps.
-warnOverlaps :: Env -> [Flat] -> [CheckError]
+warnOverlaps :: Model -> [Flat] -> [CheckError]
 warnOverlaps env transitions =
   [ warningAt at $
       nameText n
@@ -1908,7 +1893,7 @@ data Domain = Discrete | Dense
 data Value = VNum Rational | VText Text | VIdx Int
   deriving stock (Eq, Ord)
 
-guardClauses :: Env -> Names -> Guard -> [Clause]
+guardClauses :: Model -> Names -> Guard -> [Clause]
 guardClauses env names = positive
   where
     positive = \case
@@ -1970,7 +1955,7 @@ swapOp = \case
 -- constraint on that value. Anything else (two names, two literals) is
 -- unknown, so it may hold.
 comparisonConstraint
-  :: Env -> Names -> CompareOp -> Operand -> Operand -> Maybe Constraint
+  :: Model -> Names -> CompareOp -> Operand -> Operand -> Maybe Constraint
 comparisonConstraint env names op l r = case (l, r) of
   (OperandName n, other) -> build n op other
   (other, OperandName n) -> build n (swapOp op) other
@@ -1983,7 +1968,7 @@ comparisonConstraint env names op l r = case (l, r) of
 
 -- | A membership as a 'Member'. A left side or a list that isn't valid is
 -- unknown, so it may hold.
-guardMember :: Env -> Names -> Operand -> Name -> Maybe Member
+guardMember :: Model -> Names -> Operand -> Name -> Maybe Member
 guardMember env names l ys = do
   key <- Map.lookup (nameText ys) names
   element <- listBody env key >>= memberType
@@ -1994,7 +1979,7 @@ guardMember env names l ys = do
 
 -- | The value a literal or a variant stands for, when it fits the kind of
 -- the value it is compared with.
-operandValue :: Env -> Kind -> Operand -> Maybe (Domain, Value)
+operandValue :: Model -> Kind -> Operand -> Maybe (Domain, Value)
 operandValue env kind = \case
   OperandLiteral _ (LitInt i) -> case kind of
     KInt -> Just (Discrete, VNum (fromInteger i))
@@ -2007,11 +1992,11 @@ operandValue env kind = \case
     KText -> Just (Discrete, VText t)
     _ -> Nothing
   OperandVariant (h :| [])
-    | Just c <- Map.lookup (nameText h) (envConsts env) ->
+    | Just c <- Map.lookup (nameText h) (modelConsts env) ->
         operandValue env kind (constOperand c)
   OperandVariant (h :| [v])
     | KEnum <- kind
-    , Just (TypeSum variants) <- Map.lookup (nameText h) (envTypes env)
+    , Just (TypeSum variants) <- typeBody env (nameText h)
     , Just i <- elemIndex (nameText v) (map (nameText . variantName) variants) ->
         Just (Discrete, VIdx i)
   _ -> Nothing
@@ -2100,7 +2085,7 @@ consistent cs = all holds (Map.elems grouped)
 -- the other already requires, their comparisons leave no value, or one
 -- membership is both true and false. It does not notice that several forbidden patterns together can cover every
 -- variant of a place, so it may find an overlap that is not one.
-guardsMayHold :: Env -> (Names, Maybe Guard) -> (Names, Maybe Guard) -> Bool
+guardsMayHold :: Model -> (Names, Maybe Guard) -> (Names, Maybe Guard) -> Bool
 guardsMayHold env (names1, g) (names2, h) =
   any satisfiable (bothClauses (clausesOf names1 g) (clausesOf names2 h))
   where
@@ -2126,7 +2111,7 @@ transitionNameMap (Flat _ input from _ _ _) =
 -- value in a comparison), but binds none. A comparison needs two values of
 -- one type, or a value and a literal or variant that fit it. Apart from
 -- that it is checked like any pattern. See "Guards" in spec-v1.md.
-checkGuards :: Env -> [Flat] -> [CheckError]
+checkGuards :: Model -> [Flat] -> [CheckError]
 checkGuards env transitions =
   concat
     [ concatMap (atom names from) (guardPatterns g)
@@ -2150,8 +2135,8 @@ checkGuards env transitions =
             "a guard describes a state, not a list type; write the name of the list's type"
         ]
       p
-        | isKnownType env (patternKey p)
-        , isKnownType env (patternKey from)
+        | isType env (patternKey p)
+        , isType env (patternKey from)
         , patternKey p /= patternKey from ->
             [ errorAt (patternHead p) $
                 "a guard describes the same part of the state as the source, so it starts with "
@@ -2197,20 +2182,15 @@ guardMemberships = \case
 data Kind = KInt | KFloat | KText | KEnum | KOpaque | KOther
   deriving stock (Eq)
 
-kindOf :: Env -> Text -> Kind
-kindOf env = go Set.empty
-  where
-    go seen name
-      | name `Set.member` seen = KOther
-      | Just base <- Map.lookup name (envAtomics env) = case base of
-          Nothing -> KOpaque
-          Just PrimInt -> KInt
-          Just PrimFloat -> KFloat
-          Just PrimText -> KText
-      | otherwise = case Map.lookup name (envTypes env) of
-          Just (TypeTerm (TermName next)) -> go (Set.insert name seen) (nameText next)
-          Just (TypeSum variants) | all (isNothing . variantPayload) variants -> KEnum
-          _ -> KOther
+kindOf :: Model -> Text -> Kind
+kindOf env name = case typeInfoShape <$> underlying env name of
+  Just (ShapeAtomic base) -> case base of
+    Nothing -> KOpaque
+    Just PrimInt -> KInt
+    Just PrimFloat -> KFloat
+    Just PrimText -> KText
+  Just (ShapeSum variants) | all (isNothing . variantPayload) variants -> KEnum
+  _ -> KOther
 
 describeKind :: Kind -> Text
 describeKind = \case
@@ -2233,7 +2213,7 @@ data CmpSide = CmpSide
 
 data SideKind = OfType Kind | LiteralInt | LiteralDecimal | LiteralText
 
-resolveSide :: Env -> Names -> Operand -> Either [CheckError] CmpSide
+resolveSide :: Model -> Names -> Operand -> Either [CheckError] CmpSide
 resolveSide env names = \case
   OperandName n -> case Map.lookup (nameText n) names of
     Nothing -> Left [unknownName n]
@@ -2243,13 +2223,13 @@ resolveSide env names = \case
     LitDecimal _ -> LiteralDecimal
     LitText _ -> LiteralText
   OperandVariant (h :| [])
-    | Just c <- Map.lookup (nameText h) (envConsts env) ->
+    | Just c <- Map.lookup (nameText h) (modelConsts env) ->
         let ty = nameText (constType c)
         in  case constValueErrors env c of
               [] -> Right (CmpSide (namePos h) (nameText h) (Just ty) (OfType (kindOf env ty)))
               -- The constant's own definition reports the problem.
               _ -> Left []
-  OperandVariant (h :| rest) -> case (Map.lookup (nameText h) (envTypes env), rest) of
+  OperandVariant (h :| rest) -> case (typeBody env (nameText h), rest) of
     (Just (TypeSum _), [v]) -> case variantRefErrors env "a variant to compare" h v of
       [] ->
         Right
@@ -2261,16 +2241,16 @@ resolveSide env names = \case
           )
       errors -> Left errors
     _
-      | isKnownType env (nameText h) -> Left [notASum "a variant to compare" h]
-      | Map.member (nameText h) (envConsts env) ->
+      | isType env (nameText h) -> Left [notASum "a variant to compare" h]
+      | Map.member (nameText h) (modelConsts env) ->
           Left [errorAt h (nameText h <> " is a constant, so it has no variants")]
       | otherwise -> Left [unknownType env h]
 
 -- | The problems with @Type.Variant@ used as a value (@what@, for the
 -- message): @Type@ is a sum, the variant is one of its, and it has no
 -- payload, which has no form as a value.
-variantRefErrors :: Env -> Text -> Name -> Name -> [CheckError]
-variantRefErrors env what h v = case step (envModel env) (Map.lookup (nameText h) (envTypes env)) v of
+variantRefErrors :: Model -> Text -> Name -> Name -> [CheckError]
+variantRefErrors env what h v = case step env (typeBody env (nameText h)) v of
   Left NotAVariant -> [errorAt v (nameText v <> " is not a variant of " <> nameText h)]
   Left _ -> [notASum what h]
   Right (_, Just _) ->
@@ -2290,7 +2270,7 @@ notASum what h =
 -- | A comparison of two values of one type, or of a value and a literal or
 -- variant that fits it. The ordering operators need numbers or an
 -- enumeration; @==@ and @!=@ take every type.
-checkComparison :: Env -> Names -> CompareOp -> Operand -> Operand -> [CheckError]
+checkComparison :: Model -> Names -> CompareOp -> Operand -> Operand -> [CheckError]
 checkComparison env names op l r =
   case (resolveSide env names l, resolveSide env names r) of
     (Left e1, Left e2) -> e1 <> e2
@@ -2363,14 +2343,10 @@ describeSide side = case (sideType side, sideKind side) of
 
 -- | The list a type resolves to through newtypes: its element, and its key
 -- type if it has one.
-listBody :: Env -> Text -> Maybe (TypeTerm, Maybe Name)
-listBody env = go Set.empty
-  where
-    go seen name = case Map.lookup name (envTypes env) of
-      Just (TypeTerm (TermList element key)) -> Just (element, key)
-      Just (TypeTerm (TermName next))
-        | name `Set.notMember` seen -> go (Set.insert name seen) (nameText next)
-      _ -> Nothing
+listBody :: Model -> Text -> Maybe (TypeTerm, Maybe Name)
+listBody env name = case typeInfoShape <$> underlying env name of
+  Just (ShapeList element key) -> Just (element, key)
+  _ -> Nothing
 
 -- | The type the left side of @x in ys@ has: the list's element, keyed or
 -- not. A list of lists has no such type.
@@ -2381,7 +2357,7 @@ memberType = \case
 
 -- | @x in ys@: @ys@ is a name of a list type, and @x@ has its element type.
 -- A key is tested with an element path instead.
-checkMembership :: Env -> Names -> Operand -> Name -> [CheckError]
+checkMembership :: Model -> Names -> Operand -> Name -> [CheckError]
 checkMembership env names l ys = case Map.lookup (nameText ys) names of
   Nothing -> either id (const []) left <> [unknownName ys]
   Just list -> case listBody env list of
@@ -2413,9 +2389,10 @@ errorAtPos = CheckError Error
 warningAt :: Name -> Text -> CheckError
 warningAt = CheckError Warning . namePos
 
-unknownType :: Env -> Name -> CheckError
+unknownType :: Model -> Name -> CheckError
 unknownType env n
-  | Map.member (nameText n) (envConsts env) = errorAt n (constantNotType (nameText n))
+  | Map.member (nameText n) (modelConsts env) =
+      errorAt n (constantNotType (nameText n))
   | otherwise =
       errorAt n $
         "unknown type " <> nameText n <> "; declare it in __atomics or define it"
@@ -2487,10 +2464,10 @@ patternKey = \case
 -- | The factor an argument stands for: 'patternKey', for a name the type
 -- of the value it names, and for a lone constant its type ('Nothing' for
 -- an unknown name, and for a computed value, which is never a factor).
-argKey :: Env -> Names -> Pattern -> Maybe Text
+argKey :: Model -> Names -> Pattern -> Maybe Text
 argKey env names arg = case bare arg of
   PatternName n -> Map.lookup (nameText n) names
-  PatternExpr (ExprConst c) -> nameText . constType <$> Map.lookup (nameText c) (envConsts env)
+  PatternExpr (ExprConst c) -> nameText . constType <$> Map.lookup (nameText c) (modelConsts env)
   PatternExpr _ -> Nothing
   _ -> Just (patternKey arg)
 

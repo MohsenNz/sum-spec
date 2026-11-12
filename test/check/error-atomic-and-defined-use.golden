@@ -1,0 +1,42 @@
+test/check/error-atomic-and-defined-use.sumspec:10:1:
+   |
+10 | Level = Low | High
+   | ^
+Level is declared in __atomics and also defined
+
+test/check/error-atomic-and-defined-use.sumspec:11:1:
+   |
+11 | Ids = [Id]
+   | ^
+Ids is declared in __atomics and also defined
+
+test/check/error-atomic-and-defined-use.sumspec:12:1:
+   |
+12 | Mode = Off | On
+   | ^
+Mode is declared in __atomics and also defined
+
+test/check/error-atomic-and-defined-use.sumspec:14:24:
+   |
+14 | variant :: App => Mode.Off -> Mode.On
+   |                        ^
+Mode has no variants, so .Off is invalid
+
+test/check/error-atomic-and-defined-use.sumspec:14:36:
+   |
+14 | variant :: App => Mode.Off -> Mode.On
+   |                                    ^
+Mode has no variants, so .On is invalid
+
+test/check/error-atomic-and-defined-use.sumspec:15:28:
+   |
+15 | args Id#i :: App => Ids -> Ids(i)
+   |                            ^
+Ids takes no arguments
+
+test/check/error-atomic-and-defined-use.sumspec:16:39:
+   |
+16 | member Id#i :: App => Ids#ids // i in ids -> Ids'
+   |                                       ^
+ids is a Ids, not a list, so nothing can be in it
+

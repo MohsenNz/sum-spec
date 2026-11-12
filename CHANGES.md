@@ -157,6 +157,11 @@ release" in `VERSIONING.md`).
 
 ### Tool
 
+- `sumspec check`: a type declared in `__atomics` and also defined (an
+  error) is now the atomic everywhere after that error, as in the
+  language server: it has no variants, takes no arguments, is no list
+  and compares as its base. Before, paths, arguments and `in` read the
+  definition instead.
 - The flake builds `sumspec` (`nix profile install .`, `nix run . --
   check FILE`), with its dependencies from the Nix binary cache.
 - `sumspec lsp`: a language server over stdio. It publishes every parse

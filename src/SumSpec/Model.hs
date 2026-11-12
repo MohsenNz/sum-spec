@@ -4,9 +4,10 @@
 -- | A resolved model of a spec: every name it defines, what each one is,
 -- and how a path such as @Page.Plan.Draft@ resolves.
 --
--- The rule for a name after a dot is 'step', the one place it is
--- written: the checker follows it, reporting a 'StepError' in its own
--- words. The rest of the model is lenient. It is built from any spec,
+-- The checker reads the spec through it: facts about the spec live
+-- here, judgements and their messages in "SumSpec.Check". The rule for a
+-- name after a dot is 'step', the one place it is written: the checker
+-- follows it, reporting a 'StepError' in its own words. The rest of the model is lenient. It is built from any spec,
 -- one that doesn't type-check or that holds only the definitions that
 -- parsed; 'resolvePath' tries more when 'step' finds nothing, and keeps a
 -- name that doesn't resolve as 'RefUnknown'. When a name is defined
@@ -24,6 +25,8 @@ module SumSpec.Model
   , model
   , typeShape
   , typeBodyOf
+  , isType
+  , underlying
   , step
   , steps
   , variantsAt
@@ -31,6 +34,7 @@ module SumSpec.Model
   , resolvePath
   , resolveFrom
   , variantOwnerPath
+  , variantPath
   , renderModel
   ) where
 
@@ -188,6 +192,24 @@ typeShape = \case
 typeBodyOf :: Model -> Name -> Here
 typeBodyOf m n = M.lookup (nameText n) (modelTypes m) >>= typeInfoBody
 
+-- | Whether a type of this name is declared or defined. A constant is not
+-- a type.
+isType :: Model -> Text -> Bool
+isType m n = M.member n (modelTypes m)
+
+-- | The type a name stands for once newtypes (@T = A@) are followed: the
+-- first type on the way that isn't a newtype. 'Nothing' for an unknown
+-- name, or for newtypes that lead back to one already seen.
+underlying :: Model -> Text -> Maybe TypeInfo
+underlying m = go S.empty
+  where
+    go seen n
+      | n `S.member` seen = Nothing
+      | otherwise = case M.lookup n (modelTypes m) of
+          Just TypeInfo {typeInfoShape = ShapeNewtype next} ->
+            go (S.insert n seen) (nameText next)
+          t -> t
+
 -- | Why a name after a dot is not a variant where the path is.
 data StepError
   = -- | The path is at a sum with no variant of that name.
@@ -265,7 +287,7 @@ resolveFrom m here (n : ns) = ((n, ref) : refs, here'')
   where
     (ref, here') = case step m here n of
       Right (v, payload) -> (RefVariant v, payload)
-      Left _ -> case find ((== nameText n) . variantText) (behindNewtypes (10 :: Int) here) of
+      Left _ -> case find ((== nameText n) . variantText) (behindNewtypes here) of
         Just v -> (RefVariant v, variantPayload (variantInfo v))
         Nothing -> case M.lookup (nameText n) (modelTypes m) of
           Just t -> (RefType (typeInfoName t), typeInfoBody t)
@@ -273,10 +295,8 @@ resolveFrom m here (n : ns) = ((n, ref) : refs, here'')
             Just v -> (RefVariant v, variantPayload (variantInfo v))
             Nothing -> (RefUnknown, Nothing)
     (refs, here'') = resolveFrom m here' ns
-    behindNewtypes depth = \case
-      Just (TypeTerm (TermName t)) | depth > 0 -> case typeBodyOf m t of
-        b@(Just (TypeSum _)) -> variantsAt m b
-        b -> behindNewtypes (depth - 1) b
+    behindNewtypes = \case
+      Just (TypeTerm (TermName t)) -> variantsAt m (underlying m (nameText t) >>= typeInfoBody)
       _ -> []
 
 variantText :: VariantInfo -> Text
@@ -291,6 +311,11 @@ uniqueVariant m n = case M.lookup (nameText n) (modelVariants m) of
 -- in @Flying = Landed (Spot | Field)@.
 variantOwnerPath :: VariantInfo -> Text
 variantOwnerPath v = T.intercalate "." (map nameText (variantOwner v : variantParents v))
+
+-- | The path of a variant: @Flying.Landed.Spot@ for @Spot@ in
+-- @Flying = Landed (Spot | Field)@.
+variantPath :: VariantInfo -> Text
+variantPath v = variantOwnerPath v <> "." <> variantText v
 
 -- | The model as text, one entry per line: for tests, and to read.
 renderModel :: Model -> Text

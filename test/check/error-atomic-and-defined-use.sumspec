@@ -1,0 +1,17 @@
+-- A name declared in __atomics and also defined is the atomic everywhere
+-- (the definition is reported, and ignored): it has no variants, takes
+-- no arguments, is no list, and compares as its base.
+__atomics { Level = __int  Ids  Mode  Id }
+__events { variant args member compare }
+
+__init :: App
+
+App = Level * Ids * Mode
+Level = Low | High
+Ids = [Id]
+Mode = Off | On
+
+variant :: App => Mode.Off -> Mode.On
+args Id#i :: App => Ids -> Ids(i)
+member Id#i :: App => Ids#ids // i in ids -> Ids'
+compare :: App => Level#l // l > 3 -> Level'
