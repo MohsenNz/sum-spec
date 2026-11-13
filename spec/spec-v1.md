@@ -865,7 +865,7 @@ doesn't check the arguments.
 
 ## Warnings
 
-Transitions of one event on different types describe its effect on different parts, and all of them happen (`commit` in `example/git.sumspec` changes the branch and the files). Two transitions on the same type should have sources that exclude each other: somewhere, they pick different variants. Otherwise one state can match both, and the spec doesn't say which happens; the type checker warns:
+Transitions of one event on different types describe its effect on different parts, and all of them happen. Two transitions on the same type should have sources that exclude each other: somewhere, they pick different variants. Otherwise one state can match both, and the spec doesn't say which happens; the type checker warns:
 
 ```
 -- Warned: Level is left out of the second source, so it may be Low.

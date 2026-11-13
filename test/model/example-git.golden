@@ -30,14 +30,14 @@ variants
   Untracked : FileState
 constants
 events
-  add : 3 transitions
+  add : 1 transition
   checkoutCommit : 1 transition
-  commit : 3 transitions
+  commit : 2 transitions
   edit : 2 transitions
   init : 1 transition
   merge : 1 transition
-  mergeAbort : 2 transitions
-  mergeConflicted : 2 transitions
+  mergeAbort : 1 transition
+  mergeConflicted : 1 transition
   mergeContinue : 1 transition
   rebase : 1 transition
   rebaseAbort : 1 transition
@@ -46,6 +46,6 @@ events
   resolve : 1 transition
   restore : 2 transitions
   switch : 1 transition
-  unstage : 2 transitions
+  unstage : 1 transition
 annotations
 root Repository

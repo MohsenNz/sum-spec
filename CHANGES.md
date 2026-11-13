@@ -19,7 +19,8 @@ release" in `VERSIONING.md`).
   written on the source side or in a shared path, once per transition,
   never on the target or in a guard. `example/git.sumspec`'s
   `mergeConflicted` (which takes the conflicting paths as input),
-  `commit` and `mergeAbort` use it and no longer warn, and the warning
+  `commit` and `mergeAbort` use it, each in one transition with the rest
+  of its effect, and no longer warn, and the warning
   about a transition that doesn't say which element suggests it.
 - Computed values in targets: a target may set a value computed from the
   names the transition gives, literals and named constants, with `+`,

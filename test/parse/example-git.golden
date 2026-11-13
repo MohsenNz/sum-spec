@@ -42,29 +42,21 @@ init :: Repository.Uninitialized -> Repository.Initialized(Head.Unborn * Operati
 edit Path#p :: Files[p]
             => FileState.Unmodified -> FileState.Modified
             => FileState.Staged -> FileState.StagedAndModified
-add Path#p :: Files[p]
-           => FileState.Untracked -> FileState.Staged
-           => FileState.Modified -> FileState.Staged
-           => FileState.StagedAndModified -> FileState.Staged
-unstage Path#p :: Files[p]
-               => FileState.Staged -> FileState.Modified
-               => FileState.StagedAndModified -> FileState.Modified
+add Path#p :: Files[p] => FileState.{Untracked | Modified | StagedAndModified} -> FileState.Staged
+unstage Path#p :: Files[p] => FileState.{Staged | StagedAndModified} -> FileState.Modified
 restore Path#p :: Files[p]
                => FileState.Modified -> FileState.Unmodified
                => FileState.StagedAndModified -> FileState.Staged
 commit :: Repository.Initialized
-       => Head.Unborn * Operation.Idle -> Head.OnBranch * Branches' * Files'
-       => Head.OnBranch * Operation.Idle -> Branches' * Files'
-       :: Files[each] => FileState.Staged -> FileState.Unmodified
+       => Head.Unborn * Operation.Idle * Files[each #p](FileState.Staged) -> Head.OnBranch * Branches' * Files[p](FileState.Unmodified)
+       => Head.OnBranch * Operation.Idle * Files[each #p](FileState.Staged) -> Branches' * Files[p](FileState.Unmodified)
 switch BranchName#b :: Repository.Initialized => Operation.Idle // Branches[b] -> Head.OnBranch(b) * Files'
 checkoutCommit :: Repository.Initialized => Operation.Idle -> Head.Detached * Files'
 merge :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Branches' * Files'
-mergeConflicted Paths#ps :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Files' * Operation.Merging
-                         :: Files[each in ps] => FileState.Unmodified -> FileState.Conflicted
+mergeConflicted Paths#ps :: Repository.Initialized => Head.OnBranch * Files[each #p in ps](FileState.Unmodified) * Operation.Idle -> Files[p](FileState.Conflicted) * Operation.Merging
 resolve Path#p :: Files[p] => FileState.Conflicted -> FileState.Staged
 mergeContinue :: Repository.Initialized => Operation.Merging -> Branches' * Operation.Idle
-mergeAbort :: Repository.Initialized => Operation.Merging -> Files' * Operation.Idle
-           :: Files[each] => FileState.Conflicted -> FileState.Unmodified
+mergeAbort :: Repository.Initialized => Operation.Merging * Files[each #p](FileState.Conflicted) -> Files[p](FileState.Unmodified) * Operation.Idle
 rebase :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Head.Detached * Files' * Operation.Rebasing
 rebaseContinue :: Repository.Initialized => Head.Detached * Operation.Rebasing -> Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining')
 rebaseFinished :: Repository.Initialized => Head.Detached * Operation.Rebasing -> Head.OnBranch * Branches' * Operation.Idle

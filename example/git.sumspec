@@ -3,9 +3,9 @@
 -- staged, committed), and the operations that can be left in progress:
 -- a merge with conflicts, and a rebase.
 --
--- An event with several transitions describes its effect on each part
--- of the state, e.g. "commit" moves the branch's tip and also turns
--- staged files into unmodified ones.
+-- A transition writes every part of the state it changes, e.g. "commit"
+-- moves the branch's tip and also turns staged files into unmodified
+-- ones.
 --
 -- On the target side of a transition, a part that is left out, or
 -- written without a prime, keeps its value; a primed part (Files') gets
@@ -16,9 +16,9 @@
 -- and picks the file with an element path, written once for both sides
 -- with => (Files[p] => FileState.Staged -> FileState.Modified). Several
 -- transitions under the same path are branches, each starting with =>.
--- Files[each in ps] picks the files whose paths are in ps, and
--- Files[each] every file that matches; Files[each #p] would also name
--- each one's path p.
+-- Files[each #p in ps] picks the files whose paths are in ps, and
+-- Files[each #p] every file that matches; p names each one's path, and
+-- the target writes each of them Files[p].
 
 __version 1.0
 
@@ -94,35 +94,40 @@ init
 edit Path#p
   :: Files[p]
   => FileState.Unmodified -> FileState.Modified
-  => FileState.Staged -> FileState.StagedAndModified
+  => FileState.Staged     -> FileState.StagedAndModified
 
 add Path#p
   :: Files[p]
-  => FileState.Untracked -> FileState.Staged
-  => FileState.Modified -> FileState.Staged
-  => FileState.StagedAndModified -> FileState.Staged
+  => FileState.{Untracked | Modified | StagedAndModified}
+  -> FileState.Staged
 
 unstage Path#p
   :: Files[p]
-  => FileState.Staged -> FileState.Modified
-  => FileState.StagedAndModified -> FileState.Modified
+  => FileState.{Staged | StagedAndModified}
+  -> FileState.Modified
 
 restore Path#p
   :: Files[p]
   => FileState.Modified -> FileState.Unmodified
   => FileState.StagedAndModified -> FileState.Staged
 
+-- Every staged file becomes unmodified: Files[each #p] is every file
+-- that matches the source.
 commit
   :: Repository.Initialized
-  => Head.Unborn * Operation.Idle
-  -> Head.OnBranch * Branches' * Files'
 
-  => Head.OnBranch * Operation.Idle
-  -> Branches' * Files'
+  => Head.Unborn
+   * Operation.Idle
+   * Files[each #p](FileState.Staged)
+  -> Head.OnBranch
+   * Branches'
+   * Files[p](FileState.Unmodified)
 
-  -- Every staged file becomes unmodified: Files[each] is every file
-  -- that matches the source.
-  :: Files[each] => FileState.Staged -> FileState.Unmodified
+  => Head.OnBranch
+   * Operation.Idle
+   * Files[each #p](FileState.Staged)
+  -> Branches'
+   * Files[p](FileState.Unmodified)
 
 switch BranchName#b
   :: Repository.Initialized
@@ -137,7 +142,8 @@ checkoutCommit
 
 -- Whether a merge succeeds or stops with conflicts depends on the files'
 -- contents, which the model doesn't hold, so each outcome is an event,
--- and a conflicted merge brings the paths of the files that conflict.
+-- and a conflicted merge brings the paths of the files that conflict,
+-- each of which becomes conflicted.
 merge
   :: Repository.Initialized
   => Head.OnBranch * Operation.Idle
@@ -145,11 +151,11 @@ merge
 
 mergeConflicted Paths#ps
   :: Repository.Initialized
-  => Head.OnBranch * Operation.Idle
-  -> Files' * Operation.Merging
-
-  -- Each file in ps becomes conflicted.
-  :: Files[each in ps] => FileState.Unmodified -> FileState.Conflicted
+  => Head.OnBranch
+   * Files[each #p in ps](FileState.Unmodified)
+   * Operation.Idle
+  -> Files[p](FileState.Conflicted)
+   * Operation.Merging
 
 resolve Path#p
   :: Files[p] => FileState.Conflicted -> FileState.Staged
@@ -159,13 +165,11 @@ mergeContinue
   => Operation.Merging
   -> Branches' * Operation.Idle
 
+-- Every conflicted file goes back to unmodified.
 mergeAbort
   :: Repository.Initialized
-  => Operation.Merging
-  -> Files' * Operation.Idle
-
-  -- Every conflicted file goes back to unmodified.
-  :: Files[each] => FileState.Conflicted -> FileState.Unmodified
+  => Operation.Merging * Files[each #p](FileState.Conflicted)
+  -> Files[p](FileState.Unmodified) * Operation.Idle
 
 rebase
   :: Repository.Initialized
