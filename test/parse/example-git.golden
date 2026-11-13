@@ -16,11 +16,13 @@ __events {
   switch
   checkoutCommit
   merge
+  mergeConflicted
   resolve
   mergeContinue
   mergeAbort
   rebase
   rebaseContinue
+  rebaseFinished
   rebaseAbort
 }
 
@@ -55,16 +57,14 @@ commit :: Repository.Initialized
        :: FileState.Staged -> FileState.Unmodified
 switch BranchName#b :: Repository.Initialized => Operation.Idle // Branches[b] -> Head.OnBranch(b) * Files'
 checkoutCommit :: Repository.Initialized => Operation.Idle -> Head.Detached * Files'
-merge :: Repository.Initialized
-      => Head.OnBranch * Operation.Idle -> Branches' * Files'
-      => Head.OnBranch * Operation.Idle -> Files' * Operation.Merging
-      :: FileState.Unmodified -> FileState.Conflicted
+merge :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Branches' * Files'
+mergeConflicted :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Files' * Operation.Merging
+                :: FileState.Unmodified -> FileState.Conflicted
 resolve Path#p :: Files[p] => FileState.Conflicted -> FileState.Staged
 mergeContinue :: Repository.Initialized => Operation.Merging -> Branches' * Operation.Idle
 mergeAbort :: Repository.Initialized => Operation.Merging -> Files' * Operation.Idle
            :: FileState.Conflicted -> FileState.Unmodified
 rebase :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Head.Detached * Files' * Operation.Rebasing
-rebaseContinue :: Repository.Initialized
-               => Head.Detached * Operation.Rebasing -> Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining')
-               => Head.Detached * Operation.Rebasing -> Head.OnBranch * Branches' * Operation.Idle
+rebaseContinue :: Repository.Initialized => Head.Detached * Operation.Rebasing -> Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining')
+rebaseFinished :: Repository.Initialized => Head.Detached * Operation.Rebasing -> Head.OnBranch * Branches' * Operation.Idle
 rebaseAbort :: Repository.Initialized => Head.Detached * Operation.Rebasing -> Head.OnBranch * Files' * Operation.Idle

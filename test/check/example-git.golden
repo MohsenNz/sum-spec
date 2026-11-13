@@ -1,30 +1,18 @@
-example/git.sumspec:118:6:
+example/git.sumspec:120:6:
     |
-118 |   :: FileState.Staged -> FileState.Unmodified
+120 |   :: FileState.Staged -> FileState.Unmodified
     |      ^
 warning: commit changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git.sumspec:136:6:
+example/git.sumspec:147:6:
     |
-136 |   => Head.OnBranch * Operation.Idle
+147 |   :: FileState.Unmodified -> FileState.Conflicted
     |      ^
-warning: merge: this transition and the one on line 133 can apply to the same state, and which one happens isn't said; give their sources different variants
+warning: mergeConflicted changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git.sumspec:141:6:
+example/git.sumspec:164:6:
     |
-141 |   :: FileState.Unmodified -> FileState.Conflicted
-    |      ^
-warning: merge changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
-
-example/git.sumspec:158:6:
-    |
-158 |   :: FileState.Conflicted -> FileState.Unmodified
+164 |   :: FileState.Conflicted -> FileState.Unmodified
     |      ^
 warning: mergeAbort changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
-
-example/git.sumspec:170:6:
-    |
-170 |   => Head.Detached * Operation.Rebasing
-    |      ^
-warning: rebaseContinue: this transition and the one on line 167 can apply to the same state, and which one happens isn't said; give their sources different variants
 

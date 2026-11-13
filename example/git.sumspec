@@ -35,11 +35,13 @@ __events {
   switch
   checkoutCommit
   merge
+  mergeConflicted
   resolve
   mergeContinue
   mergeAbort
   rebase
   rebaseContinue
+  rebaseFinished
   rebaseAbort
 }
 
@@ -128,11 +130,15 @@ checkoutCommit
   => Operation.Idle
   -> Head.Detached * Files'
 
+-- Whether a merge succeeds or stops with conflicts depends on the files'
+-- contents, which the model doesn't hold, so each outcome is an event.
 merge
   :: Repository.Initialized
   => Head.OnBranch * Operation.Idle
   -> Branches' * Files'
 
+mergeConflicted
+  :: Repository.Initialized
   => Head.OnBranch * Operation.Idle
   -> Files' * Operation.Merging
 
@@ -162,11 +168,16 @@ rebase
   => Head.OnBranch * Operation.Idle
   -> Head.Detached * Files' * Operation.Rebasing
 
+-- A rebase applies the next commit while some remain, and finishes
+-- after the last one. A guard can't test that Remaining is empty yet, so
+-- each outcome is an event.
 rebaseContinue
   :: Repository.Initialized
   => Head.Detached * Operation.Rebasing
   -> Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining')
 
+rebaseFinished
+  :: Repository.Initialized
   => Head.Detached * Operation.Rebasing
   -> Head.OnBranch * Branches' * Operation.Idle
 

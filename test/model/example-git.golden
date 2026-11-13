@@ -34,12 +34,14 @@ events
   commit : 3 transitions
   edit : 2 transitions
   init : 1 transition
-  merge : 3 transitions
+  merge : 1 transition
   mergeAbort : 2 transitions
+  mergeConflicted : 2 transitions
   mergeContinue : 1 transition
   rebase : 1 transition
   rebaseAbort : 1 transition
-  rebaseContinue : 2 transitions
+  rebaseContinue : 1 transition
+  rebaseFinished : 1 transition
   resolve : 1 transition
   restore : 2 transitions
   switch : 1 transition

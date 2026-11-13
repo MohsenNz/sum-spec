@@ -217,8 +217,11 @@ To decide:
   earlier one covers, as it can never apply. Transitions on different
   types still all happen (`commit` in `example/git.sumspec`). Not before
   guards: every overlap in the examples has identical sources
-  (`deleteTodo`, `clearCompleted`, `merge`, `rebaseContinue`), so the
-  second transition of each would never apply. The transitions of an
+  (`deleteTodo`, `clearCompleted`), so the second transition of each
+  would never apply. `example/git.sumspec` makes each outcome its own
+  event instead: `merge` and `mergeConflicted` (decided outside the
+  model), `rebaseContinue` and `rebaseFinished` (until a guard can test
+  that a list is empty). The transitions of an
   event are already written together, in order (see "Several
   transitions for one event" in `spec-v1.md`).
 - The checker already warns about two transitions of one event, on

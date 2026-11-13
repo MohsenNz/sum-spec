@@ -223,8 +223,11 @@ release" in `VERSIONING.md`).
 - Warnings for a variant the app never reaches from `__init`, and for
   two transitions of one event, on the same type, whose sources can
   match the same state (`example/todomvc.sumspec` warns about `deleteTodo` and
-  `clearCompleted`, and `example/git.sumspec` about `merge` and
-  `rebaseContinue`). `example/drone.sumspec` gains `selectMission`,
+  `clearCompleted`). `example/git.sumspec` splits two events in two
+  instead: `merge` and `mergeConflicted`, as which outcome happens
+  depends on the files' contents, which the model doesn't hold; and
+  `rebaseContinue` and `rebaseFinished`, as a guard can't test that no
+  commits remain yet. `example/drone.sumspec` gains `selectMission`,
   `editMission`, `startFlight`, `takeOff`, `flightFailed`, `landed` and
   `dismissFailure`, so every variant is reached; its `PMode.Flight`
   now carries `Flight`.
