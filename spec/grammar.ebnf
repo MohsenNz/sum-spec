@@ -211,12 +211,13 @@ input         = type_pattern , [ NAMING ] ;
    NAMING as the whole argument names the one value inside the head,
    without writing its type (see "Bare binding" in spec-v1.md):
      Attempts(#n)        means  Attempts(Int#n)
-   An element_key after a path picks one element of a list type by key;
-   with "in", every element whose key is in a list; with "_", each
-   element that matches (see "Element paths" in spec-v1.md):
+   An element_key after a path picks one element of a list type by key.
+   With NAMING, it names the key of each element it picks: with "in",
+   every element whose key is in a list; alone, each element that
+   matches (see "Element paths" in spec-v1.md):
      Projects[p](Todos[t](Completion.Active))
-     Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
-     Files[_] => FileState.Staged -> FileState.Unmodified
+     Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+     Files[#p] => FileState.Staged -> FileState.Unmodified
    ".{" after a path names some variants of the sum there, each written
    from it (see "Alternatives" in spec-v1.md):
      Flight.{Arming | Flying(FPhase.{Approaching | Holding})}          *)
@@ -245,7 +246,7 @@ alternatives  = alternative , "|" , alternative , { "|" , alternative } ;
 alternative   = path , [ "." , "{" , alternatives , "}"
                        | "(" , ( NAMING | arguments ) , ")" ] ;
 
-element_key   = "[" , ( LOWER , [ "in" , LOWER ] | "_" ) , "]" ;
+element_key   = "[" , ( LOWER | NAMING , [ "in" , LOWER ] ) , "]" ;
 
 path          = UPPER , { "." , UPPER } ;
 
@@ -468,15 +469,14 @@ character     = ? any Unicode character ? ;
      is a product, or else one argument headed by the element type; the
      element takes no prime and no naming. See "Element paths" in
      spec-v1.md;
-   - in an element path L[x in xs], xs is a name of the transition
-     whose type resolves through newtypes to a list of L's key type, and
-     the path names x, of that key type, a name new to the transition.
-     It is written on the source side or in a shared path; the target
-     and a guard may only repeat it. A transition has at most one. See
-     "Several elements" in spec-v1.md;
-   - an element path L[_] is placed like L[x in xs], and a transition
-     has at most one of the two; L is any list type, with a key or
-     not; it names nothing. See "Every element that matches" in
+   - in an element path L[#x in xs], xs is a name of the transition
+     whose type resolves through newtypes to a list of L's key type;
+   - an element path L[#x in xs] or L[#x] names x, of L's key type (L
+     is a keyed list), a name new to the transition. It is written on
+     the source side or in a shared path, never on the target (which
+     writes L[x]) or in a guard. A transition has at most one of the
+     two. See
+     "Several elements" and "Every element that matches" in
      spec-v1.md.
 
    Warnings (the checker reports them, but the spec is valid):
@@ -485,7 +485,7 @@ character     = ? any Unicode character ? ;
      list without a key, it isn't written from the element, or doesn't
      compare a key with a named value (Todo(id * ...)), or the element
      is inside another list. The warning suggests an element path
-     (L[id], or L[_] for each element that matches), and a key for a
+     (L[id], or L[#id] for each element that matches), and a key for a
      named list without one. See "Keys" and "Element paths" in
      spec-v1.md;
    - a space before a prime or a naming (A ', Text #t); it's read the

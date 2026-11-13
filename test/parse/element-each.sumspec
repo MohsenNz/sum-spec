@@ -1,5 +1,6 @@
--- An element path over each element that matches, L[_]: in a pattern, in
--- a shared path, with and without arguments. The printer writes [_].
+-- An element path over each element that matches, L[#x]: in a pattern,
+-- in a shared path, with and without arguments. x names each element's
+-- key; the target may write L[x].
 __version 1.0
 
 __atomics { Path }
@@ -8,11 +9,11 @@ __events { commit reset bump }
 App = Files * Counts
 Files = [FileState by Path]
 FileState = Unmodified | Staged
-Counts = [Count]
+Counts = [Count by Path]
 Count = Path
 
-commit :: Files[ _ ] => FileState.Staged -> FileState.Unmodified
-reset :: App(Files[_]) -> App(Files[_](FileState.Unmodified))
+commit :: Files[ #p ] => FileState.Staged -> FileState.Unmodified
+reset :: App(Files[#p]) -> App(Files[p](FileState.Unmodified))
 bump
-  :: Counts[_](Count#n)
-  -> Counts[_](Count(n))
+  :: Counts[#p](Count#n)
+  -> Counts[p](Count(n))

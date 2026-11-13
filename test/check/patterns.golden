@@ -2,11 +2,11 @@ test/check/patterns.sumspec:42:15:
    |
 42 | newtypeArg :: Shape.Dot(Point) -> Shape.Dot(Point)
    |               ^
-warning: newtypeArg changes one Shape of a list, but doesn't say which; to pick it, use Shapes[_](...) for each one that matches, or give Shapes a key (Shapes = [Shape by Id]) and use an element path, such as Shapes[id](...)
+warning: newtypeArg changes one Shape of a list, but doesn't say which; to pick it, give Shapes a key (Shapes = [Shape by Id]) and use an element path, such as Shapes[id](...), or Shapes[#id](...) for each one that matches
 
 test/check/patterns.sumspec:44:12:
    |
 44 | listArg :: Shape.Line(Points) -> Shape.Line
    |            ^
-warning: listArg changes one Shape of a list, but doesn't say which; to pick it, use Shapes[_](...) for each one that matches, or give Shapes a key (Shapes = [Shape by Id]) and use an element path, such as Shapes[id](...)
+warning: listArg changes one Shape of a list, but doesn't say which; to pick it, give Shapes a key (Shapes = [Shape by Id]) and use an element path, such as Shapes[id](...), or Shapes[#id](...) for each one that matches
 

@@ -1,42 +1,66 @@
-test/check/error-element-each.sumspec:16:30:
+test/check/error-element-each.sumspec:20:31:
    |
-16 | targetOnly :: Files -> Files[_](FileState.Unmodified)
-   |                              ^
-Files[_] picks elements only on the source side (or in a shared path)
-
-test/check/error-element-each.sumspec:18:38:
-   |
-18 | inGuard :: App => Mode.Idle // Files[_](FileState.Staged) -> Mode.Busy
-   |                                      ^
-a guard can't pick elements with Files[_]; write it on the source side
-
-test/check/error-element-each.sumspec:21:46:
-   |
-21 |   :: App(Files[_](FileState.Staged) * Others[p in ps])
-   |                                              ^
-a transition picks several elements once; Files[_] already does here
-
-test/check/error-element-each.sumspec:24:12:
-   |
-24 | notList :: Mode[_] => Idle -> Busy
-   |            ^
-Mode is not a list type; [_] picks each element of a list type, such as L = [T]
-
-test/check/error-element-each.sumspec:26:31:
-   |
-26 | primed :: Files[_] -> Files[_]'
+20 | targetOnly :: Files -> Files[#p](FileState.Unmodified)
    |                               ^
+on the target side, write Files[p]; #p names the key on the source side
+
+test/check/error-element-each.sumspec:22:51:
+   |
+22 | repeated :: Files[#p](FileState.Staged) -> Files[#p](FileState.Unmodified)
+   |                                                   ^
+on the target side, write Files[p]; #p names the key on the source side
+
+test/check/error-element-each.sumspec:24:39:
+   |
+24 | inGuard :: App => Mode.Idle // Files[#p](FileState.Staged) -> Mode.Busy
+   |                                       ^
+a guard can't pick elements with Files[#p]; write it on the source side
+
+test/check/error-element-each.sumspec:27:48:
+   |
+27 |   :: App(Files[#p](FileState.Staged) * Others[#q in ps])
+   |                                                ^
+a transition picks several elements once; Files[#p] already does here
+
+test/check/error-element-each.sumspec:30:12:
+   |
+30 | notList :: Mode[#m] => Idle -> Busy
+   |            ^
+Mode is not a list type; [#m] picks elements of a keyed list type, such as L = [T by K]
+
+test/check/error-element-each.sumspec:32:12:
+   |
+32 | unkeyed :: Sizes[#p](#n) -> Sizes[p](n + 1)
+   |            ^
+Sizes has no key, so [#p] can't pick elements; declare one, such as Sizes = [Size by Id]
+
+test/check/error-element-each.sumspec:32:29:
+   |
+32 | unkeyed :: Sizes[#p](#n) -> Sizes[p](n + 1)
+   |                             ^
+Sizes has no key, so [p] can't pick an element; declare one, such as Sizes = [Size by Id]
+
+test/check/error-element-each.sumspec:34:32:
+   |
+34 | primed :: Files[#p] -> Files[p]'
+   |                                ^
 an element takes no prime ('); prime its parts instead, such as Files[x](A')
 
-test/check/error-element-each.sumspec:27:19:
+test/check/error-element-each.sumspec:35:20:
    |
-27 | named :: Files[_]#f -> Files
-   |                   ^
+35 | named :: Files[#p]#f -> Files
+   |                    ^
 an element can't be named yet; name its parts instead
 
-test/check/error-element-each.sumspec:29:13:
+test/check/error-element-each.sumspec:37:24:
    |
-29 | input Files[_] :: Mode.Idle -> Mode.Busy
-   |             ^
+37 | twice Path#p :: Files[#p] => FileState.Staged -> FileState.Unmodified
+   |                        ^
+p is named twice in this transition
+
+test/check/error-element-each.sumspec:39:14:
+   |
+39 | input Files[#p] :: Mode.Idle -> Mode.Busy
+   |              ^
 an element path goes on the source or target side, not in the input
 

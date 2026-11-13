@@ -103,9 +103,8 @@ completions source spec m (Position line character) =
       | (name, c) <- M.toList (modelConsts m)
       ]
     -- The values named so far in the definition being written: each
-    -- @#x@, and each @x@ of @L[x in xs]@, from the line where it starts
-    -- (in column 1) to the cursor. Read from the text, as the definition
-    -- being written seldom parses.
+    -- @#x@ from the line where it starts (in column 1) to the cursor. Read
+    -- from the text, as the definition being written seldom parses.
     values =
       [ item CompletionItemKind_Variable x x (Just "value") Nothing
       | x <- nub (concatMap namings (reverse (before : current')))
@@ -120,19 +119,10 @@ completions source spec m (Position line character) =
       Nothing -> False
     namings l =
       [ x
-      | chunk <- drop 1 (T.splitOn "#" code)
+      | chunk <- drop 1 (T.splitOn "#" (fst (T.breakOn "--" l)))
       , let x = T.takeWhile isNameChar chunk
       , not (T.null x)
       ]
-        <> [ x
-           | chunk <- drop 1 (T.splitOn "[" code)
-           , let (x, rest) = T.span isNameChar (T.stripStart chunk)
-           , not (T.null x)
-           , Just after <- [T.stripPrefix "in" (T.stripStart rest)]
-           , maybe False (not . isNameChar . fst) (T.uncons after)
-           ]
-      where
-        code = fst (T.breakOn "--" l)
     item kind label insert detail documentation =
       CompletionItem
         { _label = label

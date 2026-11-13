@@ -16,10 +16,10 @@
       `resolve`, constant and guard variants and reachability use it,
       with their own messages; the lenient resolver adds its fallbacks on
       top. A test checks they agree on every spec the checker accepts.
-- [x] Element paths over several elements, `L[x in xs]`, for an event
+- [x] Element paths over several elements, `L[#x in xs]`, for an event
       that brings the keys of the elements it changes
       (`mergeConflicted` in `example/git.sumspec`).
-- [x] "Every element that matches": `L[_]` (Part C's `__each` in
+- [x] "Every element that matches": `L[#x]` (Part C's `__each` in
       `spec/efsm-gaps.md`), for `commit` and `mergeAbort` in
       `example/git.sumspec`.
 - [x] Should the checker keep its own copy of the spec's facts (`Env`)?

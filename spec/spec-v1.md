@@ -654,8 +654,7 @@ toggleTodo TodoId#id :: Todos[id](Completion.Active) -> Todos[id](Completion.Com
 `Todo[id]` will be resolved to a `Todo` and then `(Completion.Active)` will apply
 to that `Todo`: `Todo(Completion.Active)`.
 
-- `L` is a type defined as a keyed list (`Todos = [Todo by TodoId]`);
-  `L[_]`, below, takes any list type.
+- `L` is a type defined as a keyed list (`Todos = [Todo by TodoId]`).
   The path starts at the list type, so from a variant that carries the
   list: `Ring.Points(Points[i](...))`.
 - On the source side, `L[x]` is a precondition: the element exists and
@@ -688,9 +687,9 @@ toggleTodo Ref(ProjectId#p * TodoId#t)
 A path picks an element of each list it goes through, so nested lists work.
 `Projects[p]` is the project, and `Todos[t]` the todo inside it.
 
-#### Several elements: `L[x in xs]`
+#### Several elements: `L[#x in xs]`
 
-`L[x in xs]` is every element of `L` whose key is in the list `xs`. It
+`L[#x in xs]` is every element of `L` whose key is in the list `xs`. It
 stands for `L[x]`, once for each `x` in `xs`:
 
 ```
@@ -698,50 +697,56 @@ Files = [FileState by Path]
 Paths = [Path]
 
 mergeConflicted Paths#ps
-  :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+  :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
 ```
 
 - `xs` is a name of the transition (from the input or the source side)
   whose type is a list, keyed or not, or a newtype of one. It holds keys
   of `L`: its element type is `L`'s key type.
-- The path names `x`, a value of `L`'s key type. The transition can use
-  it anywhere, as one element's key (`Branches[b in bs] -> Branches[b](Tip')`)
-  or as a value. It is a new name: nothing else in the transition is
-  named `x`.
+- `#x` names the key of each listed element, a value of `L`'s key type,
+  as `#x` names a value anywhere. The transition can use `x` anywhere,
+  as one element's key (`Branches[#b in bs] -> Branches[b](Tip')`) or as
+  a value. It is a new name: nothing else in the transition is named
+  `x`.
 - On the source side, it's a precondition, as for one element: every
   listed element exists and matches the arguments, or the transition
   doesn't happen. An empty list matches.
 - On the target side, each listed element gets the new state. Without
   arguments, each keeps its value.
-- It's written on the source side, or in a shared path (`Files[p in ps]
-  =>`), which puts it on both sides. The target, and a guard, may repeat
-  it, but not bring a new one; on the target, `L[x]` picks one of them.
+- It's written on the source side, or in a shared path (`Files[#p in ps]
+  =>`), which puts it on both sides. On the target, each element is
+  written `L[x]`, using the name.
 - A transition picks several elements once: it has at most one
-  `L[x in xs]`.
+  `L[#x in xs]` or `L[#x]`.
 
-#### Every element that matches: `L[_]`
+#### Every element that matches: `L[#x]`
 
-`L[_]` is each element of the list type `L` that matches:
+`L[#x]` is each element of `L` that matches, with `#x` naming the key of
+each:
 
 ```
-commit :: Files[_] => FileState.Staged -> FileState.Unmodified
+commit :: Files[#p] => FileState.Staged -> FileState.Unmodified
+clear  :: Files[#p] -> Files[p](FileState.Unmodified)
 ```
+
+On a source, `#x` usually names the one value a pattern matches. Here it
+doesn't pick one element: it stands for every element that matches.
 
 - On the source side, it's a filter, not a precondition: the elements
   that match the arguments take part, and the others keep their values.
   The transition happens even when none match. Without arguments, it's
   every element.
-- On the target side, each element the source picked gets the new state.
-- `L` is any list type, with a key or without one: `_` picks no key.
-- It names nothing. A name given inside its arguments is one element's
-  (`Sizes[_](#n) -> Sizes[_](n + 1)` adds one to each).
-- It is placed like `L[x in xs]`: on the source side or in a shared
-  path, which the target and a guard may only repeat, and a transition
-  has at most one of the two forms.
-- It takes no prime and no naming, and doesn't go in the input.
+- On the target side, each element the source picked gets the new
+  state, written `L[x](...)`.
+- `x` is a name of the transition, of `L`'s key type, new to it. A name
+  given inside the arguments is one element's (`Sizes[#p](#n) ->
+  Sizes[p](n + 1)` adds one to each).
+- It is placed like `L[#x in xs]`: on the source side or in a shared
+  path, never on the target or in a guard, and a transition has at most
+  one of the two forms.
 
-`L[x in xs]` and `L[_]` differ on the source side: every listed element
-must match `L[x in xs]`, while `L[_]` takes the elements that match.
+`L[#x in xs]` and `L[#x]` differ on the source side: every listed element
+must match `L[#x in xs]`, while `L[#x]` takes the elements that match.
 
 ## Language version
 

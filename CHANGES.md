@@ -10,19 +10,20 @@ release" in `VERSIONING.md`).
 
 ### Language
 
-- Element paths over each element that matches: `L[_]` on the source
-  side takes the elements of the list type `L` (with a key or without)
-  that match its arguments, and the target gives each of them its new
-  state; the others keep their values. It's placed like `L[x in xs]`.
-  `example/git.sumspec`'s `commit` and `mergeAbort` use it and no longer
-  warn, and the warning about a transition that doesn't say which
-  element suggests it.
-- Element paths over several elements: `L[x in xs]` is every element of
+- Element paths over each element that matches: `L[#x]` on the source
+  side takes the elements of the keyed list type `L` that match its
+  arguments, naming each one's key `x`, and the target gives each of them
+  its new state (`L[x](...)`); the others keep their values. It's placed
+  like `L[#x in xs]`. `example/git.sumspec`'s `commit` and `mergeAbort`
+  use it and no longer warn, and the warning about a transition that
+  doesn't say which element suggests it.
+- Element paths over several elements: `L[#x in xs]` is every element of
   the keyed list type `L` whose key is in the list `xs`, as `L[x]` for
   each `x` in `xs`. On the source side every listed element must exist
-  and match; on the target each gets the new state. The path names `x`,
-  of the key type. It's written on the source side or in a shared path,
-  once per transition. `example/git.sumspec`'s `mergeConflicted` takes
+  and match; on the target each gets the new state, written `L[x](...)`.
+  `#x` names the key, as `#` names a value everywhere, so it isn't
+  written on the target or in a guard. It's written on the source side or in
+  a shared path, once per transition. `example/git.sumspec`'s `mergeConflicted` takes
   the conflicting paths as its input and uses it, so it no longer warns.
 - Computed values in targets: a target may set a value computed from the
   names the transition gives, literals and named constants, with `+`,

@@ -1,29 +1,39 @@
--- Element paths over each element that matches, L[_], that break the
+-- Element paths over each element that matches, L[#x], that break the
 -- rules.
-__atomics { Path }
-__events { targetOnly inGuard withIn notList primed named input }
+__atomics { Path  Size = __int }
+__events {
+  targetOnly repeated inGuard withIn notList unkeyed primed named twice
+  input
+}
 
 __init :: App
 
-App = Files * Others * Mode
-Others = [FileState by Path]
+App = Files * Others * Sizes * Mode
 Files = [FileState by Path]
+Others = [FileState by Path]
 FileState = Unmodified | Staged
+Sizes = [Size]
 Mode = Idle | Busy
 Paths = [Path]
 
 -- Only on the target.
-targetOnly :: Files -> Files[_](FileState.Unmodified)
+targetOnly :: Files -> Files[#p](FileState.Unmodified)
+-- Named again on the target: write Files[p] there.
+repeated :: Files[#p](FileState.Staged) -> Files[#p](FileState.Unmodified)
 -- In a guard.
-inGuard :: App => Mode.Idle // Files[_](FileState.Staged) -> Mode.Busy
--- Together with an x in xs: a transition picks several elements once.
+inGuard :: App => Mode.Idle // Files[#p](FileState.Staged) -> Mode.Busy
+-- Together with a #x in xs: a transition picks several elements once.
 withIn Paths#ps
-  :: App(Files[_](FileState.Staged) * Others[p in ps])
-  -> App(Files[_](FileState.Unmodified))
+  :: App(Files[#p](FileState.Staged) * Others[#q in ps])
+  -> App(Files[p](FileState.Unmodified))
 -- Mode is not a list type.
-notList :: Mode[_] => Idle -> Busy
+notList :: Mode[#m] => Idle -> Busy
+-- Sizes has no key, so there is nothing to name.
+unkeyed :: Sizes[#p](#n) -> Sizes[p](n + 1)
 -- An element takes no prime, and can't be named.
-primed :: Files[_] -> Files[_]'
-named :: Files[_]#f -> Files
+primed :: Files[#p] -> Files[p]'
+named :: Files[#p]#f -> Files
+-- p is already the input's name.
+twice Path#p :: Files[#p] => FileState.Staged -> FileState.Unmodified
 -- Not in the input.
-input Files[_] :: Mode.Idle -> Mode.Busy
+input Files[#p] :: Mode.Idle -> Mode.Busy

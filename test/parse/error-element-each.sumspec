@@ -1,8 +1,7 @@
--- "_" stands alone in the brackets: it names nothing, so it takes no "in".
+-- "_" is not a key: each element is written L[#x], naming its key.
 __atomics { Path }
 __events { commit }
 
 Files = [Path by Path]
-Paths = [Path]
 
-commit Paths#ps :: Files[_ in ps] -> Files[_ in ps]
+commit :: Files[_] -> Files[_]

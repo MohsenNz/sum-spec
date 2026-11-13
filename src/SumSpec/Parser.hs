@@ -554,16 +554,13 @@ alternative = do
     , PatternPath names <$> option [] argumentList
     ]
 
--- element_key = "[" , ( LOWER , [ "in" , LOWER ] | "_" ) , "]" ;
+-- element_key = "[" , ( LOWER | NAMING , [ "in" , LOWER ] ) , "]" ;
 elementKey :: Parser ElementKey
-elementKey = brackets (each <|> one)
+elementKey = brackets (named <|> KeyOne <$> valueName)
   where
-    each = do
-      pos <- getSourcePos
-      KeyEach (Name pos "_") <$ symbol "_"
-    one = do
-      x <- valueName
-      maybe (KeyOne x) (KeyIn x) <$> optional (keyword "in" *> valueName)
+    named = do
+      x <- naming
+      maybe (KeyEach x) (KeyIn x) <$> optional (keyword "in" *> valueName)
 
 -- [ NAMING ] after a pattern.
 withNaming :: Pattern -> Parser Pattern

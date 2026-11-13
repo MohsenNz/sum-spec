@@ -14,7 +14,7 @@ test/check/error-bad-arguments.sumspec:14:13:
    |
 14 | onAtomic :: A(B) -> A
    |             ^
-warning: onAtomic changes one A of a list, but doesn't say which; to pick it, use As[_](...) for each one that matches, or give As a key (As = [A by Id]) and use an element path, such as As[id](...)
+warning: onAtomic changes one A of a list, but doesn't say which; to pick it, give As a key (As = [A by Id]) and use an element path, such as As[id](...), or As[#id](...) for each one that matches
 
 test/check/error-bad-arguments.sumspec:15:21:
    |

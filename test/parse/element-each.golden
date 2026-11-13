@@ -13,8 +13,8 @@ __events {
 App = Files * Counts
 Files = [FileState by Path]
 FileState = Unmodified | Staged
-Counts = [Count]
+Counts = [Count by Path]
 Count = Path
-commit :: Files[_] => FileState.Staged -> FileState.Unmodified
-reset :: App(Files[_]) -> App(Files[_](FileState.Unmodified))
-bump :: Counts[_](Count#n) -> Counts[_](Count(n))
+commit :: Files[#p] => FileState.Staged -> FileState.Unmodified
+reset :: App(Files[#p]) -> App(Files[p](FileState.Unmodified))
+bump :: Counts[#p](Count#n) -> Counts[p](Count(n))

@@ -3,4 +3,4 @@ test/parse/error-element-path-empty.sumspec:9:17:
 9 | f Id#i :: Items[](S.A) -> Items[i](S.B)
   |                 ^
 unexpected ']'
-expecting '_' or value name
+expecting '#' or value name

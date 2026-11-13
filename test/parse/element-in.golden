@@ -19,6 +19,6 @@ Branches = [Tip by BranchName]
 Tip = Hash
 Paths = [Path]
 Names = [BranchName]
-conflict Paths#ps :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
-tag Names#bs :: App(Branches[b in bs]) -> App(Branches[b in bs](Tip'))
-move Names#bs :: Branches[b in bs](Tip#h) -> Branches[b in bs](Tip(h))
+conflict Paths#ps :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+tag Names#bs :: App(Branches[#b in bs]) -> App(Branches[b](Tip'))
+move Names#bs :: Branches[#b in bs](Tip#h) -> Branches[b](Tip(h))

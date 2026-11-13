@@ -2,23 +2,23 @@ test/check/warning-list-element.sumspec:22:11:
    |
 22 | inside :: State.Off -> State.On
    |           ^
-warning: inside changes a State inside one Item of a list, but doesn't say which Item; to pick it, use Items[_](...) for each one that matches, or give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
+warning: inside changes a State inside one Item of a list, but doesn't say which Item; to pick it, give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...), or Items[#id](...) for each one that matches
 
 test/check/warning-list-element.sumspec:24:10:
    |
 24 | noKey :: Item(State.Off) -> Item(State.On)
    |          ^
-warning: noKey changes one Item of a list, but doesn't say which; to pick it, use Items[_](...) for each one that matches, or give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
+warning: noKey changes one Item of a list, but doesn't say which; to pick it, give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...), or Items[#id](...) for each one that matches
 
 test/check/warning-list-element.sumspec:32:16:
    |
 32 | keyedInside :: Level.Low -> Level.High
    |                ^
-warning: keyedInside changes a Level inside one Entry of a list, but doesn't say which Entry; to pick it, use an element path, such as Keyed[id](...), or Keyed[_](...) for each one that matches
+warning: keyedInside changes a Level inside one Entry of a list, but doesn't say which Entry; to pick it, use an element path, such as Keyed[id](...), or Keyed[#id](...) for each one that matches
 
 test/check/warning-list-element.sumspec:34:24:
    |
 34 | keyedElement Name#n :: Entry(n * Level.Low) -> Entry(Level.High)
    |                        ^
-warning: keyedElement changes one Entry of a list, but doesn't say which; to pick it, use an element path, such as Keyed[id](...), or Keyed[_](...) for each one that matches
+warning: keyedElement changes one Entry of a list, but doesn't say which; to pick it, use an element path, such as Keyed[id](...), or Keyed[#id](...) for each one that matches
 

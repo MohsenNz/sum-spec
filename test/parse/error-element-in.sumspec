@@ -1,7 +1,9 @@
--- "in" needs the name of a list after it.
+-- The key in L[#x in xs] is named with "#": L[x in xs] reads x as a
+-- name already given, so "in" can't follow it.
 __atomics { Path }
 __events { conflict }
 
 Files = [Path by Path]
+Paths = [Path]
 
-conflict :: Files[p in] -> Files[p in]
+conflict Paths#ps :: Files[p in ps] -> Files[p in ps]

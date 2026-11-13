@@ -40,7 +40,7 @@ relies on.
 Rules:
 
 1. A local transition changes exactly one occurrence of its type, never
-   all of them. An element path over several elements (`L[x in xs]`
+   all of them. An element path over several elements (`L[#x in xs]`
    in `spec-v1.md`) changes each listed element instead.
 2. Inside a list, the element is picked by comparing its key with a
    named input; without that, which element changes isn't said.
@@ -149,7 +149,7 @@ the source and the target, says how a value changes, like an EFSM's
 | `__remove ts where P` | remove every element that matches `P` |
 | `__each ts P` | apply `P` to every element (`toggleAll`) |
 
-`__each` is in v1 as an element path: `L[_] => P` applies `P` to each
+`__each` is in v1 as an element path: `L[#x] => P` applies `P` to each
 element that matches its source (see "Every element that matches" in
 `spec-v1.md`).
 

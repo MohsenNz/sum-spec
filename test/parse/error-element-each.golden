@@ -1,6 +1,6 @@
-test/parse/error-element-each.sumspec:8:28:
+test/parse/error-element-each.sumspec:7:17:
   |
-8 | commit Paths#ps :: Files[_ in ps] -> Files[_ in ps]
-  |                            ^
-unexpected 'i'
-expecting ']'
+7 | commit :: Files[_] -> Files[_]
+  |                 ^
+unexpected '_'
+expecting '#' or value name

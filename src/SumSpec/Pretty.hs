@@ -83,12 +83,12 @@ renderDefinition = \case
           <> maybe "" renderKey key
   DefInit _ p -> "__init :: " <> renderPattern p
 
--- | The brackets of an element path: @[x]@, @[x in xs]@ or @[_]@.
+-- | The brackets of an element path: @[x]@, @[#x in xs]@ or @[#x]@.
 renderKey :: ElementKey -> Text
 renderKey = \case
   KeyOne x -> "[" <> nameText x <> "]"
-  KeyIn x xs -> "[" <> nameText x <> " in " <> nameText xs <> "]"
-  KeyEach _ -> "[_]"
+  KeyIn x xs -> "[#" <> nameText x <> " in " <> nameText xs <> "]"
+  KeyEach x -> "[#" <> nameText x <> "]"
 
 -- | A guard with the fewest parentheses its precedence allows: @not@ binds
 -- tighter than @and@, and @and@ tighter than @or@.

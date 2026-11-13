@@ -1,4 +1,4 @@
--- An element path over several elements, L[x in xs]: every element of
+-- An element path over several elements, L[#x in xs]: every element of
 -- L whose key is in the list xs. x names the key of each, and the
 -- transition can use it.
 __atomics { Path BranchName Hash }
@@ -21,18 +21,19 @@ Picked = Paths
 conflict Paths#ps
   :: App
   => Mode.Idle -> Mode.Busy
-  :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+  :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
 
--- Written on both sides; the list is a newtype of a list.
+-- Named on the source side, used on the target; the list is a newtype
+-- of a list.
 resolve Picked#ps
-  :: Files[p in ps](FileState.Conflicted) -> Files[p in ps](FileState.Staged)
+  :: Files[#p in ps](FileState.Conflicted) -> Files[p](FileState.Staged)
 
 -- x used in the target, as the key of one element.
 retag Names#bs
-  :: Branches[b in bs] -> Branches[b](Tip')
+  :: Branches[#b in bs] -> Branches[b](Tip')
 
 -- Without arguments, each element only has to exist, and keeps its value.
-keep Paths#ps :: App => Files[p in ps] * Mode.Busy -> Mode.Idle
+keep Paths#ps :: App => Files[#p in ps] * Mode.Busy -> Mode.Idle
 
 -- The list is named on the source side.
-fromSource :: App(Files[p in ps] * Mode.Busy * Paths#ps) -> App(Mode.Idle)
+fromSource :: App(Files[#p in ps] * Mode.Busy * Paths#ps) -> App(Mode.Idle)

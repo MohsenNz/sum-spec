@@ -282,22 +282,22 @@ data Shared = Shared (NonEmpty Name) (Maybe ElementKey)
 data ElementKey
   = -- | @L[x]@: the one element whose key is the named value @x@.
     KeyOne Name
-  | -- | @L[x in xs]@: every element whose key is in the list @xs@, each
+  | -- | @L[#x in xs]@: every element whose key is in the list @xs@, each
     -- of which must match; @x@ names the key of each.
     KeyIn Name Name
-  | -- | @L[_]@: each element that matches; the others keep their values.
-    -- The name is the @_@, at its position.
+  | -- | @L[#x]@: each element that matches; the others keep their
+    -- values. @x@ names the key of each.
     KeyEach Name
   deriving stock (Eq, Show)
 
--- | The name in the brackets: @x@ in @[x]@ and @[x in xs]@, or the @_@.
+-- | The name in the brackets: @x@ in @[x]@, @[#x in xs]@ and @[#x]@.
 keyName :: ElementKey -> Name
 keyName = \case
   KeyOne x -> x
   KeyIn x _ -> x
   KeyEach u -> u
 
--- | @xs@ in @[x in xs]@.
+-- | @xs@ in @[#x in xs]@.
 keyList :: ElementKey -> Maybe Name
 keyList = \case
   KeyIn _ xs -> Just xs
@@ -309,7 +309,7 @@ data Pattern
     PatternPath (NonEmpty Name) [Pattern]
   | -- | @L[x]@: the element of the keyed list type @L@ whose key equals
     -- the named value @x@, with the element's arguments after it; or
-    -- @L[x in xs]@, each element whose key is in @xs@; or @L[_]@, each
+    -- @L[#x in xs]@, each element whose key is in @xs@; or @L[#x]@, each
     -- element that matches. The path is the list type; the checker
     -- allows only one name.
     PatternElement (NonEmpty Name) ElementKey [Pattern]
