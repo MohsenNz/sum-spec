@@ -184,6 +184,11 @@ release" in `VERSIONING.md`).
   events not yet listed inside `__events`, and otherwise types,
   constants and the values the transition names, also on a line that
   doesn't parse yet.
+- The language server's semantic highlighting gives the arguments of an
+  annotation no tokens, since they are opaque text (a comment inside
+  them still has one), so the editor colours them as one unit. Before,
+  strings, numbers, operators and the words of a guard in them were
+  coloured as if they meant something.
 - The library has a resolved model of a spec, `SumSpec.Model`: every
   type with its shape, each variant with the sum it belongs to,
   constants, events, annotations and the root type, and how a path

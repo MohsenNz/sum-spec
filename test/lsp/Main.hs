@@ -89,6 +89,25 @@ main =
                     , (10, 40, 1, "variable", [])
                     ]
             InR _ -> assertBool "no tokens" False
+      , testCase "no semantic tokens in annotation arguments, but comments" $ do
+          tokens <- withServer $ do
+            doc <- createDoc "notes.sumspec" "sumspec" notes
+            _ <- waitForDiagnostics
+            getSemanticTokens doc
+          case tokens of
+            InL t ->
+              filter (\(l, c, _, _, _) -> l == 5 || (l == 9 && c >= 26) || l >= 10) (decode t)
+                @?= [ (5, 0, 4, "type", ["declaration"])
+                    , (5, 5, 2, "decorator", [])
+                    , (5, 12, 1, "operator", [])
+                    , (5, 14, 2, "enumMember", ["declaration"])
+                    , (5, 17, 1, "operator", [])
+                    , (5, 19, 3, "enumMember", ["declaration"])
+                    , (9, 26, 7, "decorator", [])
+                    , (10, 2, 7, "decorator", [])
+                    , (10, 18, 4, "comment", [])
+                    ]
+            InR _ -> assertBool "no tokens" False
       ]
   where
     summary d = (maybe DiagnosticSeverity_Hint id d._severity, d._range)
@@ -283,6 +302,16 @@ nav =
   \App = Mode * Sel\nMode = On | Off\nSel = None | One(Id) @control\n\n\
   \__init :: App(Mode.Off * Sel.None)\n\n\
   \pick Id#i :: App => Sel.None -> Sel.One(i)\n"
+
+-- | Annotations with arguments: on a type before its "=", after a
+-- target, and in brackets over two lines with a comment.
+notes :: Text
+notes =
+  "__atomics { Id }\n__events { go }\n__annotations { @a @effect @unless }\n\n\
+  \App = Mode\nMode @a x y = On | Off\n\n__init :: App(Mode.Off)\n\n\
+  \go :: Mode.Off -> Mode.On @effect show \"a | b\" 3 not x\n\
+  \  @unless ( A.B   -- c\n\
+  \          * C )\n"
 
 -- | Runs a session on 'nav', opened and diagnosed.
 withNav :: (TextDocumentIdentifier -> Session a) -> IO a

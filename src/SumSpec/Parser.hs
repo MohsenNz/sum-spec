@@ -8,6 +8,7 @@ module SumSpec.Parser
   , parseSpecPartial
   , ParseError
   , renderParseError
+  , scanArguments
   ) where
 
 import Control.Monad (unless, void, when)

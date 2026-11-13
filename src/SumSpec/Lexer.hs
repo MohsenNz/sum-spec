@@ -18,6 +18,7 @@ module SumSpec.Lexer
   , naming
   , annotationDecl
   , annotation
+  , scanArguments
   , numberLiteral
   , stringLiteral
   , compareOp

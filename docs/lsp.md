@@ -165,8 +165,10 @@ A lexical scan finds comments, strings, numbers, `__` words, operators,
 with `readonly`), `decorator` (an annotation), with `declaration` on a
 definition. An unclaimed `by`, `not`, `and`, `or` or `in` is a keyword;
 any other unclaimed name gets no token, so the editor's syntax file
-colours it. Annotation arguments are opaque and get no tokens but
-strings and numbers. The legend is LSP's standard one.
+colours it. Annotation arguments are opaque and get no tokens (a
+comment inside them still does), so the editor colours them as one
+unit; their extent is the parser's `scanArguments`. The legend is LSP's
+standard one.
 
 ## Groundwork in the Haskell code
 
