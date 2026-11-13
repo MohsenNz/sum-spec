@@ -13,6 +13,7 @@ module SumSpec.Pretty
   , renderLiteral
   , renderArith
   , renderValue
+  , renderKey
   ) where
 
 import Data.List.NonEmpty (NonEmpty (..))
@@ -79,8 +80,13 @@ renderDefinition = \case
       renderSide = renderArguments . NE.toList
       renderShared (Shared names key) =
         T.intercalate "." (map nameText (NE.toList names))
-          <> maybe "" (\k -> "[" <> nameText k <> "]") key
+          <> maybe "" renderKey key
   DefInit _ p -> "__init :: " <> renderPattern p
+
+-- | The brackets of an element path: @[x]@ or @[x in xs]@.
+renderKey :: ElementKey -> Text
+renderKey (ElementKey x xs) =
+  "[" <> nameText x <> maybe "" ((" in " <>) . nameText) xs <> "]"
 
 -- | A guard with the fewest parentheses its precedence allows: @not@ binds
 -- tighter than @and@, and @and@ tighter than @or@.
@@ -151,7 +157,7 @@ renderPattern = \case
   PatternPath names args ->
     renderPath names <> renderArgs args
   PatternElement names key args ->
-    renderPath names <> "[" <> nameText key <> "]" <> renderArgs args
+    renderPath names <> renderKey key <> renderArgs args
   PatternList term key -> renderList term key
   PatternName name -> nameText name
   PatternNamed p name -> renderPattern p <> "#" <> nameText name

@@ -10,6 +10,13 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- Element paths over several elements: `L[x in xs]` is every element of
+  the keyed list type `L` whose key is in the list `xs`, as `L[x]` for
+  each `x` in `xs`. On the source side every listed element must exist
+  and match; on the target each gets the new state. The path names `x`,
+  of the key type. It's written on the source side or in a shared path,
+  once per transition. `example/git.sumspec`'s `mergeConflicted` takes
+  the conflicting paths as its input and uses it, so it no longer warns.
 - Computed values in targets: a target may set a value computed from the
   names the transition gives, literals and named constants, with `+`,
   `-`, `*` and parentheses (`Attempts(n * 2 + 1)`). A computed value is

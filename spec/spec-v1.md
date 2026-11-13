@@ -687,6 +687,37 @@ toggleTodo Ref(ProjectId#p * TodoId#t)
 A path picks an element of each list it goes through, so nested lists work.
 `Projects[p]` is the project, and `Todos[t]` the todo inside it.
 
+#### Several elements: `L[x in xs]`
+
+`L[x in xs]` is every element of `L` whose key is in the list `xs`. It
+stands for `L[x]`, once for each `x` in `xs`:
+
+```
+Files = [FileState by Path]
+Paths = [Path]
+
+mergeConflicted Paths#ps
+  :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+```
+
+- `xs` is a name of the transition (from the input or the source side)
+  whose type is a list, keyed or not, or a newtype of one. It holds keys
+  of `L`: its element type is `L`'s key type.
+- The path names `x`, a value of `L`'s key type. The transition can use
+  it anywhere, as one element's key (`Branches[b in bs] -> Branches[b](Tip')`)
+  or as a value. It is a new name: nothing else in the transition is
+  named `x`.
+- On the source side, it's a precondition, as for one element: every
+  listed element exists and matches the arguments, or the transition
+  doesn't happen. An empty list matches.
+- On the target side, each listed element gets the new state. Without
+  arguments, each keeps its value.
+- It's written on the source side, or in a shared path (`Files[p in ps]
+  =>`), which puts it on both sides. The target, and a guard, may repeat
+  it, but not bring a new one; on the target, `L[x]` picks one of them.
+- A transition picks several elements once: it has at most one
+  `L[x in xs]`.
+
 ## Language version
 
 A spec may declare the language version it's written for, as the first

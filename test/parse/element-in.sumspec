@@ -1,0 +1,21 @@
+-- An element path over several elements, L[x in xs]: in a pattern, in a
+-- shared path, nested in an argument, and with arguments. The printer
+-- writes one space around "in".
+__version 1.0
+
+__atomics { Path BranchName Hash }
+__events { conflict tag move }
+
+App = Files * Branches
+Files = [FileState by Path]
+FileState = Unmodified | Conflicted
+Branches = [Tip by BranchName]
+Tip = Hash
+Paths = [Path]
+Names = [BranchName]
+
+conflict Paths#ps :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+tag Names#bs :: App(Branches[ b   in bs ]) -> App(Branches[b in bs](Tip'))
+move Names#bs
+  :: Branches[b in bs](Tip#h)
+  -> Branches[b in bs](Tip(h))

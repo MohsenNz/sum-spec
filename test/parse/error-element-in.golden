@@ -1,0 +1,6 @@
+test/parse/error-element-in.sumspec:7:23:
+  |
+7 | conflict :: Files[p in] -> Files[p in]
+  |                       ^
+unexpected ']'
+expecting value name

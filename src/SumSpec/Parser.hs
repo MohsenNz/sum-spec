@@ -554,9 +554,10 @@ alternative = do
     , PatternPath names <$> option [] argumentList
     ]
 
--- element_key = "[" , LOWER , "]" ;
-elementKey :: Parser Name
-elementKey = brackets valueName
+-- element_key = "[" , LOWER , [ "in" , LOWER ] , "]" ;
+elementKey :: Parser ElementKey
+elementKey =
+  brackets (ElementKey <$> valueName <*> optional (keyword "in" *> valueName))
 
 -- [ NAMING ] after a pattern.
 withNaming :: Pattern -> Parser Pattern

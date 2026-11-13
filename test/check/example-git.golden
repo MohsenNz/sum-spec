@@ -1,18 +1,12 @@
-example/git.sumspec:120:6:
+example/git.sumspec:122:6:
     |
-120 |   :: FileState.Staged -> FileState.Unmodified
+122 |   :: FileState.Staged -> FileState.Unmodified
     |      ^
 warning: commit changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 
-example/git.sumspec:147:6:
+example/git.sumspec:166:6:
     |
-147 |   :: FileState.Unmodified -> FileState.Conflicted
-    |      ^
-warning: mergeConflicted changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
-
-example/git.sumspec:164:6:
-    |
-164 |   :: FileState.Conflicted -> FileState.Unmodified
+166 |   :: FileState.Conflicted -> FileState.Unmodified
     |      ^
 warning: mergeAbort changes one FileState of a list, but doesn't say which; to pick it, use an element path, such as Files[id](...)
 

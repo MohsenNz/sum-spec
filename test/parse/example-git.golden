@@ -37,6 +37,7 @@ Operation = Idle | Merging MergeHead | Rebasing (Onto * Remaining)
 MergeHead = Hash
 Onto = Hash
 Remaining = [Hash]
+Paths = [Path]
 init :: Repository.Uninitialized -> Repository.Initialized(Head.Unborn * Operation.Idle)
 edit Path#p :: Files[p]
             => FileState.Unmodified -> FileState.Modified
@@ -58,8 +59,8 @@ commit :: Repository.Initialized
 switch BranchName#b :: Repository.Initialized => Operation.Idle // Branches[b] -> Head.OnBranch(b) * Files'
 checkoutCommit :: Repository.Initialized => Operation.Idle -> Head.Detached * Files'
 merge :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Branches' * Files'
-mergeConflicted :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Files' * Operation.Merging
-                :: FileState.Unmodified -> FileState.Conflicted
+mergeConflicted Paths#ps :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Files' * Operation.Merging
+                         :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
 resolve Path#p :: Files[p] => FileState.Conflicted -> FileState.Staged
 mergeContinue :: Repository.Initialized => Operation.Merging -> Branches' * Operation.Idle
 mergeAbort :: Repository.Initialized => Operation.Merging -> Files' * Operation.Idle

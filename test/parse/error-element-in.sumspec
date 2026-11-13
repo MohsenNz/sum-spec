@@ -1,0 +1,7 @@
+-- "in" needs the name of a list after it.
+__atomics { Path }
+__events { conflict }
+
+Files = [Path by Path]
+
+conflict :: Files[p in] -> Files[p in]

@@ -1,0 +1,54 @@
+test/check/error-element-in.sumspec:24:23:
+   |
+24 | unknown :: Files[p in nope] => FileState.Unmodified -> FileState.Conflicted
+   |                       ^
+unknown name nope; name a value with #nope in the input or on the source side
+
+test/check/error-element-in.sumspec:26:31:
+   |
+26 | notList Path#ps :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                               ^
+ps is a Path, not a list, so p in ps can't pick elements of Files
+
+test/check/error-element-in.sumspec:28:33:
+   |
+28 | wrongKey Names#ps :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                                 ^
+ps holds BranchName, but the key of Files is Path
+
+test/check/error-element-in.sumspec:30:35:
+   |
+30 | listOfLists Nest#ps :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                                   ^
+ps holds Paths, but the key of Files is Path
+
+test/check/error-element-in.sumspec:32:45:
+   |
+32 | named OneAndAll(Path#p * Paths#ps) :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                                             ^
+p is named twice in this transition
+
+test/check/error-element-in.sumspec:35:36:
+   |
+35 |   :: App(Files[p in ps] * Branches[b in bs]) -> App(Files[p in ps] * Branches[b in bs])
+   |                                    ^
+a transition picks several elements once; Files[p in ps] already does here
+
+test/check/error-element-in.sumspec:37:39:
+   |
+37 | targetOnly Paths#ps :: Files -> Files[p in ps](FileState.Conflicted)
+   |                                       ^
+Files[p in ps] picks elements only on the source side (or in a shared path); on the target, write Files[p]
+
+test/check/error-element-in.sumspec:39:47:
+   |
+39 | inGuard Paths#ps :: App => Mode.Idle // Files[p in ps](FileState.Conflicted) -> Mode.Busy
+   |                                               ^
+a guard can't pick elements with Files[p in ps]; write it on the source side
+
+test/check/error-element-in.sumspec:41:21:
+   |
+41 | unkeyed Paths#ps :: Plain[p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                     ^
+Plain has no key, so [p in ps] can't pick elements; declare one, such as Plain = [FileState by Path]
+

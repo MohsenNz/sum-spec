@@ -16,6 +16,12 @@
       `resolve`, constant and guard variants and reachability use it,
       with their own messages; the lenient resolver adds its fallbacks on
       top. A test checks they agree on every spec the checker accepts.
+- [x] Element paths over several elements, `L[x in xs]`, for an event
+      that brings the keys of the elements it changes
+      (`mergeConflicted` in `example/git.sumspec`).
+- [ ] "Every element that matches" (the filter form, or `__each` in Part
+      C of `spec/efsm-gaps.md`), for `commit` and `mergeAbort` in
+      `example/git.sumspec`, which still warn.
 - [x] Should the checker keep its own copy of the spec's facts (`Env`)?
       No: it reads `Model` directly (types, variants, constants,
       `underlying` for newtypes). Facts live in `Model`, judgements and

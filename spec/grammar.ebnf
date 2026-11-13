@@ -211,9 +211,11 @@ input         = type_pattern , [ NAMING ] ;
    NAMING as the whole argument names the one value inside the head,
    without writing its type (see "Bare binding" in spec-v1.md):
      Attempts(#n)        means  Attempts(Int#n)
-   An element_key after a path picks one element of a list type by key
-   (see "Element paths" in spec-v1.md):
+   An element_key after a path picks one element of a list type by key,
+   or with "in", every element whose key is in a list (see "Element
+   paths" in spec-v1.md):
      Projects[p](Todos[t](Completion.Active))
+     Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
    ".{" after a path names some variants of the sum there, each written
    from it (see "Alternatives" in spec-v1.md):
      Flight.{Arming | Flying(FPhase.{Approaching | Holding})}          *)
@@ -242,7 +244,7 @@ alternatives  = alternative , "|" , alternative , { "|" , alternative } ;
 alternative   = path , [ "." , "{" , alternatives , "}"
                        | "(" , ( NAMING | arguments ) , ")" ] ;
 
-element_key   = "[" , LOWER , "]" ;
+element_key   = "[" , LOWER , [ "in" , LOWER ] , "]" ;
 
 path          = UPPER , { "." , UPPER } ;
 
@@ -464,7 +466,13 @@ character     = ? any Unicode character ? ;
      list's key type; the arguments are the element's factors when it
      is a product, or else one argument headed by the element type; the
      element takes no prime and no naming. See "Element paths" in
-     spec-v1.md.
+     spec-v1.md;
+   - in an element path L[x in xs], xs is a name of the transition
+     whose type resolves through newtypes to a list of L's key type, and
+     the path names x, of that key type, a name new to the transition.
+     It is written on the source side or in a shared path; the target
+     and a guard may only repeat it. A transition has at most one. See
+     "Several elements" in spec-v1.md.
 
    Warnings (the checker reports them, but the spec is valid):
    - a transition on a part inside a list element (of a list reachable

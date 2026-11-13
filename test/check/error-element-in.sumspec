@@ -1,0 +1,41 @@
+-- Element paths over several elements, L[x in xs], that break the rules.
+__atomics { Path BranchName Other }
+__events {
+  unknown notList wrongKey listOfLists named twice targetOnly inGuard
+  unkeyed
+}
+
+__init :: App
+
+App = Files * Branches * Plain * Mode
+Files = [FileState by Path]
+FileState = Unmodified | Conflicted
+Branches = [Tip by BranchName]
+Tip = Other
+Plain = [FileState]
+Mode = Idle | Busy
+Paths = [Path]
+Names = [BranchName]
+Nest = [Paths]
+Both = Paths * Names
+OneAndAll = Path * Paths
+
+-- The list isn't a name of the transition.
+unknown :: Files[p in nope] => FileState.Unmodified -> FileState.Conflicted
+-- A Path is not a list.
+notList Path#ps :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+-- The list holds branch names, but the key of Files is Path.
+wrongKey Names#ps :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+-- A list of lists holds no keys.
+listOfLists Nest#ps :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+-- p is already the input's name.
+named OneAndAll(Path#p * Paths#ps) :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+-- Only one per transition.
+twice Both(Paths#ps * Names#bs)
+  :: App(Files[p in ps] * Branches[b in bs]) -> App(Files[p in ps] * Branches[b in bs])
+-- Only on the target.
+targetOnly Paths#ps :: Files -> Files[p in ps](FileState.Conflicted)
+-- In a guard.
+inGuard Paths#ps :: App => Mode.Idle // Files[p in ps](FileState.Conflicted) -> Mode.Busy
+-- Plain has no key.
+unkeyed Paths#ps :: Plain[p in ps] => FileState.Unmodified -> FileState.Conflicted

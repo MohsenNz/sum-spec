@@ -37,7 +37,7 @@ import SumSpec.Model
   , variantOwnerPath
   , variantPath
   )
-import SumSpec.Pretty (renderArith, renderLiteral, renderValue)
+import SumSpec.Pretty (renderArith, renderKey, renderLiteral, renderValue)
 import SumSpec.Syntax
 import Text.Megaparsec (SourcePos (..), initialPos, mkPos, sourcePosPretty, unPos)
 
@@ -567,17 +567,58 @@ checkEvents env spec events =
 checkTransitions :: Model -> [Flat] -> [CheckError]
 checkTransitions env = concatMap checkTransition
   where
-    checkTransition (Flat _ input from to _ _) =
+    checkTransition (Flat _ input from to guard _) =
       checkPrimes Source from
         <> checkPrimes Target to
         <> misplacedExprs from
-        <> checkNamings input from to
+        <> checkNamings env input from to
+        <> checkElementsIn from to guard
         <> checkPattern env names from
         <> checkPattern env names to
         <> checkSides env names from to
         <> checkNewStatePrimes from to
       where
-        names = Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from]
+        names = Map.fromList [(nameText n, k) | (n, k) <- transitionNames env input from]
+
+-- | An element path over several elements (@L[x in xs]@) is written on the
+-- source side, once per transition. The target and the guard may repeat
+-- it: a shared path puts it on both sides and around the guard.
+checkElementsIn :: Pattern -> Pattern -> Maybe Guard -> [CheckError]
+checkElementsIn from to guard =
+  [ errorAt x $
+      "a transition picks several elements once; "
+        <> render first
+        <> " already does here"
+  | first : rest <- [nubOrdOn same sources]
+  , (_, ElementKey x _) <- rest
+  ]
+    <> [ errorAt x $
+           render k
+             <> " picks elements only on the source side (or in a shared path); "
+             <> "on the target, write "
+             <> nameText h
+             <> "["
+             <> nameText x
+             <> "]"
+       | k@(h, ElementKey x _) <- inKeys to
+       , unmatched k
+       ]
+    <> [ errorAt x $
+           "a guard can't pick elements with "
+             <> render k
+             <> "; write it on the source side"
+       | k@(_, ElementKey x _) <- concatMap inKeys (maybe [] guardPatterns guard)
+       , unmatched k
+       ]
+  where
+    sources = inKeys from
+    same (h, ElementKey x xs) = (nameText h, nameText x, nameText <$> xs)
+    unmatched k = same k `notElem` map same sources
+    render (h, k) = elementSegmentIn h k
+
+-- | @L[x in xs]@, for messages.
+elementSegmentIn :: Name -> ElementKey -> Text
+elementSegmentIn h k = nameText h <> renderKey k
 
 -- | The two sides of a transition are states of the same type: they're
 -- headed by the same type name (an element path by its list type). An
@@ -740,8 +781,8 @@ lastPosition at h steps = case steps of
   [] -> at <> [nameText h]
   _ -> fst (last steps)
 
-elementSegment :: Name -> Name -> Text
-elementSegment h key = nameText h <> "[" <> nameText key <> "]"
+elementSegment :: Name -> ElementKey -> Text
+elementSegment h key = nameText h <> "[" <> nameText (keyName key) <> "]"
 
 -- | A list goes only as the whole body of a type definition, so every
 -- list has a type name (@Points = [Point]@) and is written by it, in
@@ -796,8 +837,34 @@ checkListPlaces defs inits transitions =
 
 -- | The names a transition gives, with their types: in its input and on
 -- its source side.
-transitionNames :: Maybe Pattern -> Pattern -> [(Name, Text)]
-transitionNames input from = concatMap namings input <> namings from
+transitionNames :: Model -> Maybe Pattern -> Pattern -> [(Name, Text)]
+transitionNames env input from =
+  concatMap namings input <> namings from <> keyNamings env from
+
+-- | The keys an element path over several elements names (@x@ in
+-- @L[x in xs]@), each with the key type of its list. A list without a
+-- key is reported by 'checkElement', so its key gets no type.
+keyNamings :: Model -> Pattern -> [(Name, Text)]
+keyNamings env p =
+  [ (x, nameText k)
+  | (h, ElementKey x (Just _)) <- inKeys p
+  , Just (TypeTerm (TermList _ (Just k))) <- [typeBody env (nameText h)]
+  ]
+
+-- | The element paths over several elements in a pattern (@L[x in xs]@),
+-- as the list type and the key.
+inKeys :: Pattern -> [(Name, ElementKey)]
+inKeys = \case
+  PatternAlts _ alts -> concatMap inKeys alts
+  PatternElement (h :| _) k args ->
+    [(h, k) | isJust (keyIn k)] <> concatMap inKeys args
+  PatternPath _ args -> concatMap inKeys args
+  PatternNamed p _ -> inKeys p
+  PatternPrimed _ p -> inKeys p
+  PatternList _ _ -> []
+  PatternName _ -> []
+  PatternBound _ -> []
+  PatternExpr _ -> []
 
 -- | The values a pattern names (@P#x@), with the type of each: the head
 -- type of @P@, or its list type. A name given to a name (@x#y@) is an
@@ -822,7 +889,7 @@ namings = \case
 elementKeys :: Pattern -> [Name]
 elementKeys = \case
   PatternAlts _ alts -> concatMap elementKeys alts
-  PatternElement _ k args -> k : concatMap elementKeys args
+  PatternElement _ k args -> keyName k : concatMap elementKeys args
   PatternPath _ args -> concatMap elementKeys args
   PatternNamed p _ -> elementKeys p
   PatternPrimed _ p -> elementKeys p
@@ -835,7 +902,7 @@ elementKeys = \case
 elementPaths :: Pattern -> [(Text, Name)]
 elementPaths = \case
   PatternAlts _ alts -> concatMap elementPaths alts
-  PatternElement (h :| _) k args -> (nameText h, k) : concatMap elementPaths args
+  PatternElement (h :| _) k args -> (nameText h, keyName k) : concatMap elementPaths args
   PatternPath _ args -> concatMap elementPaths args
   PatternNamed p _ -> elementPaths p
   PatternPrimed _ p -> elementPaths p
@@ -847,10 +914,10 @@ elementPaths = \case
 -- | Where names may be given: once each, in the input or on the source
 -- side, and only to a type pattern. On the target side a name is only
 -- used, to set a value.
-checkNamings :: Maybe Pattern -> Pattern -> Pattern -> [CheckError]
-checkNamings input from to =
+checkNamings :: Model -> Maybe Pattern -> Pattern -> Pattern -> [CheckError]
+checkNamings env input from to =
   [ errorAt n (nameText n <> " is named twice in this transition")
-  | ((n, _), _) <- repeats (nameText . fst) (transitionNames input from)
+  | ((n, _), _) <- repeats (nameText . fst) (transitionNames env input from)
   ]
     <> [ errorAt n $
            "a value is named only in the input or on the source side; "
@@ -1006,7 +1073,7 @@ elaborate env = \case
   PatternPath names [PatternBound n] -> case pathBound env names of
     BoundValue base -> PatternPath names [explicit base n]
     _ -> PatternNamed (PatternPath names []) n
-  PatternElement names key [PatternBound n] -> case elementBound env names key of
+  PatternElement names key [PatternBound n] -> case elementBound env names (keyName key) of
     BoundValue base -> PatternElement names key [explicit base n]
     _ -> PatternElement names key []
   PatternPath names args
@@ -1015,7 +1082,7 @@ elaborate env = \case
         PatternPath names [PatternExpr e]
     | otherwise -> PatternPath names (map (elaborate env) args)
   PatternElement names key args
-    | BoundValue _ <- elementBound env names key
+    | BoundValue _ <- elementBound env names (keyName key)
     , Just e <- multiplied args ->
         PatternElement names key [PatternExpr e]
     | otherwise -> PatternElement names key (map (elaborate env) args)
@@ -1100,7 +1167,7 @@ eventPatterns (Event _ input transitions) =
 checkBoundHeads :: Model -> Pattern -> [CheckError]
 checkBoundHeads env = \case
   PatternPath names [PatternBound n] -> report n (pathBound env names)
-  PatternElement names key [PatternBound n] -> report n (elementBound env names key)
+  PatternElement names key [PatternBound n] -> report n (elementBound env names (keyName key))
   PatternPath _ args -> concatMap (checkBoundHeads env) args
   PatternElement _ _ args -> concatMap (checkBoundHeads env) args
   PatternNamed p _ -> checkBoundHeads env p
@@ -1180,8 +1247,8 @@ resolve env node at path = case path of
 -- name: from a variant, the list type is its argument
 -- (@Ring.Points(Points[x])@).
 checkElement
-  :: Model -> Names -> Node -> Name -> [Name] -> Name -> [Pattern] -> [CheckError]
-checkElement env names node h path key args = case resolve env node h path of
+  :: Model -> Names -> Node -> Name -> [Name] -> ElementKey -> [Pattern] -> [CheckError]
+checkElement env names node h path (ElementKey key keyList) args = case resolve env node h path of
   Left errors -> errors
   Right (list, at)
     | not (null path) ->
@@ -1203,14 +1270,15 @@ checkElement env names node h path key args = case resolve env node h path of
     | Just (TypeTerm (TermList element Nothing)) <- nodeBody list ->
         [ errorAt at $
             nodeLabel list
-              <> " has no key, so ["
-              <> nameText key
-              <> "] can't pick an element; declare one, such as "
+              <> " has no key, so "
+              <> renderKey (ElementKey key keyList)
+              <> (if isJust keyList then " can't pick elements" else " can't pick an element")
+              <> "; declare one, such as "
               <> nodeLabel list
               <> " = ["
               <> termKey element
               <> " by "
-              <> fromMaybe "Id" (Map.lookup (nameText key) names)
+              <> fromMaybe "Id" keyTypeHint
               <> "]"
         ]
     | otherwise ->
@@ -1221,7 +1289,43 @@ checkElement env names node h path key args = case resolve env node h path of
               <> "] picks an element of a keyed list type, such as L = [T by K]"
         ]
   where
-    checkKey label keyType = case Map.lookup (nameText key) names of
+    -- The key type a list without one could take: the named value's type,
+    -- or what the list after @in@ holds.
+    keyTypeHint = case keyList of
+      Nothing -> Map.lookup (nameText key) names
+      Just xs -> Map.lookup (nameText xs) names >>= listBody env >>= memberType
+    checkKey label keyType = case keyList of
+      Just xs -> checkKeys label keyType xs
+      Nothing -> checkOneKey label keyType
+    -- @x in xs@: @x@ is named by the path, so only @xs@ is checked.
+    checkKeys label keyType xs = case Map.lookup (nameText xs) names of
+      Nothing -> [unknownName xs]
+      Just t -> case listBody env t of
+        Nothing ->
+          [ errorAt xs $
+              nameText xs
+                <> " is a "
+                <> t
+                <> ", not a list, so "
+                <> nameText key
+                <> " in "
+                <> nameText xs
+                <> " can't pick elements of "
+                <> label
+          ]
+        Just list
+          | memberType list == Just (nameText keyType) -> []
+          | otherwise ->
+              [ errorAt xs $
+                  nameText xs
+                    <> " holds "
+                    <> termKey (fst list)
+                    <> ", but the key of "
+                    <> label
+                    <> " is "
+                    <> nameText keyType
+              ]
+    checkOneKey label keyType = case Map.lookup (nameText key) names of
       Nothing -> [unknownName key]
       Just k
         | k == nameText keyType -> []
@@ -1592,7 +1696,7 @@ nameUses = \case
   PatternName n -> [n]
   PatternNamed p _ -> nameUses p
   PatternPath _ args -> concatMap nameUses args
-  PatternElement _ k args -> k : concatMap nameUses args
+  PatternElement _ k args -> fromMaybe (keyName k) (keyIn k) : concatMap nameUses args
   PatternPrimed _ p -> nameUses p
   PatternList _ _ -> []
   PatternBound _ -> []
@@ -1746,7 +1850,7 @@ reachable env initial transitions = go (reach env Map.empty Nothing AnyValue ini
     fire (Flat _ input from to _ _) =
       reach
         env
-        (Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from])
+        (Map.fromList [(nameText n, k) | (n, k) <- transitionNames env input from])
         (Just (fixedVariants from))
         Keeps
         to
@@ -1845,7 +1949,7 @@ warnOverlaps env transitions =
       nameText n == nameText m
         && patternKey from == patternKey other
         && not (excludes (variantsOf from) (variantsOf other))
-        && guardsMayHold env (transitionNameMap t, g) (transitionNameMap u, h)
+        && guardsMayHold env (transitionNameMap env t, g) (transitionNameMap env u, h)
     variantsOf = fixedVariants
 
 -- | Two sets of variant positions exclude each other when a variant of one
@@ -2100,9 +2204,9 @@ guardsMayHold env (names1, g) (names2, h) =
 
 -- | The names a transition can use: the ones its input and its source
 -- bind, with the type of each.
-transitionNameMap :: Flat -> Names
-transitionNameMap (Flat _ input from _ _ _) =
-  Map.fromList [(nameText n, k) | (n, k) <- transitionNames input from]
+transitionNameMap :: Model -> Flat -> Names
+transitionNameMap env (Flat _ input from _ _ _) =
+  Map.fromList [(nameText n, k) | (n, k) <- transitionNames env input from]
 
 -- | A guard is read where the source is, so each pattern in it (already
 -- expanded with the shared paths, see 'expandGuard') describes the same
@@ -2126,7 +2230,7 @@ checkGuards env transitions =
         <> concat [checkComparison env names op l r | (op, l, r) <- guardComparisons g]
         <> concat [checkMembership env names l ys | (l, ys) <- guardMemberships g]
     | t@(Flat _ _ from _ (Just g) _) <- transitions
-    , let names = transitionNameMap t
+    , let names = transitionNameMap env t
     ]
   where
     atom names from = \case

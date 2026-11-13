@@ -9,6 +9,7 @@ types
   Onto : newtype of Hash
   Operation : sum of Idle, Merging, Rebasing
   Path : atomic
+  Paths : list of Path
   Remaining : list of Hash
   Repository : sum of Uninitialized, Initialized
   Tip : newtype of Hash

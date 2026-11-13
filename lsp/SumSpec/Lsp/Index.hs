@@ -144,17 +144,19 @@ bindings env p = [occName o | o <- pattern env [] p, occKind o == KValue, occDef
 
 transition :: Model -> Scope -> Transition -> [Occurrence]
 transition env inputs (Transition shared branches) =
-  concat [fst (path env p) <> map (value outer) (toList key) | Shared p key <- shared]
+  concat [fst (path env p) <> foldMap (elementKey outer) key | Shared p key <- shared]
     <> concatMap branch branches
   where
-    outer = inputs <> concatMap (concatMap (bindings env) . branchFrom) branches
+    -- @x@ in a shared @L[x in xs] =>@ is named for every branch.
+    keys = [x | Shared _ (Just (ElementKey x (Just _))) <- shared]
+    outer = inputs <> keys <> concatMap (concatMap (bindings env) . branchFrom) branches
     branch (Branch from guard to annotations) =
       concatMap (pattern env scope) from
         <> maybe [] (guardOcc env scope) guard
         <> concatMap (pattern env scope) to
         <> map (annotation env) annotations
       where
-        scope = inputs <> concatMap (bindings env) from
+        scope = inputs <> keys <> concatMap (bindings env) from
 
 guardOcc :: Model -> Scope -> Guard -> [Occurrence]
 guardOcc env scope = \case
@@ -181,7 +183,7 @@ pattern :: Model -> Scope -> Pattern -> [Occurrence]
 pattern env scope = \case
   PatternPath p args -> fst (path env p) <> concatMap self args
   PatternElement p key args ->
-    fst (path env p) <> [value scope key] <> concatMap self args
+    fst (path env p) <> elementKey scope key <> concatMap self args
   PatternList t key -> term env t <> map (typeUse env) (toList key)
   PatternName n -> [value scope n]
   PatternNamed p x -> self p <> [define KValue x]
@@ -192,6 +194,18 @@ pattern env scope = \case
   PatternExpr e -> expr env scope e
   where
     self = pattern env scope
+
+-- | The brackets of an element path: @x@ in @L[x]@ uses a name; in
+-- @L[x in xs]@, the path names @x@ and uses @xs@. Written again on the
+-- target side, @x@ is a use of the source's.
+elementKey :: Scope -> ElementKey -> [Occurrence]
+elementKey scope (ElementKey x xs) = case xs of
+  Nothing -> [value scope x]
+  Just list -> [key, value scope list]
+    where
+      key = case find ((== nameText x) . nameText) scope of
+        Just d | d /= x -> value scope x
+        _ -> define KValue x
 
 -- | An alternative of @S.{...}@, written from @S@: its path starts at the
 -- type @S@ is at. Its arguments are patterns of their own.

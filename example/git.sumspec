@@ -82,6 +82,8 @@ Onto = Hash
 
 Remaining = [Hash]
 
+Paths = [Path]
+
 init
   :: Repository.Uninitialized
   -> Repository.Initialized(Head.Unborn * Operation.Idle)
@@ -131,20 +133,20 @@ checkoutCommit
   -> Head.Detached * Files'
 
 -- Whether a merge succeeds or stops with conflicts depends on the files'
--- contents, which the model doesn't hold, so each outcome is an event.
+-- contents, which the model doesn't hold, so each outcome is an event,
+-- and a conflicted merge brings the paths of the files that conflict.
 merge
   :: Repository.Initialized
   => Head.OnBranch * Operation.Idle
   -> Branches' * Files'
 
-mergeConflicted
+mergeConflicted Paths#ps
   :: Repository.Initialized
   => Head.OnBranch * Operation.Idle
   -> Files' * Operation.Merging
 
-  -- The files both sides changed become conflicted. SumSpec can't say
-  -- which yet, so the checker warns.
-  :: FileState.Unmodified -> FileState.Conflicted
+  -- Each file in ps becomes conflicted.
+  :: Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
 
 resolve Path#p
   :: Files[p] => FileState.Conflicted -> FileState.Staged

@@ -40,7 +40,8 @@ relies on.
 Rules:
 
 1. A local transition changes exactly one occurrence of its type, never
-   all of them.
+   all of them. An element path over several elements (`L[x in xs]`
+   in `spec-v1.md`) changes each listed element instead.
 2. Inside a list, the element is picked by comparing its key with a
    named input; without that, which element changes isn't said.
    Decided; see "Keys" under "Named values" in `spec-v1.md`:

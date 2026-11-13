@@ -182,9 +182,23 @@ definitionTests =
   , testCase "an annotation" $ definitionOf (Position 6 22) ==> Just (range 2 16 24)
   , testCase "a value, to its #x" $ definitionOf (Position 10 40) ==> Just (range 10 8 9)
   , testCase "nothing at an operator" $ definitionOf (Position 10 18) ==> Nothing
+  , testCase "a key of x in xs, to the x" $
+      keyDefinitionOf (Position 9 46) ==> Just (range 9 25 26)
+  , testCase "the list of x in xs, to its #xs" $
+      keyDefinitionOf (Position 9 30) ==> Just (range 9 10 12)
+  , testCase "a key of x in xs used as a value, to the x" $
+      keyDefinitionOf (Position 10 65) ==> Just (range 10 34 35)
   ]
   where
     action ==> expected = action >>= (@?= expected)
+    keyDefinitionOf pos = do
+      result <- withServer $ do
+        doc <- createDoc "keys.sumspec" "sumspec" keys
+        _ <- waitForDiagnostics
+        getDefinitions doc pos
+      pure $ case result of
+        InL (Definition (InL location)) -> Just location._range
+        _ -> Nothing
     definitionOf pos = do
       result <- withNav (`getDefinitions` pos)
       pure $ case result of
@@ -302,6 +316,16 @@ nav =
   \App = Mode * Sel\nMode = On | Off\nSel = None | One(Id) @control\n\n\
   \__init :: App(Mode.Off * Sel.None)\n\n\
   \pick Id#i :: App => Sel.None -> Sel.One(i)\n"
+
+-- | Element paths over several elements, L[x in xs]: the key used as one
+-- element's key on the target, and as a value under a shared path.
+keys :: Text
+keys =
+  "__atomics { Name Hash }\n__events { tag retag }\n\n\
+  \App = Branches * Sel\nBranches = [Tip by Name]\nTip = Hash\nNames = [Name]\n\
+  \Sel = None | One(Name)\n\n\
+  \tag Names#bs :: Branches[b in bs] -> Branches[b](Tip')\n\
+  \retag Names#bs :: App => Branches[b in bs] * Sel.None -> Sel.One(b)\n"
 
 -- | Annotations with arguments: on a type before its "=", after a
 -- target, and in brackets over two lines with a comment.
