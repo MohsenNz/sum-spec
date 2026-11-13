@@ -1,0 +1,6 @@
+test/parse/error-element-each-name.sumspec:7:22:
+  |
+7 | commit :: Files[each p] => Path -> Path
+  |                      ^
+unexpected 'p'
+expecting "in", '#', or ']'

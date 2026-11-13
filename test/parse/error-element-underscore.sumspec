@@ -1,0 +1,7 @@
+-- An unnamed key is written L[each], not L[_].
+__atomics { Path }
+__events { commit }
+
+Files = [Path by Path]
+
+commit :: Files[_] => Path -> Path

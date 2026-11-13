@@ -1,6 +1,6 @@
-test/parse/error-element-in.sumspec:9:30:
+test/parse/error-element-in.sumspec:9:28:
   |
-9 | conflict Paths#ps :: Files[p in ps] -> Files[p in ps]
-  |                              ^
-unexpected 'i'
-expecting ']'
+9 | conflict Paths#ps :: Files[#p in ps] => Path -> Path
+  |                            ^
+unexpected '#'
+expecting "each" or value name

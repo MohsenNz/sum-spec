@@ -1,9 +1,9 @@
--- The key in L[#x in xs] is named with "#": L[x in xs] reads x as a
--- name already given, so "in" can't follow it.
+-- Several elements are written L[each #x in xs]: without "each", the
+-- key x reads as a name already given, so "in" can't follow it.
 __atomics { Path }
 __events { conflict }
 
 Files = [Path by Path]
 Paths = [Path]
 
-conflict Paths#ps :: Files[p in ps] -> Files[p in ps]
+conflict Paths#ps :: Files[#p in ps] => Path -> Path

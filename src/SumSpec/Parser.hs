@@ -554,13 +554,19 @@ alternative = do
     , PatternPath names <$> option [] argumentList
     ]
 
--- element_key = "[" , ( LOWER | NAMING , [ "in" , LOWER ] ) , "]" ;
+-- element_key = "[" , ( LOWER | "each" , [ NAMING ] , [ "in" , LOWER ] ) , "]" ;
+--
+-- @each@ is read as a word first, so @[each]@ is never a value named
+-- @each@; a parse error names one character, as for any name.
 elementKey :: Parser ElementKey
-elementKey = brackets (named <|> KeyOne <$> valueName)
-  where
-    named = do
-      x <- naming
-      maybe (KeyEach x) (KeyIn x) <$> optional (keyword "in" *> valueName)
+elementKey = brackets $ do
+  x <- valueName <?> "\"each\" or value name"
+  if nameText x == "each"
+    then
+      KeyEach (namePos x)
+        <$> optional naming
+        <*> optional (keyword "in" *> valueName)
+    else pure (KeyOne x)
 
 -- [ NAMING ] after a pattern.
 withNaming :: Pattern -> Parser Pattern

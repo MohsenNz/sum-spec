@@ -35,11 +35,13 @@ module SumSpec.Syntax
   , ElementKey (..)
   , keyName
   , keyList
+  , keyBinder
   , Pattern (..)
   , Name (..)
   ) where
 
 import Data.List.NonEmpty (NonEmpty)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import SumSpec.Version (LanguageVersion)
 import Text.Megaparsec (SourcePos)
@@ -282,26 +284,32 @@ data Shared = Shared (NonEmpty Name) (Maybe ElementKey)
 data ElementKey
   = -- | @L[x]@: the one element whose key is the named value @x@.
     KeyOne Name
-  | -- | @L[#x in xs]@: every element whose key is in the list @xs@, each
-    -- of which must match; @x@ names the key of each.
-    KeyIn Name Name
-  | -- | @L[#x]@: each element that matches; the others keep their
-    -- values. @x@ names the key of each.
-    KeyEach Name
+  | -- | @L[each #x in xs]@: several elements, at the position of @each@.
+    -- With @in xs@, every element whose key is in the list @xs@, each of
+    -- which must match; without it, each element that matches, the others
+    -- keeping their values. @#x@, optional, names the key of each.
+    KeyEach SourcePos (Maybe Name) (Maybe Name)
   deriving stock (Eq, Show)
 
--- | The name in the brackets: @x@ in @[x]@, @[#x in xs]@ and @[#x]@.
+-- | The name in the brackets: @x@ in @[x]@, @[each #x]@ and
+-- @[each #x in xs]@. Without @#x@, it's the word @each@, at its position.
 keyName :: ElementKey -> Name
 keyName = \case
   KeyOne x -> x
-  KeyIn x _ -> x
-  KeyEach u -> u
+  KeyEach pos x _ -> fromMaybe (Name pos "each") x
 
--- | @xs@ in @[#x in xs]@.
+-- | The name @#x@ gives in @[each #x]@ and @[each #x in xs]@; none for
+-- @[x]@, which uses a name, or for @[each]@, which gives none.
+keyBinder :: ElementKey -> Maybe Name
+keyBinder = \case
+  KeyOne _ -> Nothing
+  KeyEach _ x _ -> x
+
+-- | @xs@ in @[each in xs]@ and @[each #x in xs]@.
 keyList :: ElementKey -> Maybe Name
 keyList = \case
-  KeyIn _ xs -> Just xs
-  _ -> Nothing
+  KeyEach _ _ xs -> xs
+  KeyOne _ -> Nothing
 
 data Pattern
   = -- | A path such as @Page.Plan@, with the arguments written in
@@ -309,7 +317,7 @@ data Pattern
     PatternPath (NonEmpty Name) [Pattern]
   | -- | @L[x]@: the element of the keyed list type @L@ whose key equals
     -- the named value @x@, with the element's arguments after it; or
-    -- @L[#x in xs]@, each element whose key is in @xs@; or @L[#x]@, each
+    -- @L[each #x in xs]@, each element whose key is in @xs@; or @L[each #x]@, each
     -- element that matches. The path is the list type; the checker
     -- allows only one name.
     PatternElement (NonEmpty Name) ElementKey [Pattern]

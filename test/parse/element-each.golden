@@ -8,6 +8,7 @@ __events {
   commit
   reset
   bump
+  abort
 }
 
 App = Files * Counts
@@ -15,6 +16,7 @@ Files = [FileState by Path]
 FileState = Unmodified | Staged
 Counts = [Count by Path]
 Count = Path
-commit :: Files[#p] => FileState.Staged -> FileState.Unmodified
-reset :: App(Files[#p]) -> App(Files[p](FileState.Unmodified))
-bump :: Counts[#p](Count#n) -> Counts[p](Count(n))
+commit :: Files[each #p] => FileState.Staged -> FileState.Unmodified
+reset :: App(Files[each #p]) -> App(Files[p](FileState.Unmodified))
+bump :: Counts[each #p](Count#n) -> Counts[p](Count(n))
+abort :: Files[each] => FileState.Staged -> FileState.Unmodified

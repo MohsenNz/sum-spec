@@ -1,8 +1,9 @@
--- Element paths over several elements, L[#x in xs], that break the rules.
+-- Element paths over several elements, L[each #x in xs], that break the
+-- rules.
 __atomics { Path BranchName Other }
 __events {
   unknown notList wrongKey listOfLists named twice targetOnly repeated inGuard
-  unkeyed
+  unkeyed unnamedUnknown unnamedTarget unnamedGuard unnamedUse
 }
 
 __init :: App
@@ -21,24 +22,32 @@ Both = Paths * Names
 OneAndAll = Path * Paths
 
 -- The list isn't a name of the transition.
-unknown :: Files[#p in nope] => FileState.Unmodified -> FileState.Conflicted
+unknown :: Files[each #p in nope] => FileState.Unmodified -> FileState.Conflicted
 -- A Path is not a list.
-notList Path#ps :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+notList Path#ps :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
 -- The list holds branch names, but the key of Files is Path.
-wrongKey Names#ps :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+wrongKey Names#ps :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
 -- A list of lists holds no keys.
-listOfLists Nest#ps :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+listOfLists Nest#ps :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
 -- p is already the input's name.
-named OneAndAll(Path#p * Paths#ps) :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+named OneAndAll(Path#p * Paths#ps) :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
 -- Only one per transition.
 twice Both(Paths#ps * Names#bs)
-  :: App(Files[#p in ps] * Branches[#b in bs]) -> App(Files[p] * Branches[b])
+  :: App(Files[each #p in ps] * Branches[each #b in bs]) -> App(Files[p] * Branches[b])
 -- Only on the target.
-targetOnly Paths#ps :: Files -> Files[#p in ps](FileState.Conflicted)
+targetOnly Paths#ps :: Files -> Files[each #p in ps](FileState.Conflicted)
 -- Named again on the target: write Files[p] there.
 repeated Paths#ps
-  :: Files[#p in ps](FileState.Unmodified) -> Files[#p in ps](FileState.Conflicted)
+  :: Files[each #p in ps](FileState.Unmodified) -> Files[each #p in ps](FileState.Conflicted)
 -- In a guard.
-inGuard Paths#ps :: App => Mode.Idle // Files[#p in ps](FileState.Conflicted) -> Mode.Busy
+inGuard Paths#ps :: App => Mode.Idle // Files[each #p in ps](FileState.Conflicted) -> Mode.Busy
 -- Plain has no key.
-unkeyed Paths#ps :: Plain[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+unkeyed Paths#ps :: Plain[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
+-- Unnamed, with a list that isn't a name of the transition.
+unnamedUnknown :: Files[each in nope] => FileState.Unmodified -> FileState.Conflicted
+-- Unnamed on the target.
+unnamedTarget Paths#ps :: Files -> Files[each in ps](FileState.Conflicted)
+-- Unnamed in a guard.
+unnamedGuard Paths#ps :: App => Mode.Idle // Files[each in ps](FileState.Conflicted) -> Mode.Busy
+-- each alone names nothing, so p is unknown.
+unnamedUse Paths#ps :: Files[each in ps](FileState.Unmodified) -> Files[p](FileState.Conflicted)

@@ -1,8 +1,9 @@
--- An element path over each element that matches, L[#x]: a filter on the
--- source side, so the transition happens even when nothing matches. x
--- names each element's key, and the target may pick it with L[x].
+-- An element path over every element that matches, L[each #x]: a filter
+-- on the source side, so the transition happens even when nothing
+-- matches. x names each element's key, and the target may pick it with
+-- L[x]; L[each] names none.
 __atomics { Path  Size = __int }
-__events { commit abort clear grow reset }
+__events { commit abort clear grow reset unnamed }
 
 __init :: App
 
@@ -13,21 +14,24 @@ Sizes = [Size by Path]
 Mode = Idle | Busy
 
 -- In a shared path, for both sides.
-commit :: Files[#p] => FileState.Staged -> FileState.Unmodified
+commit :: Files[each #p] => FileState.Staged -> FileState.Unmodified
 
 -- Named on the source side, used on the target, under an outer shared
 -- path.
 abort
   :: App
-  => Files[#p](FileState.Conflicted) * Mode.Busy
+  => Files[each #p](FileState.Conflicted) * Mode.Busy
   -> Files[p](FileState.Unmodified) * Mode.Idle
 
 -- Without arguments on the source: every element. The target picks each
 -- with L[x].
-clear :: Files[#i] -> Files[i](FileState.Unmodified)
+clear :: Files[each #i] -> Files[i](FileState.Unmodified)
 
 -- A name bound inside is per element.
-grow :: Sizes[#p](#n) -> Sizes[p](n + 1)
+grow :: Sizes[each #p](#n) -> Sizes[p](n + 1)
 
 -- Each element keeps its value when the target says nothing about it.
-reset :: App => Files[#p] * Mode.Busy -> Mode.Idle
+reset :: App => Files[each #p] * Mode.Busy -> Mode.Idle
+
+-- Unnamed, in a shared path: nothing uses the key.
+unnamed :: App => Mode.Busy -> Mode.Idle :: Files[each] => FileState.Conflicted -> FileState.Unmodified

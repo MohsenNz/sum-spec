@@ -1,0 +1,7 @@
+-- After "each", the key is named with "#": L[each #p], not L[each p].
+__atomics { Path }
+__events { commit }
+
+Files = [Path by Path]
+
+commit :: Files[each p] => Path -> Path

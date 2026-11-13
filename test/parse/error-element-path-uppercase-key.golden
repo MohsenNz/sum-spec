@@ -3,4 +3,4 @@ test/parse/error-element-path-uppercase-key.sumspec:9:17:
 9 | f Id#i :: Items[Id](S.A) -> Items[i](S.B)
   |                 ^
 unexpected 'I'
-expecting '#' or value name
+expecting "each" or value name

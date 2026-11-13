@@ -1,8 +1,8 @@
--- An element path over several elements, L[#x in xs]: every element of
--- L whose key is in the list xs. x names the key of each, and the
--- transition can use it.
+-- An element path over several elements, L[each #x in xs]: every element
+-- of L whose key is in the list xs. x names the key of each, and the
+-- transition can use it. L[each in xs] names no key.
 __atomics { Path BranchName Hash }
-__events { conflict resolve retag keep fromSource }
+__events { conflict resolve retag keep fromSource unnamed }
 
 __init :: App
 
@@ -21,19 +21,22 @@ Picked = Paths
 conflict Paths#ps
   :: App
   => Mode.Idle -> Mode.Busy
-  :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+  :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
 
 -- Named on the source side, used on the target; the list is a newtype
 -- of a list.
 resolve Picked#ps
-  :: Files[#p in ps](FileState.Conflicted) -> Files[p](FileState.Staged)
+  :: Files[each #p in ps](FileState.Conflicted) -> Files[p](FileState.Staged)
 
 -- x used in the target, as the key of one element.
 retag Names#bs
-  :: Branches[#b in bs] -> Branches[b](Tip')
+  :: Branches[each #b in bs] -> Branches[b](Tip')
 
 -- Without arguments, each element only has to exist, and keeps its value.
-keep Paths#ps :: App => Files[#p in ps] * Mode.Busy -> Mode.Idle
+keep Paths#ps :: App => Files[each #p in ps] * Mode.Busy -> Mode.Idle
 
 -- The list is named on the source side.
-fromSource :: App(Files[#p in ps] * Mode.Busy * Paths#ps) -> App(Mode.Idle)
+fromSource :: App(Files[each #p in ps] * Mode.Busy * Paths#ps) -> App(Mode.Idle)
+
+-- Unnamed, in a shared path: nothing uses the key.
+unnamed Paths#ps :: Files[each in ps] => FileState.Conflicted -> FileState.Staged

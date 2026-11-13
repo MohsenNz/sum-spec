@@ -10,21 +10,17 @@ release" in `VERSIONING.md`).
 
 ### Language
 
-- Element paths over each element that matches: `L[#x]` on the source
-  side takes the elements of the keyed list type `L` that match its
-  arguments, naming each one's key `x`, and the target gives each of them
-  its new state (`L[x](...)`); the others keep their values. It's placed
-  like `L[#x in xs]`. `example/git.sumspec`'s `commit` and `mergeAbort`
-  use it and no longer warn, and the warning about a transition that
-  doesn't say which element suggests it.
-- Element paths over several elements: `L[#x in xs]` is every element of
-  the keyed list type `L` whose key is in the list `xs`, as `L[x]` for
-  each `x` in `xs`. On the source side every listed element must exist
-  and match; on the target each gets the new state, written `L[x](...)`.
-  `#x` names the key, as `#` names a value everywhere, so it isn't
-  written on the target or in a guard. It's written on the source side or in
-  a shared path, once per transition. `example/git.sumspec`'s `mergeConflicted` takes
-  the conflicting paths as its input and uses it, so it no longer warns.
+- Element paths over several elements, with the word `each`:
+  `L[each in xs]` is every element of the keyed list type `L` whose key
+  is in the list `xs`; on the source side each must exist and match.
+  `L[each]` is every element that matches; the others keep their values.
+  `#x` after `each` names each one's key (`L[each #x in xs]`,
+  `L[each #x]`), and the target writes those elements `L[x](...)`. It's
+  written on the source side or in a shared path, once per transition,
+  never on the target or in a guard. `example/git.sumspec`'s
+  `mergeConflicted` (which takes the conflicting paths as input),
+  `commit` and `mergeAbort` use it and no longer warn, and the warning
+  about a transition that doesn't say which element suggests it.
 - Computed values in targets: a target may set a value computed from the
   names the transition gives, literals and named constants, with `+`,
   `-`, `*` and parentheses (`Attempts(n * 2 + 1)`). A computed value is

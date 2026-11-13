@@ -147,11 +147,9 @@ transition env inputs (Transition shared branches) =
   concat [fst (path env p) <> foldMap (elementKey outer) key | Shared p key <- shared]
     <> concatMap branch branches
   where
-    -- @x@ in a shared @L[#x in xs] =>@ or @L[#x] =>@ is named for every
-    -- branch.
+    -- @x@ in a shared @L[each #x ...] =>@ is named for every branch.
     keys =
-      [keyName k | Shared _ (Just k@(KeyIn {})) <- shared]
-        <> [x | Shared _ (Just (KeyEach x)) <- shared]
+      [x | Shared _ (Just k) <- shared, Just x <- [keyBinder k]]
     outer = inputs <> keys <> concatMap (concatMap (bindings env) . branchFrom) branches
     branch (Branch from guard to annotations) =
       concatMap (pattern env scope) from
@@ -199,14 +197,12 @@ pattern env scope = \case
     self = pattern env scope
 
 -- | The brackets of an element path: @x@ in @L[x]@ uses a name; in
--- @L[#x in xs]@, the path names @x@ and uses @xs@, and in @L[#x]@ it
--- names @x@. Written again on the target side, @x@ is a use of the
--- source's.
+-- @L[each #x in xs]@, the path names @x@ and uses @xs@. Written again on
+-- the target side, @x@ is a use of the source's.
 elementKey :: Scope -> ElementKey -> [Occurrence]
 elementKey scope = \case
   KeyOne x -> [value scope x]
-  KeyEach x -> [named x]
-  KeyIn x list -> [named x, value scope list]
+  KeyEach _ x list -> map named (toList x) <> map (value scope) (toList list)
   where
     named x = case find ((== nameText x) . nameText) scope of
       Just d | d /= x -> value scope x

@@ -687,50 +687,54 @@ toggleTodo Ref(ProjectId#p * TodoId#t)
 A path picks an element of each list it goes through, so nested lists work.
 `Projects[p]` is the project, and `Todos[t]` the todo inside it.
 
-#### Several elements: `L[#x in xs]`
+#### Several elements: `L[each #x in xs]`
 
-`L[#x in xs]` is every element of `L` whose key is in the list `xs`. It
-stands for `L[x]`, once for each `x` in `xs`:
+`L[each #x in xs]` is every element of `L` whose key is in the list `xs`.
+It stands for `L[x]`, once for each `x` in `xs`:
 
 ```
 Files = [FileState by Path]
 Paths = [Path]
 
 mergeConflicted Paths#ps
-  :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+  :: Files[each in ps] => FileState.Unmodified -> FileState.Conflicted
 ```
+
+The word `each` says that the path picks several elements; `L[x]`
+picks one. In the brackets, `each` is always the word, never a value
+named `each`.
 
 - `xs` is a name of the transition (from the input or the source side)
   whose type is a list, keyed or not, or a newtype of one. It holds keys
   of `L`: its element type is `L`'s key type.
-- `#x` names the key of each listed element, a value of `L`'s key type,
-  as `#x` names a value anywhere. The transition can use `x` anywhere,
-  as one element's key (`Branches[#b in bs] -> Branches[b](Tip')`) or as
-  a value. It is a new name: nothing else in the transition is named
-  `x`.
+- `#x`, optional, names the key of each listed element, a value of
+  `L`'s key type, as `#x` names a value anywhere. The transition can use
+  `x` anywhere, as one element's key
+  (`Branches[each #b in bs] -> Branches[b](Tip')`) or as a value. It is
+  a new name: nothing else in the transition is named `x`. Without it,
+  `L[each in xs]`, the key is unnamed.
 - On the source side, it's a precondition, as for one element: every
   listed element exists and matches the arguments, or the transition
   doesn't happen. An empty list matches.
 - On the target side, each listed element gets the new state. Without
   arguments, each keeps its value.
-- It's written on the source side, or in a shared path (`Files[#p in ps]
-  =>`), which puts it on both sides. On the target, each element is
-  written `L[x]`, using the name.
+- It's written on the source side, or in a shared path
+  (`Files[each in ps] =>`), which puts it on both sides. On the target,
+  each element is written `L[x]`, using the name; so without `#x` the
+  target can't write those elements, and the path goes in a shared
+  path, or on a source side whose target leaves the list alone.
 - A transition picks several elements once: it has at most one
-  `L[#x in xs]` or `L[#x]`.
+  `L[each ...]`.
 
-#### Every element that matches: `L[#x]`
+#### Every element that matches: `L[each #x]`
 
-`L[#x]` is each element of `L` that matches, with `#x` naming the key of
-each:
+`L[each #x]` is every element of `L` that matches, with `#x` naming the
+key of each; `L[each]` leaves it unnamed:
 
 ```
-commit :: Files[#p] => FileState.Staged -> FileState.Unmodified
-clear  :: Files[#p] -> Files[p](FileState.Unmodified)
+commit :: Files[each] => FileState.Staged -> FileState.Unmodified
+clear  :: Files[each #p] -> Files[p](FileState.Unmodified)
 ```
-
-On a source, `#x` usually names the one value a pattern matches. Here it
-doesn't pick one element: it stands for every element that matches.
 
 - On the source side, it's a filter, not a precondition: the elements
   that match the arguments take part, and the others keep their values.
@@ -739,14 +743,15 @@ doesn't pick one element: it stands for every element that matches.
 - On the target side, each element the source picked gets the new
   state, written `L[x](...)`.
 - `x` is a name of the transition, of `L`'s key type, new to it. A name
-  given inside the arguments is one element's (`Sizes[#p](#n) ->
+  given inside the arguments is one element's (`Sizes[each #p](#n) ->
   Sizes[p](n + 1)` adds one to each).
-- It is placed like `L[#x in xs]`: on the source side or in a shared
-  path, never on the target or in a guard, and a transition has at most
-  one of the two forms.
+- It is placed like `L[each #x in xs]`: on the source side or in a
+  shared path, never on the target or in a guard, and a transition has
+  at most one `L[each ...]`.
 
-`L[#x in xs]` and `L[#x]` differ on the source side: every listed element
-must match `L[#x in xs]`, while `L[#x]` takes the elements that match.
+`L[each #x in xs]` and `L[each #x]` differ on the source side: every
+listed element must match the first, while the second takes the
+elements that match.
 
 ## Language version
 

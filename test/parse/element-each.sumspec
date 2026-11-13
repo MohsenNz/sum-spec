@@ -1,10 +1,10 @@
--- An element path over each element that matches, L[#x]: in a pattern,
--- in a shared path, with and without arguments. x names each element's
--- key; the target may write L[x].
+-- An element path over every element that matches, L[each #x]: in a
+-- pattern, in a shared path, with and without arguments. x names each
+-- element's key; the target may write L[x]. L[each] names no key.
 __version 1.0
 
 __atomics { Path }
-__events { commit reset bump }
+__events { commit reset bump abort }
 
 App = Files * Counts
 Files = [FileState by Path]
@@ -12,8 +12,9 @@ FileState = Unmodified | Staged
 Counts = [Count by Path]
 Count = Path
 
-commit :: Files[ #p ] => FileState.Staged -> FileState.Unmodified
-reset :: App(Files[#p]) -> App(Files[p](FileState.Unmodified))
+commit :: Files[ each #p ] => FileState.Staged -> FileState.Unmodified
+reset :: App(Files[each #p]) -> App(Files[p](FileState.Unmodified))
 bump
-  :: Counts[#p](Count#n)
+  :: Counts[each #p](Count#n)
   -> Counts[p](Count(n))
+abort :: Files[ each ] => FileState.Staged -> FileState.Unmodified

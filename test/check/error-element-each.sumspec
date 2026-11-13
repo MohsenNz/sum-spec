@@ -1,9 +1,9 @@
--- Element paths over each element that matches, L[#x], that break the
--- rules.
+-- Element paths over every element that matches, L[each #x], that break
+-- the rules.
 __atomics { Path  Size = __int }
 __events {
   targetOnly repeated inGuard withIn notList unkeyed primed named twice
-  input
+  input unnamedTarget unnamedGuard unnamedUse
 }
 
 __init :: App
@@ -17,23 +17,29 @@ Mode = Idle | Busy
 Paths = [Path]
 
 -- Only on the target.
-targetOnly :: Files -> Files[#p](FileState.Unmodified)
+targetOnly :: Files -> Files[each #p](FileState.Unmodified)
 -- Named again on the target: write Files[p] there.
-repeated :: Files[#p](FileState.Staged) -> Files[#p](FileState.Unmodified)
+repeated :: Files[each #p](FileState.Staged) -> Files[each #p](FileState.Unmodified)
 -- In a guard.
-inGuard :: App => Mode.Idle // Files[#p](FileState.Staged) -> Mode.Busy
--- Together with a #x in xs: a transition picks several elements once.
+inGuard :: App => Mode.Idle // Files[each #p](FileState.Staged) -> Mode.Busy
+-- Together with an each #x in xs: a transition picks several elements once.
 withIn Paths#ps
-  :: App(Files[#p](FileState.Staged) * Others[#q in ps])
+  :: App(Files[each #p](FileState.Staged) * Others[each #q in ps])
   -> App(Files[p](FileState.Unmodified))
 -- Mode is not a list type.
-notList :: Mode[#m] => Idle -> Busy
+notList :: Mode[each #m] => Idle -> Busy
 -- Sizes has no key, so there is nothing to name.
-unkeyed :: Sizes[#p](#n) -> Sizes[p](n + 1)
+unkeyed :: Sizes[each #p](#n) -> Sizes[p](n + 1)
 -- An element takes no prime, and can't be named.
-primed :: Files[#p] -> Files[p]'
-named :: Files[#p]#f -> Files
+primed :: Files[each #p] -> Files[p]'
+named :: Files[each #p]#f -> Files
 -- p is already the input's name.
-twice Path#p :: Files[#p] => FileState.Staged -> FileState.Unmodified
+twice Path#p :: Files[each #p] => FileState.Staged -> FileState.Unmodified
 -- Not in the input.
-input Files[#p] :: Mode.Idle -> Mode.Busy
+input Files[each #p] :: Mode.Idle -> Mode.Busy
+-- Unnamed on the target: name the key on the source side.
+unnamedTarget :: Files -> Files[each](FileState.Unmodified)
+-- Unnamed in a guard.
+unnamedGuard :: App => Mode.Idle // Files[each](FileState.Staged) -> Mode.Busy
+-- each alone names nothing, so p is unknown.
+unnamedUse :: Files[each](FileState.Staged) -> Files[p](FileState.Unmodified)

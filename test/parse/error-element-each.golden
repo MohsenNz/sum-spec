@@ -1,6 +1,6 @@
-test/parse/error-element-each.sumspec:7:17:
+test/parse/error-element-each.sumspec:8:17:
   |
-7 | commit :: Files[_] -> Files[_]
+8 | commit :: Files[#p] => FileState.Staged -> FileState.Unmodified
   |                 ^
-unexpected '_'
-expecting '#' or value name
+unexpected '#'
+expecting "each" or value name

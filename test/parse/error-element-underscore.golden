@@ -1,0 +1,6 @@
+test/parse/error-element-underscore.sumspec:7:17:
+  |
+7 | commit :: Files[_] => Path -> Path
+  |                 ^
+unexpected '_'
+expecting "each" or value name

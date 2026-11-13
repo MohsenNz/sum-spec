@@ -182,12 +182,14 @@ definitionTests =
   , testCase "an annotation" $ definitionOf (Position 6 22) ==> Just (range 2 16 24)
   , testCase "a value, to its #x" $ definitionOf (Position 10 40) ==> Just (range 10 8 9)
   , testCase "nothing at an operator" $ definitionOf (Position 10 18) ==> Nothing
-  , testCase "a key of #x in xs, to the x" $
-      keyDefinitionOf (Position 9 47) ==> Just (range 9 26 27)
-  , testCase "the list of #x in xs, to its #xs" $
-      keyDefinitionOf (Position 9 31) ==> Just (range 9 10 12)
-  , testCase "a key of #x used as a value, to the x" $
-      keyDefinitionOf (Position 10 60) ==> Just (range 10 35 36)
+  , testCase "a key of each #x in xs, to the x" $
+      keyDefinitionOf (Position 9 52) ==> Just (range 9 31 32)
+  , testCase "the list of each #x in xs, to its #xs" $
+      keyDefinitionOf (Position 9 36) ==> Just (range 9 10 12)
+  , testCase "a key of each #x used as a value, to the x" $
+      keyDefinitionOf (Position 10 65) ==> Just (range 10 40 41)
+  , testCase "the list of each in xs, to its #xs" $
+      keyDefinitionOf (Position 11 41) ==> Just (range 11 11 13)
   ]
   where
     action ==> expected = action >>= (@?= expected)
@@ -317,15 +319,16 @@ nav =
   \__init :: App(Mode.Off * Sel.None)\n\n\
   \pick Id#i :: App => Sel.None -> Sel.One(i)\n"
 
--- | Element paths over several elements, L[#x in xs] and L[#x]: the key
--- used as one element's key on the target, and as a value.
+-- | Element paths over several elements, L[each #x in xs] and
+-- L[each #x]: the key used as one element's key on the target, and as a value.
 keys :: Text
 keys =
-  "__atomics { Name Hash }\n__events { tag retag }\n\n\
+  "__atomics { Name Hash }\n__events { tag retag mark }\n\n\
   \App = Branches * Sel\nBranches = [Tip by Name]\nTip = Hash\nNames = [Name]\n\
   \Sel = None | One(Name)\n\n\
-  \tag Names#bs :: Branches[#b in bs] -> Branches[b](Tip')\n\
-  \retag Names#bs :: App => Branches[#b] * Sel.None -> Sel.One(b)\n"
+  \tag Names#bs :: Branches[each #b in bs] -> Branches[b](Tip')\n\
+  \retag Names#bs :: App => Branches[each #b] * Sel.None -> Sel.One(b)\n\
+  \mark Names#bs :: App => Branches[each in bs] * Sel.None -> Sel.None\n"
 
 -- | Annotations with arguments: on a type before its "=", after a
 -- target, and in brackets over two lines with a comment.

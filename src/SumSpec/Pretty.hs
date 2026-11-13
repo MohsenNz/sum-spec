@@ -14,6 +14,7 @@ module SumSpec.Pretty
   , renderArith
   , renderValue
   , renderKey
+  , renderKeyBody
   ) where
 
 import Data.List.NonEmpty (NonEmpty (..))
@@ -83,12 +84,21 @@ renderDefinition = \case
           <> maybe "" renderKey key
   DefInit _ p -> "__init :: " <> renderPattern p
 
--- | The brackets of an element path: @[x]@, @[#x in xs]@ or @[#x]@.
+-- | The brackets of an element path: @[x]@, @[each]@, @[each #x]@,
+-- @[each in xs]@ or @[each #x in xs]@.
 renderKey :: ElementKey -> Text
-renderKey = \case
-  KeyOne x -> "[" <> nameText x <> "]"
-  KeyIn x xs -> "[#" <> nameText x <> " in " <> nameText xs <> "]"
-  KeyEach x -> "[#" <> nameText x <> "]"
+renderKey k = "[" <> renderKeyBody k <> "]"
+
+-- | What is inside the brackets of an element path.
+renderKeyBody :: ElementKey -> Text
+renderKeyBody = \case
+  KeyOne x -> nameText x
+  KeyEach _ x xs ->
+    T.unwords
+      ( "each"
+          : ["#" <> nameText n | Just n <- [x]]
+            <> ["in " <> nameText n | Just n <- [xs]]
+      )
 
 -- | A guard with the fewest parentheses its precedence allows: @not@ binds
 -- tighter than @and@, and @and@ tighter than @or@.

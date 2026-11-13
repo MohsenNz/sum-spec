@@ -161,7 +161,7 @@ classify
 classify occ word = case occ of
   Just o -> Just (kindType (occKind o), extra (occKind o) <> declaration (occDefinition o))
   Nothing
-    | word `elem` ["by", "not", "and", "or", "in"] ->
+    | word `elem` ["by", "not", "and", "or", "in", "each"] ->
         Just (SemanticTokenTypes_Keyword, [])
     | otherwise -> Nothing
   where

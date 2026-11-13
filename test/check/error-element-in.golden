@@ -1,60 +1,84 @@
-test/check/error-element-in.sumspec:24:24:
+test/check/error-element-in.sumspec:25:29:
    |
-24 | unknown :: Files[#p in nope] => FileState.Unmodified -> FileState.Conflicted
-   |                        ^
+25 | unknown :: Files[each #p in nope] => FileState.Unmodified -> FileState.Conflicted
+   |                             ^
 unknown name nope; name a value with #nope in the input or on the source side
 
-test/check/error-element-in.sumspec:26:32:
+test/check/error-element-in.sumspec:27:37:
    |
-26 | notList Path#ps :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
-   |                                ^
-ps is a Path, not a list, so #p in ps can't pick elements of Files
+27 | notList Path#ps :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                                     ^
+ps is a Path, not a list, so each #p in ps can't pick elements of Files
 
-test/check/error-element-in.sumspec:28:34:
+test/check/error-element-in.sumspec:29:39:
    |
-28 | wrongKey Names#ps :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
-   |                                  ^
+29 | wrongKey Names#ps :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                                       ^
 ps holds BranchName, but the key of Files is Path
 
-test/check/error-element-in.sumspec:30:36:
+test/check/error-element-in.sumspec:31:41:
    |
-30 | listOfLists Nest#ps :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
-   |                                    ^
+31 | listOfLists Nest#ps :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                                         ^
 ps holds Paths, but the key of Files is Path
 
-test/check/error-element-in.sumspec:32:46:
+test/check/error-element-in.sumspec:33:51:
    |
-32 | named OneAndAll(Path#p * Paths#ps) :: Files[#p in ps] => FileState.Unmodified -> FileState.Conflicted
-   |                                              ^
+33 | named OneAndAll(Path#p * Paths#ps) :: Files[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
+   |                                                   ^
 p is named twice in this transition
 
-test/check/error-element-in.sumspec:35:38:
+test/check/error-element-in.sumspec:36:48:
    |
-35 |   :: App(Files[#p in ps] * Branches[#b in bs]) -> App(Files[p] * Branches[b])
-   |                                      ^
-a transition picks several elements once; Files[#p in ps] already does here
-
-test/check/error-element-in.sumspec:37:40:
-   |
-37 | targetOnly Paths#ps :: Files -> Files[#p in ps](FileState.Conflicted)
-   |                                        ^
-on the target side, write Files[p]; #p names the key on the source side
-
-test/check/error-element-in.sumspec:40:54:
-   |
-40 |   :: Files[#p in ps](FileState.Unmodified) -> Files[#p in ps](FileState.Conflicted)
-   |                                                      ^
-on the target side, write Files[p]; #p names the key on the source side
-
-test/check/error-element-in.sumspec:42:48:
-   |
-42 | inGuard Paths#ps :: App => Mode.Idle // Files[#p in ps](FileState.Conflicted) -> Mode.Busy
+36 |   :: App(Files[each #p in ps] * Branches[each #b in bs]) -> App(Files[p] * Branches[b])
    |                                                ^
-a guard can't pick elements with Files[#p in ps]; write it on the source side
+a transition picks several elements once; Files[each #p in ps] already does here
 
-test/check/error-element-in.sumspec:44:21:
+test/check/error-element-in.sumspec:38:45:
    |
-44 | unkeyed Paths#ps :: Plain[#p in ps] => FileState.Unmodified -> FileState.Conflicted
+38 | targetOnly Paths#ps :: Files -> Files[each #p in ps](FileState.Conflicted)
+   |                                             ^
+on the target side, write Files[p]; each #p names the key on the source side
+
+test/check/error-element-in.sumspec:41:64:
+   |
+41 |   :: Files[each #p in ps](FileState.Unmodified) -> Files[each #p in ps](FileState.Conflicted)
+   |                                                                ^
+on the target side, write Files[p]; each #p names the key on the source side
+
+test/check/error-element-in.sumspec:43:53:
+   |
+43 | inGuard Paths#ps :: App => Mode.Idle // Files[each #p in ps](FileState.Conflicted) -> Mode.Busy
+   |                                                     ^
+a guard can't pick elements with Files[each #p in ps]; write it on the source side
+
+test/check/error-element-in.sumspec:45:21:
+   |
+45 | unkeyed Paths#ps :: Plain[each #p in ps] => FileState.Unmodified -> FileState.Conflicted
    |                     ^
-Plain has no key, so [#p in ps] can't pick elements; declare one, such as Plain = [FileState by Path]
+Plain has no key, so [each #p in ps] can't pick elements; declare one, such as Plain = [FileState by Path]
+
+test/check/error-element-in.sumspec:47:33:
+   |
+47 | unnamedUnknown :: Files[each in nope] => FileState.Unmodified -> FileState.Conflicted
+   |                                 ^
+unknown name nope; name a value with #nope in the input or on the source side
+
+test/check/error-element-in.sumspec:49:42:
+   |
+49 | unnamedTarget Paths#ps :: Files -> Files[each in ps](FileState.Conflicted)
+   |                                          ^
+on the target side, Files[each in ps] can't be written; name the key on the source side, Files[each #p in ps], and write Files[p] here
+
+test/check/error-element-in.sumspec:51:52:
+   |
+51 | unnamedGuard Paths#ps :: App => Mode.Idle // Files[each in ps](FileState.Conflicted) -> Mode.Busy
+   |                                                    ^
+a guard can't pick elements with Files[each in ps]; write it on the source side
+
+test/check/error-element-in.sumspec:53:73:
+   |
+53 | unnamedUse Paths#ps :: Files[each in ps](FileState.Unmodified) -> Files[p](FileState.Conflicted)
+   |                                                                         ^
+unknown name p; name a value with #p in the input or on the source side
 
