@@ -1,0 +1,6 @@
+test/parse/error-element-each.sumspec:8:28:
+  |
+8 | commit Paths#ps :: Files[_ in ps] -> Files[_ in ps]
+  |                            ^
+unexpected 'i'
+expecting ']'

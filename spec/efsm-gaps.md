@@ -149,6 +149,10 @@ the source and the target, says how a value changes, like an EFSM's
 | `__remove ts where P` | remove every element that matches `P` |
 | `__each ts P` | apply `P` to every element (`toggleAll`) |
 
+`__each` is in v1 as an element path: `L[_] => P` applies `P` to each
+element that matches its source (see "Every element that matches" in
+`spec-v1.md`).
+
 The action doesn't make the second transition of `deleteTodo` (to
 `Screen.NoTodos` when the last todo goes) or `ToggleAll'` and `Footer'`
 go away; with Part B replaced, the transition writes them (gap 7).

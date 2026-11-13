@@ -1,0 +1,29 @@
+-- Element paths over each element that matches, L[_], that break the
+-- rules.
+__atomics { Path }
+__events { targetOnly inGuard withIn notList primed named input }
+
+__init :: App
+
+App = Files * Others * Mode
+Others = [FileState by Path]
+Files = [FileState by Path]
+FileState = Unmodified | Staged
+Mode = Idle | Busy
+Paths = [Path]
+
+-- Only on the target.
+targetOnly :: Files -> Files[_](FileState.Unmodified)
+-- In a guard.
+inGuard :: App => Mode.Idle // Files[_](FileState.Staged) -> Mode.Busy
+-- Together with an x in xs: a transition picks several elements once.
+withIn Paths#ps
+  :: App(Files[_](FileState.Staged) * Others[p in ps])
+  -> App(Files[_](FileState.Unmodified))
+-- Mode is not a list type.
+notList :: Mode[_] => Idle -> Busy
+-- An element takes no prime, and can't be named.
+primed :: Files[_] -> Files[_]'
+named :: Files[_]#f -> Files
+-- Not in the input.
+input Files[_] :: Mode.Idle -> Mode.Busy

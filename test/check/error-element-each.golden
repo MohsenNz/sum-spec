@@ -1,0 +1,42 @@
+test/check/error-element-each.sumspec:16:30:
+   |
+16 | targetOnly :: Files -> Files[_](FileState.Unmodified)
+   |                              ^
+Files[_] picks elements only on the source side (or in a shared path)
+
+test/check/error-element-each.sumspec:18:38:
+   |
+18 | inGuard :: App => Mode.Idle // Files[_](FileState.Staged) -> Mode.Busy
+   |                                      ^
+a guard can't pick elements with Files[_]; write it on the source side
+
+test/check/error-element-each.sumspec:21:46:
+   |
+21 |   :: App(Files[_](FileState.Staged) * Others[p in ps])
+   |                                              ^
+a transition picks several elements once; Files[_] already does here
+
+test/check/error-element-each.sumspec:24:12:
+   |
+24 | notList :: Mode[_] => Idle -> Busy
+   |            ^
+Mode is not a list type; [_] picks each element of a list type, such as L = [T]
+
+test/check/error-element-each.sumspec:26:31:
+   |
+26 | primed :: Files[_] -> Files[_]'
+   |                               ^
+an element takes no prime ('); prime its parts instead, such as Files[x](A')
+
+test/check/error-element-each.sumspec:27:19:
+   |
+27 | named :: Files[_]#f -> Files
+   |                   ^
+an element can't be named yet; name its parts instead
+
+test/check/error-element-each.sumspec:29:13:
+   |
+29 | input Files[_] :: Mode.Idle -> Mode.Busy
+   |             ^
+an element path goes on the source or target side, not in the input
+

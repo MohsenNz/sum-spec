@@ -148,7 +148,7 @@ transition env inputs (Transition shared branches) =
     <> concatMap branch branches
   where
     -- @x@ in a shared @L[x in xs] =>@ is named for every branch.
-    keys = [x | Shared _ (Just (ElementKey x (Just _))) <- shared]
+    keys = [x | Shared _ (Just (KeyIn x _)) <- shared]
     outer = inputs <> keys <> concatMap (concatMap (bindings env) . branchFrom) branches
     branch (Branch from guard to annotations) =
       concatMap (pattern env scope) from
@@ -197,11 +197,13 @@ pattern env scope = \case
 
 -- | The brackets of an element path: @x@ in @L[x]@ uses a name; in
 -- @L[x in xs]@, the path names @x@ and uses @xs@. Written again on the
--- target side, @x@ is a use of the source's.
+-- target side, @x@ is a use of the source's. @L[_]@ names and uses
+-- nothing.
 elementKey :: Scope -> ElementKey -> [Occurrence]
-elementKey scope (ElementKey x xs) = case xs of
-  Nothing -> [value scope x]
-  Just list -> [key, value scope list]
+elementKey scope = \case
+  KeyOne x -> [value scope x]
+  KeyEach _ -> []
+  KeyIn x list -> [key, value scope list]
     where
       key = case find ((== nameText x) . nameText) scope of
         Just d | d /= x -> value scope x

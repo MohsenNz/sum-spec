@@ -1,0 +1,31 @@
+-- An element path over each element that matches, L[_]: a filter on the
+-- source side, so the transition happens even when nothing matches. It
+-- works on a list with or without a key.
+__atomics { Path  Size = __int }
+__events { commit abort clear grow reset }
+
+__init :: App
+
+App = Files * Sizes * Mode
+Files = [FileState by Path]
+FileState = Unmodified | Staged | Conflicted
+Sizes = [Size]
+Mode = Idle | Busy
+
+-- In a shared path, for both sides.
+commit :: Files[_] => FileState.Staged -> FileState.Unmodified
+
+-- Written on both sides, under an outer shared path.
+abort
+  :: App
+  => Files[_](FileState.Conflicted) * Mode.Busy
+  -> Files[_](FileState.Unmodified) * Mode.Idle
+
+-- Without arguments on the source: every element.
+clear :: Files[_] -> Files[_](FileState.Unmodified)
+
+-- A list without a key; a name bound inside is per element.
+grow :: Sizes[_](#n) -> Sizes[_](n + 1)
+
+-- Each element keeps its value when the target says nothing about it.
+reset :: App => Files[_] * Mode.Busy -> Mode.Idle

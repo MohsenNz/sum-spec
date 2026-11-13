@@ -33,6 +33,8 @@ module SumSpec.Syntax
   , arithWord
   , Shared (..)
   , ElementKey (..)
+  , keyName
+  , keyList
   , Pattern (..)
   , Name (..)
   ) where
@@ -276,16 +278,30 @@ arithWord = \case
 data Shared = Shared (NonEmpty Name) (Maybe ElementKey)
   deriving stock (Eq, Show)
 
--- | What is in the brackets of an element path: @x@ in @L[x]@, the one
--- element whose key is the named value @x@; or @x in xs@ in
--- @L[x in xs]@, every element whose key is in the list @xs@, with @x@
--- naming the key of each.
-data ElementKey = ElementKey
-  { keyName :: Name
-  , keyIn :: Maybe Name
-  -- ^ @xs@ in @x in xs@.
-  }
+-- | What is in the brackets of an element path.
+data ElementKey
+  = -- | @L[x]@: the one element whose key is the named value @x@.
+    KeyOne Name
+  | -- | @L[x in xs]@: every element whose key is in the list @xs@, each
+    -- of which must match; @x@ names the key of each.
+    KeyIn Name Name
+  | -- | @L[_]@: each element that matches; the others keep their values.
+    -- The name is the @_@, at its position.
+    KeyEach Name
   deriving stock (Eq, Show)
+
+-- | The name in the brackets: @x@ in @[x]@ and @[x in xs]@, or the @_@.
+keyName :: ElementKey -> Name
+keyName = \case
+  KeyOne x -> x
+  KeyIn x _ -> x
+  KeyEach u -> u
+
+-- | @xs@ in @[x in xs]@.
+keyList :: ElementKey -> Maybe Name
+keyList = \case
+  KeyIn _ xs -> Just xs
+  _ -> Nothing
 
 data Pattern
   = -- | A path such as @Page.Plan@, with the arguments written in
@@ -293,8 +309,9 @@ data Pattern
     PatternPath (NonEmpty Name) [Pattern]
   | -- | @L[x]@: the element of the keyed list type @L@ whose key equals
     -- the named value @x@, with the element's arguments after it; or
-    -- @L[x in xs]@, each element whose key is in @xs@. The path is the
-    -- list type; the checker allows only one name.
+    -- @L[x in xs]@, each element whose key is in @xs@; or @L[_]@, each
+    -- element that matches. The path is the list type; the checker
+    -- allows only one name.
     PatternElement (NonEmpty Name) ElementKey [Pattern]
   | -- | @[T]@ or @[T by K]@: any list of that type. The parser reads it;
     -- the checker reports it, since a list is written by its type name.

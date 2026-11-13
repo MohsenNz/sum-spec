@@ -211,11 +211,12 @@ input         = type_pattern , [ NAMING ] ;
    NAMING as the whole argument names the one value inside the head,
    without writing its type (see "Bare binding" in spec-v1.md):
      Attempts(#n)        means  Attempts(Int#n)
-   An element_key after a path picks one element of a list type by key,
-   or with "in", every element whose key is in a list (see "Element
-   paths" in spec-v1.md):
+   An element_key after a path picks one element of a list type by key;
+   with "in", every element whose key is in a list; with "_", each
+   element that matches (see "Element paths" in spec-v1.md):
      Projects[p](Todos[t](Completion.Active))
      Files[p in ps] => FileState.Unmodified -> FileState.Conflicted
+     Files[_] => FileState.Staged -> FileState.Unmodified
    ".{" after a path names some variants of the sum there, each written
    from it (see "Alternatives" in spec-v1.md):
      Flight.{Arming | Flying(FPhase.{Approaching | Holding})}          *)
@@ -244,7 +245,7 @@ alternatives  = alternative , "|" , alternative , { "|" , alternative } ;
 alternative   = path , [ "." , "{" , alternatives , "}"
                        | "(" , ( NAMING | arguments ) , ")" ] ;
 
-element_key   = "[" , LOWER , [ "in" , LOWER ] , "]" ;
+element_key   = "[" , ( LOWER , [ "in" , LOWER ] | "_" ) , "]" ;
 
 path          = UPPER , { "." , UPPER } ;
 
@@ -472,16 +473,21 @@ character     = ? any Unicode character ? ;
      the path names x, of that key type, a name new to the transition.
      It is written on the source side or in a shared path; the target
      and a guard may only repeat it. A transition has at most one. See
-     "Several elements" in spec-v1.md.
+     "Several elements" in spec-v1.md;
+   - an element path L[_] is placed like L[x in xs], and a transition
+     has at most one of the two; L is any list type, with a key or
+     not; it names nothing. See "Every element that matches" in
+     spec-v1.md.
 
    Warnings (the checker reports them, but the spec is valid):
    - a transition on a part inside a list element (of a list reachable
      from the root) that doesn't pick the element: in a keyed list, it doesn't use an element path; in a
      list without a key, it isn't written from the element, or doesn't
      compare a key with a named value (Todo(id * ...)), or the element
-     is inside another list. The warning suggests an element path, and
-     a key for a named list without one. See "Keys" and "Element paths"
-     in spec-v1.md;
+     is inside another list. The warning suggests an element path
+     (L[id], or L[_] for each element that matches), and a key for a
+     named list without one. See "Keys" and "Element paths" in
+     spec-v1.md;
    - a space before a prime or a naming (A ', Text #t); it's read the
      same, and the canonical form writes A' and Text#t. See "Source and
      target" and "Named values" in spec-v1.md;

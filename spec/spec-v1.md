@@ -654,7 +654,8 @@ toggleTodo TodoId#id :: Todos[id](Completion.Active) -> Todos[id](Completion.Com
 `Todo[id]` will be resolved to a `Todo` and then `(Completion.Active)` will apply
 to that `Todo`: `Todo(Completion.Active)`.
 
-- `L` is a type defined as a keyed list (`Todos = [Todo by TodoId]`).
+- `L` is a type defined as a keyed list (`Todos = [Todo by TodoId]`);
+  `L[_]`, below, takes any list type.
   The path starts at the list type, so from a variant that carries the
   list: `Ring.Points(Points[i](...))`.
 - On the source side, `L[x]` is a precondition: the element exists and
@@ -717,6 +718,30 @@ mergeConflicted Paths#ps
   it, but not bring a new one; on the target, `L[x]` picks one of them.
 - A transition picks several elements once: it has at most one
   `L[x in xs]`.
+
+#### Every element that matches: `L[_]`
+
+`L[_]` is each element of the list type `L` that matches:
+
+```
+commit :: Files[_] => FileState.Staged -> FileState.Unmodified
+```
+
+- On the source side, it's a filter, not a precondition: the elements
+  that match the arguments take part, and the others keep their values.
+  The transition happens even when none match. Without arguments, it's
+  every element.
+- On the target side, each element the source picked gets the new state.
+- `L` is any list type, with a key or without one: `_` picks no key.
+- It names nothing. A name given inside its arguments is one element's
+  (`Sizes[_](#n) -> Sizes[_](n + 1)` adds one to each).
+- It is placed like `L[x in xs]`: on the source side or in a shared
+  path, which the target and a guard may only repeat, and a transition
+  has at most one of the two forms.
+- It takes no prime and no naming, and doesn't go in the input.
+
+`L[x in xs]` and `L[_]` differ on the source side: every listed element
+must match `L[x in xs]`, while `L[_]` takes the elements that match.
 
 ## Language version
 

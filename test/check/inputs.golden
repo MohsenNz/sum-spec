@@ -2,17 +2,17 @@ test/check/inputs.sumspec:18:16:
    |
 18 | rename Name :: Item(Name) -> Item(Name')
    |                ^
-warning: rename changes one Item of a list, but doesn't say which; to pick it, give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
+warning: rename changes one Item of a list, but doesn't say which; to pick it, use Items[_](...) for each one that matches, or give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
 
 test/check/inputs.sumspec:21:15:
    |
 21 | select Ref :: State.Off -> State.On
    |               ^
-warning: select changes a State inside one Item of a list, but doesn't say which Item; to pick it, give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
+warning: select changes a State inside one Item of a list, but doesn't say which Item; to pick it, use Items[_](...) for each one that matches, or give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
 
 test/check/inputs.sumspec:22:15:
    |
 22 |            :: State.On -> State.Off
    |               ^
-warning: select changes a State inside one Item of a list, but doesn't say which Item; to pick it, give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
+warning: select changes a State inside one Item of a list, but doesn't say which Item; to pick it, use Items[_](...) for each one that matches, or give Items a key (Items = [Item by Id]) and use an element path, such as Items[id](...)
 

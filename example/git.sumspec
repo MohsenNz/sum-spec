@@ -16,6 +16,8 @@
 -- and picks the file with an element path, written once for both sides
 -- with => (Files[p] => FileState.Staged -> FileState.Modified). Several
 -- transitions under the same path are branches, each starting with =>.
+-- Files[p in ps] picks the files whose paths are in ps, and Files[_]
+-- each file that matches.
 
 __version 1.0
 
@@ -117,9 +119,9 @@ commit
   => Head.OnBranch * Operation.Idle
   -> Branches' * Files'
 
-  -- Every staged file becomes unmodified. SumSpec can't say "every" yet,
-  -- so the checker warns that this doesn't say which file.
-  :: FileState.Staged -> FileState.Unmodified
+  -- Every staged file becomes unmodified: Files[_] is each file that
+  -- matches the source.
+  :: Files[_] => FileState.Staged -> FileState.Unmodified
 
 switch BranchName#b
   :: Repository.Initialized
@@ -161,9 +163,8 @@ mergeAbort
   => Operation.Merging
   -> Files' * Operation.Idle
 
-  -- Every conflicted file goes back to unmodified; the checker warns, as
-  -- for commit.
-  :: FileState.Conflicted -> FileState.Unmodified
+  -- Every conflicted file goes back to unmodified.
+  :: Files[_] => FileState.Conflicted -> FileState.Unmodified
 
 rebase
   :: Repository.Initialized

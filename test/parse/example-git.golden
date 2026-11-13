@@ -55,7 +55,7 @@ restore Path#p :: Files[p]
 commit :: Repository.Initialized
        => Head.Unborn * Operation.Idle -> Head.OnBranch * Branches' * Files'
        => Head.OnBranch * Operation.Idle -> Branches' * Files'
-       :: FileState.Staged -> FileState.Unmodified
+       :: Files[_] => FileState.Staged -> FileState.Unmodified
 switch BranchName#b :: Repository.Initialized => Operation.Idle // Branches[b] -> Head.OnBranch(b) * Files'
 checkoutCommit :: Repository.Initialized => Operation.Idle -> Head.Detached * Files'
 merge :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Branches' * Files'
@@ -64,7 +64,7 @@ mergeConflicted Paths#ps :: Repository.Initialized => Head.OnBranch * Operation.
 resolve Path#p :: Files[p] => FileState.Conflicted -> FileState.Staged
 mergeContinue :: Repository.Initialized => Operation.Merging -> Branches' * Operation.Idle
 mergeAbort :: Repository.Initialized => Operation.Merging -> Files' * Operation.Idle
-           :: FileState.Conflicted -> FileState.Unmodified
+           :: Files[_] => FileState.Conflicted -> FileState.Unmodified
 rebase :: Repository.Initialized => Head.OnBranch * Operation.Idle -> Head.Detached * Files' * Operation.Rebasing
 rebaseContinue :: Repository.Initialized => Head.Detached * Operation.Rebasing -> Head.Detached(Hash') * Files' * Operation.Rebasing(Remaining')
 rebaseFinished :: Repository.Initialized => Head.Detached * Operation.Rebasing -> Head.OnBranch * Branches' * Operation.Idle

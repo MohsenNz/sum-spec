@@ -10,6 +10,13 @@ release" in `VERSIONING.md`).
 
 ### Language
 
+- Element paths over each element that matches: `L[_]` on the source
+  side takes the elements of the list type `L` (with a key or without)
+  that match its arguments, and the target gives each of them its new
+  state; the others keep their values. It's placed like `L[x in xs]`.
+  `example/git.sumspec`'s `commit` and `mergeAbort` use it and no longer
+  warn, and the warning about a transition that doesn't say which
+  element suggests it.
 - Element paths over several elements: `L[x in xs]` is every element of
   the keyed list type `L` whose key is in the list `xs`, as `L[x]` for
   each `x` in `xs`. On the source side every listed element must exist

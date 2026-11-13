@@ -1,0 +1,8 @@
+-- "_" stands alone in the brackets: it names nothing, so it takes no "in".
+__atomics { Path }
+__events { commit }
+
+Files = [Path by Path]
+Paths = [Path]
+
+commit Paths#ps :: Files[_ in ps] -> Files[_ in ps]

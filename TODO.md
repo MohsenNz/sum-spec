@@ -19,9 +19,9 @@
 - [x] Element paths over several elements, `L[x in xs]`, for an event
       that brings the keys of the elements it changes
       (`mergeConflicted` in `example/git.sumspec`).
-- [ ] "Every element that matches" (the filter form, or `__each` in Part
-      C of `spec/efsm-gaps.md`), for `commit` and `mergeAbort` in
-      `example/git.sumspec`, which still warn.
+- [x] "Every element that matches": `L[_]` (Part C's `__each` in
+      `spec/efsm-gaps.md`), for `commit` and `mergeAbort` in
+      `example/git.sumspec`.
 - [x] Should the checker keep its own copy of the spec's facts (`Env`)?
       No: it reads `Model` directly (types, variants, constants,
       `underlying` for newtypes). Facts live in `Model`, judgements and

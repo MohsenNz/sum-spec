@@ -580,9 +580,10 @@ checkTransitions env = concatMap checkTransition
       where
         names = Map.fromList [(nameText n, k) | (n, k) <- transitionNames env input from]
 
--- | An element path over several elements (@L[x in xs]@) is written on the
--- source side, once per transition. The target and the guard may repeat
--- it: a shared path puts it on both sides and around the guard.
+-- | An element path over several elements (@L[x in xs]@ or @L[_]@) is
+-- written on the source side, once per transition. The target and the
+-- guard may repeat it: a shared path puts it on both sides and around the
+-- guard.
 checkElementsIn :: Pattern -> Pattern -> Maybe Guard -> [CheckError]
 checkElementsIn from to guard =
   [ errorAt x $
@@ -590,33 +591,31 @@ checkElementsIn from to guard =
         <> render first
         <> " already does here"
   | first : rest <- [nubOrdOn same sources]
-  , (_, ElementKey x _) <- rest
+  , (_, keyName -> x) <- rest
   ]
     <> [ errorAt x $
            render k
-             <> " picks elements only on the source side (or in a shared path); "
-             <> "on the target, write "
-             <> nameText h
-             <> "["
-             <> nameText x
-             <> "]"
-       | k@(h, ElementKey x _) <- inKeys to
+             <> " picks elements only on the source side (or in a shared path)"
+             <> case snd k of
+               KeyIn {} -> "; on the target, write " <> nameText h <> "[" <> nameText x <> "]"
+               _ -> ""
+       | k@(h, keyName -> x) <- manyKeys to
        , unmatched k
        ]
     <> [ errorAt x $
            "a guard can't pick elements with "
              <> render k
              <> "; write it on the source side"
-       | k@(_, ElementKey x _) <- concatMap inKeys (maybe [] guardPatterns guard)
+       | k@(_, keyName -> x) <- concatMap manyKeys (maybe [] guardPatterns guard)
        , unmatched k
        ]
   where
-    sources = inKeys from
-    same (h, ElementKey x xs) = (nameText h, nameText x, nameText <$> xs)
+    sources = manyKeys from
+    same (h, k) = (nameText h, renderKey k)
     unmatched k = same k `notElem` map same sources
     render (h, k) = elementSegmentIn h k
 
--- | @L[x in xs]@, for messages.
+-- | @L[x in xs]@ or @L[_]@, for messages.
 elementSegmentIn :: Name -> ElementKey -> Text
 elementSegmentIn h k = nameText h <> renderKey k
 
@@ -847,24 +846,28 @@ transitionNames env input from =
 keyNamings :: Model -> Pattern -> [(Name, Text)]
 keyNamings env p =
   [ (x, nameText k)
-  | (h, ElementKey x (Just _)) <- inKeys p
+  | (h, KeyIn x _) <- manyKeys p
   , Just (TypeTerm (TermList _ (Just k))) <- [typeBody env (nameText h)]
   ]
 
--- | The element paths over several elements in a pattern (@L[x in xs]@),
--- as the list type and the key.
-inKeys :: Pattern -> [(Name, ElementKey)]
-inKeys = \case
-  PatternAlts _ alts -> concatMap inKeys alts
+-- | The element paths over several elements in a pattern (@L[x in xs]@
+-- and @L[_]@), as the list type and the key.
+manyKeys :: Pattern -> [(Name, ElementKey)]
+manyKeys = \case
+  PatternAlts _ alts -> concatMap manyKeys alts
   PatternElement (h :| _) k args ->
-    [(h, k) | isJust (keyIn k)] <> concatMap inKeys args
-  PatternPath _ args -> concatMap inKeys args
-  PatternNamed p _ -> inKeys p
-  PatternPrimed _ p -> inKeys p
+    [(h, k) | many k] <> concatMap manyKeys args
+  PatternPath _ args -> concatMap manyKeys args
+  PatternNamed p _ -> manyKeys p
+  PatternPrimed _ p -> manyKeys p
   PatternList _ _ -> []
   PatternName _ -> []
   PatternBound _ -> []
   PatternExpr _ -> []
+  where
+    many = \case
+      KeyOne _ -> False
+      _ -> True
 
 -- | The values a pattern names (@P#x@), with the type of each: the head
 -- type of @P@, or its list type. A name given to a name (@x#y@) is an
@@ -1053,7 +1056,9 @@ pathBound env (h :| path) = case typeNode env (nameText h) of
 -- value of the element type.
 elementBound :: Model -> NonEmpty Name -> Name -> Bound
 elementBound env (h :| path) key = case nodeBody <$> typeNode env (nameText h) of
-  Just (Just (TypeTerm (TermList element (Just _))))
+  -- A list without a key is reported by 'checkElement', unless the path
+  -- is @L[_]@, which needs none.
+  Just (Just (TypeTerm (TermList element _)))
     | null path -> case element of
         TermName e
           | Just body@(TypeProduct _) <- typeBody env (nameText e) ->
@@ -1248,7 +1253,7 @@ resolve env node at path = case path of
 -- (@Ring.Points(Points[x])@).
 checkElement
   :: Model -> Names -> Node -> Name -> [Name] -> ElementKey -> [Pattern] -> [CheckError]
-checkElement env names node h path (ElementKey key keyList) args = case resolve env node h path of
+checkElement env names node h path ekey args = case resolve env node h path of
   Left errors -> errors
   Right (list, at)
     | not (null path) ->
@@ -1260,19 +1265,22 @@ checkElement env names node h path (ElementKey key keyList) args = case resolve 
                     <> nodeLabel list
                     <> "("
                     <> nameText base
-                    <> "["
-                    <> nameText key
-                    <> "](...))"
+                    <> renderKey ekey
+                    <> "(...))"
                 _ -> "write the path to the variant, then the list type as its argument"
         ]
+    -- @L[_]@ picks no key, so any list will do.
+    | KeyEach _ <- ekey
+    , Just (TypeTerm (TermList element _)) <- nodeBody list ->
+        checkElementArgs (nodeLabel list) element at
     | Just (TypeTerm (TermList element (Just keyType))) <- nodeBody list ->
         checkKey (nodeLabel list) keyType <> checkElementArgs (nodeLabel list) element at
     | Just (TypeTerm (TermList element Nothing)) <- nodeBody list ->
         [ errorAt at $
             nodeLabel list
               <> " has no key, so "
-              <> renderKey (ElementKey key keyList)
-              <> (if isJust keyList then " can't pick elements" else " can't pick an element")
+              <> renderKey ekey
+              <> (if isJust listName then " can't pick elements" else " can't pick an element")
               <> "; declare one, such as "
               <> nodeLabel list
               <> " = ["
@@ -1284,17 +1292,22 @@ checkElement env names node h path (ElementKey key keyList) args = case resolve 
     | otherwise ->
         [ errorAt at $
             nodeLabel list
-              <> " is not a list type; ["
-              <> nameText key
-              <> "] picks an element of a keyed list type, such as L = [T by K]"
+              <> " is not a list type; "
+              <> case ekey of
+                KeyEach _ -> "[_] picks each element of a list type, such as L = [T]"
+                _ ->
+                  renderKey ekey
+                    <> " picks an element of a keyed list type, such as L = [T by K]"
         ]
   where
+    key = keyName ekey
+    listName = keyList ekey
     -- The key type a list without one could take: the named value's type,
     -- or what the list after @in@ holds.
-    keyTypeHint = case keyList of
+    keyTypeHint = case listName of
       Nothing -> Map.lookup (nameText key) names
       Just xs -> Map.lookup (nameText xs) names >>= listBody env >>= memberType
-    checkKey label keyType = case keyList of
+    checkKey label keyType = case listName of
       Just xs -> checkKeys label keyType xs
       Nothing -> checkOneKey label keyType
     -- @x in xs@: @x@ is named by the path, so only @xs@ is checked.
@@ -1672,9 +1685,15 @@ warnListElements env root transitions =
     -- An element path when the list has a type name; otherwise the form
     -- written from the element.
     pickHint element listName listKey fallback = case (listName, listKey) of
-      (Just list, Just _) -> "use an element path, such as " <> list <> "[id](...)"
+      (Just list, Just _) ->
+        "use an element path, such as "
+          <> list
+          <> "[id](...), or "
+          <> each list
       (Just list, Nothing) ->
-        "give "
+        "use "
+          <> each list
+          <> ", or give "
           <> list
           <> " a key ("
           <> list
@@ -1685,9 +1704,18 @@ warnListElements env root transitions =
           <> "[id](...)"
       (Nothing, Just _) -> "give the list a type name and use an element path"
       (Nothing, Nothing) -> fallback
+    each list = list <> "[_](...) for each one that matches"
     fromElement element = "write the transition from " <> element <> " and " <> compareKey element
     compareKey element = "compare a key with a named value, such as " <> element <> "(id * ...)"
     firstJust = foldr (\m rest -> maybe rest Just m) Nothing
+
+-- | The names the brackets of an element path use: @x@ in @[x]@, @xs@ in
+-- @[x in xs]@, none in @[_]@.
+keyUses :: ElementKey -> [Name]
+keyUses = \case
+  KeyOne x -> [x]
+  KeyIn _ xs -> [xs]
+  KeyEach _ -> []
 
 -- | The names a pattern uses (@x@), not the ones it gives (@#x@).
 nameUses :: Pattern -> [Name]
@@ -1696,7 +1724,7 @@ nameUses = \case
   PatternName n -> [n]
   PatternNamed p _ -> nameUses p
   PatternPath _ args -> concatMap nameUses args
-  PatternElement _ k args -> fromMaybe (keyName k) (keyIn k) : concatMap nameUses args
+  PatternElement _ k args -> keyUses k <> concatMap nameUses args
   PatternPrimed _ p -> nameUses p
   PatternList _ _ -> []
   PatternBound _ -> []
